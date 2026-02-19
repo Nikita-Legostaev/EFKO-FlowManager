@@ -4,11 +4,11 @@ import time
 import gc
 import pythoncom
 import win32com.client as win32
-from tkinter import messagebox
 
 # ====================== POWER QUERY ======================
 STATUS_SHEET = "Проверка_обновления"
 STATUS_CELL = "A2"
+
 
 def refresh_file(file_path, log, stop_event):
     filename = os.path.basename(file_path)
@@ -57,7 +57,10 @@ def refresh_file(file_path, log, stop_event):
         pythoncom.CoUninitialize()  # Очистка COM
         gc.collect()
 
-def refresh_competitors_pipeline(olap_file, competitors_file, log, messagebox, stop_event):
+
+def refresh_competitors_pipeline(
+    olap_file, competitors_file, log, messagebox, stop_event
+):
     olap_path = olap_file.get()
     competitors_path = competitors_file.get()
 
