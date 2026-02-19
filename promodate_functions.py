@@ -1,4 +1,3 @@
-# promodate_functions.py
 import os
 import shutil
 from datetime import datetime
@@ -6,46 +5,71 @@ from concurrent.futures import ThreadPoolExecutor
 import polars as pl
 import time
 import gc
+from tkinter import filedialog
 import pythoncom
 import win32com.client as win32
 
-# ====================== ПАПКИ ======================
 FTP_FOLDER = r"M:\FTP"
 DOWNLOAD_FOLDER = os.path.join(os.getcwd(), "Скаченное")
 os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
 
-# ====================== СЕТИ ======================
 network_map = {
-    "Globus", "Metro", "Ашан", "Дикси",
-    "Лента Гипер", "Лента Супер", "Лента Эконом",
-    "Магнит (у дома)", "Магнит Мини",
-    "Магнит Семейный", "Магнит Экстра",
-    "Монетка", "О'кей",
-    "Перекрёсток*", "Пятёрочка", "Чижик"
+    "Globus",
+    "Metro",
+    "Ашан",
+    "Дикси",
+    "Лента Гипер",
+    "Лента Супер",
+    "Лента Эконом",
+    "Магнит (у дома)",
+    "Магнит Мини",
+    "Магнит Семейный",
+    "Магнит Экстра",
+    "Монетка",
+    "О'кей",
+    "Перекрёсток*",
+    "Пятёрочка",
+    "Чижик",
 }
 
-needed_columns = ['group', 'category', 'brand', 'pd_sku', 'retailer', 'region', 'date', 'promo', 'regular']
+needed_columns = [
+    "group",
+    "category",
+    "brand",
+    "pd_sku",
+    "retailer",
+    "region",
+    "date",
+    "promo",
+    "regular",
+]
 
-# ====================== ФИЛЬТРЫ ======================
 FILTER_OPTIONS = {
     "Масло": {"group": "Соусы и масла", "category": "Масло растительное"},
-    "Маргарин": {"group": "Майонез, масло сливочное, яйцо", "category": "Маргарин, спред, жир"},
+    "Маргарин": {
+        "group": "Майонез, масло сливочное, яйцо",
+        "category": "Маргарин, спред, жир",
+    },
     "Майонез": {"group": "Майонез, масло сливочное, яйцо", "category": "Майонез"},
     "Кетчуп": {"group": "Соусы и масла", "category": "Кетчупы"},
-    "Продукты растительного происхождения": {"group": "Диетическое и здоровое питание", "category": "Продукты растительного происхождения"}
+    "Продукты растительного происхождения": {
+        "group": "Диетическое и здоровое питание",
+        "category": "Продукты растительного происхождения",
+    },
 }
 
-# ====================== POWER QUERY ======================
 STATUS_SHEET = "Проверка_обновления"
 STATUS_CELL = "A2"
 
+
 def extract_date(filename):
-    for part in filename.split('_'):
+    for part in filename.split("_"):
         try:
             return datetime.strptime(part, "%Y-%m-%d")
-        except:
+        except ValueError:
             continue
     return None
+
 
 def download_file(src, dst, log):
     try:
@@ -56,11 +80,18 @@ def download_file(src, dst, log):
     except Exception as e:
         log(f"Ошибка загрузки {filename}: {e}")
 
+
 def download_files_thread(month_var, year_var, log, messagebox):
     month = int(month_var.get())
     year = int(year_var.get())
     files = [f for f in os.listdir(FTP_FOLDER) if f.endswith(".xlsx")]
-    files_to_download = [f for f in files if extract_date(f) and extract_date(f).month == month and extract_date(f).year == year]
+    files_to_download = [
+        f
+        for f in files
+        if extract_date(f)
+        and extract_date(f).month == month
+        and extract_date(f).year == year
+    ]
 
     if not files_to_download:
         log("Нет файлов за выбранный месяц/год")
@@ -76,6 +107,7 @@ def download_files_thread(month_var, year_var, log, messagebox):
     messagebox.showinfo("Готово", f"Загрузка завершена!\nПапка: {DOWNLOAD_FOLDER}")
     log("Загрузка всех файлов завершена 🎉")
 
+
 def clear_download_folder(log, messagebox):
     files = [os.path.join(DOWNLOAD_FOLDER, f) for f in os.listdir(DOWNLOAD_FOLDER)]
     if not files:
@@ -90,15 +122,19 @@ def clear_download_folder(log, messagebox):
     messagebox.showinfo("Очистка", "Папка очищена!")
     log("Очистка завершена 🎉")
 
+
 def browse_output_folder(output_folder_var):
     folder = filedialog.askdirectory()
     if folder:
         output_folder_var.set(folder)
 
+
 def get_first_sheet_name(file_path):
     import openpyxl
+
     wb = openpyxl.load_workbook(file_path, read_only=True)
     return wb.sheetnames[0]
+
 
 def process_file(file_path, output_folder, selected_filter, log, chunk_size=100_000):
     try:
@@ -107,34 +143,41 @@ def process_file(file_path, output_folder, selected_filter, log, chunk_size=100_
 
         sheet_name = get_first_sheet_name(file_path)
         df = pl.read_excel(file_path, sheet_name=sheet_name).select(needed_columns)
-        df = df.with_columns([pl.col(c).cast(pl.Utf8).str.strip_chars() for c in df.columns])
+        df = df.with_columns(
+            [pl.col(c).cast(pl.Utf8).str.strip_chars() for c in df.columns]
+        )
 
         mask = (
-            (df['group'] == selected_filter["group"]) &
-            (df['category'] == selected_filter["category"]) &
-            (df['retailer'].is_in(network_map))
+            (df["group"] == selected_filter["group"])
+            & (df["category"] == selected_filter["category"])
+            & (df["retailer"].is_in(network_map))
         )
         df_filtered = df.filter(mask)
 
         os.makedirs(output_folder, exist_ok=True)
-        output_file = os.path.join(output_folder, os.path.splitext(filename)[0] + ".csv")
+        output_file = os.path.join(
+            output_folder, os.path.splitext(filename)[0] + ".csv"
+        )
 
         for start in range(0, df_filtered.height, chunk_size):
-            chunk = df_filtered[start:start + chunk_size].to_pandas()
+            chunk = df_filtered[start : start + chunk_size].to_pandas()
             mode = "w" if start == 0 else "a"
             header = start == 0
-            chunk.to_csv(output_file, index=False, encoding="utf-8-sig", mode=mode, header=header)
+            chunk.to_csv(
+                output_file, index=False, encoding="utf-8-sig", mode=mode, header=header
+            )
 
         log(f"Готово: {filename} | {df.height} → {df_filtered.height} строк")
     except Exception as e:
         log(f"Ошибка обработки {filename}: {e}")
+
 
 def refresh_file(file_path, log, stop_event):
     filename = os.path.basename(file_path)
     excel = None
     wb = None
     try:
-        pythoncom.CoInitialize()  # Инициализация COM для этого потока
+        pythoncom.CoInitialize()
         excel = win32.DispatchEx("Excel.Application")
         excel.Visible = False
         excel.DisplayAlerts = False
@@ -146,7 +189,7 @@ def refresh_file(file_path, log, stop_event):
         log(f"{filename} — RefreshAll запущен...")
 
         timeout = 0
-        while timeout < 450:  # ~15 минут
+        while timeout < 450:
             if stop_event.is_set():
                 log(f"{filename} — остановлено пользователем")
                 return False
@@ -173,8 +216,9 @@ def refresh_file(file_path, log, stop_event):
         if excel:
             excel.Quit()
             del excel
-        pythoncom.CoUninitialize()  # Очистка COM
+        pythoncom.CoUninitialize()
         gc.collect()
+
 
 def refresh_power_query_files(pq_file1, pq_file2, log, stop_event):
     file1 = pq_file1.get()
@@ -192,7 +236,18 @@ def refresh_power_query_files(pq_file1, pq_file2, log, stop_event):
         if success2:
             log("Promodate обновлён 🎉")
 
-def process_files_thread(output_folder_var, filter_var, FILTER_OPTIONS, log, messagebox, stop_event, refresh_power_query_files, pq_file1, pq_file2):
+
+def process_files_thread(
+    output_folder_var,
+    filter_var,
+    FILTER_OPTIONS,
+    log,
+    messagebox,
+    stop_event,
+    refresh_power_query_files,
+    pq_file1,
+    pq_file2,
+):
     output_folder = output_folder_var.get().strip()
     if not output_folder:
         messagebox.showwarning("Ошибка", "Укажите папку сохранения!")
@@ -200,7 +255,11 @@ def process_files_thread(output_folder_var, filter_var, FILTER_OPTIONS, log, mes
 
     selected_filter = FILTER_OPTIONS[filter_var.get()]
 
-    files = [os.path.join(DOWNLOAD_FOLDER, f) for f in os.listdir(DOWNLOAD_FOLDER) if f.endswith(".xlsx")]
+    files = [
+        os.path.join(DOWNLOAD_FOLDER, f)
+        for f in os.listdir(DOWNLOAD_FOLDER)
+        if f.endswith(".xlsx")
+    ]
     if not files:
         messagebox.showwarning("Ошибка", "Нет Excel-файлов в папке Скаченное!")
         return
