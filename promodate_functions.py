@@ -1,57 +1,39 @@
 import os
 import shutil
+import logging
 from datetime import datetime
-from concurrent.futures import ThreadPoolExecutor
-import polars as pl
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import time
 import gc
 from tkinter import filedialog
-import pythoncom
-import win32com.client as win32
+
+# Тяжёлые библиотеки импортируются лениво (внутри функций) — ускоряет запуск exe
 
 FTP_FOLDER = r"M:\FTP"
 DOWNLOAD_FOLDER = os.path.join(os.getcwd(), "Скаченное")
 os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
 
 network_map = {
-    "Globus",
-    "Metro",
-    "Ашан",
-    "Дикси",
-    "Лента Гипер",
-    "Лента Супер",
-    "Лента Эконом",
-    "Магнит (у дома)",
-    "Магнит Мини",
-    "Магнит Семейный",
-    "Магнит Экстра",
-    "Монетка",
-    "О'кей",
-    "Перекрёсток*",
-    "Пятёрочка",
-    "Чижик",
+    "Globus", "Metro", "Ашан", "Дикси",
+    "Лента Гипер", "Лента Супер", "Лента Эконом",
+    "Магнит (у дома)", "Магнит Мини", "Магнит Семейный", "Магнит Экстра",
+    "Монетка", "О'кей", "Перекрёсток*", "Пятёрочка", "Чижик",
 }
 
 needed_columns = [
-    "group",
-    "category",
-    "brand",
-    "pd_sku",
-    "retailer",
-    "region",
-    "date",
-    "promo",
-    "regular",
+    "group", "category", "brand", "pd_sku",
+    "retailer", "region", "date", "promo", "regular",
 ]
 
 FILTER_OPTIONS = {
     "Масло": {"group": "Соусы и масла", "category": "Масло растительное"},
-    "Маргарин": {
-        "group": "Майонез, масло сливочное, яйцо",
-        "category": "Маргарин, спред, жир",
-    },
+    "Маргарин": {"group": "Майонез, масло сливочное, яйцо", "category": "Маргарин, спред, жир"},
     "Майонез": {"group": "Майонез, масло сливочное, яйцо", "category": "Майонез"},
     "Кетчуп": {"group": "Соусы и масла", "category": "Кетчупы"},
+    "Кетчуп+Майонез": [
+        {"group": "Соусы и масла", "category": "Кетчупы"},
+        {"group": "Майонез, масло сливочное, яйцо", "category": "Майонез"},
+    ],
     "Продукты растительного происхождения": {
         "group": "Диетическое и здоровое питание",
         "category": "Продукты растительного происхождения",
@@ -61,8 +43,27 @@ FILTER_OPTIONS = {
 STATUS_SHEET = "Проверка_обновления"
 STATUS_CELL = "A2"
 
+# ── Логирование в файл ────────────────────────────────────────────────────────
 
-def extract_date(filename):
+def setup_file_logger():
+    """Инициализирует запись лога в файл рядом с exe."""
+    log_path = os.path.join(os.getcwd(), "flowmanager.log")
+    logging.basicConfig(
+        filename=log_path,
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+        encoding="utf-8",
+    )
+
+def file_log(message: str):
+    """Дублирует сообщение в файл лога."""
+    logging.info(message)
+
+
+# ── Вспомогательные функции ───────────────────────────────────────────────────
+
+def extract_date(filename: str) -> datetime | None:
     for part in filename.split("_"):
         try:
             return datetime.strptime(part, "%Y-%m-%d")
@@ -71,42 +72,94 @@ def extract_date(filename):
     return None
 
 
-def download_file(src, dst, log):
+def _iter_months(month_from, year_from, month_to, year_to):
+    """Генерирует пары (month, year) включительно."""
+    m, y = month_from, year_from
+    while (y, m) <= (year_to, month_to):
+        yield m, y
+        m += 1
+        if m > 12:
+            m, y = 1, y + 1
+
+
+def _max_workers() -> int:
+    """Оптимальное число потоков под текущую машину."""
+    return min(6, os.cpu_count() or 4)
+
+
+# ── Скачивание ────────────────────────────────────────────────────────────────
+
+def _download_one(src, dst, log):
+    filename = os.path.basename(src)
     try:
-        filename = os.path.basename(src)
         log(f"Начата загрузка: {filename}")
         shutil.copy2(src, dst)
         log(f"Загрузка завершена: {filename}")
+        return True
     except Exception as e:
         log(f"Ошибка загрузки {filename}: {e}")
+        return False
 
 
-def download_files_thread(month_var, year_var, log, messagebox):
-    month = int(month_var.get())
-    year = int(year_var.get())
-    files = [f for f in os.listdir(FTP_FOLDER) if f.endswith(".xlsx")]
-    files_to_download = [
-        f
-        for f in files
-        if extract_date(f)
-        and extract_date(f).month == month
-        and extract_date(f).year == year
-    ]
+def download_files_thread(
+    month_from_var, year_from_var, month_to_var, year_to_var,
+    log, messagebox, progress_callback=None, set_title=None,
+):
+    month_from = int(month_from_var.get())
+    year_from  = int(year_from_var.get())
+    month_to   = int(month_to_var.get())
+    year_to    = int(year_to_var.get())
+
+    if (year_from, month_from) > (year_to, month_to):
+        messagebox.showwarning("Ошибка", "Начало диапазона не может быть позже конца!")
+        return
+
+    valid_pairs = set(_iter_months(month_from, year_from, month_to, year_to))
+
+    # Исправлено: extract_date вызывается ровно один раз на файл
+    files_to_download = []
+    for f in os.listdir(FTP_FOLDER):
+        if not f.endswith(".xlsx"):
+            continue
+        d = extract_date(f)
+        if d and (d.month, d.year) in valid_pairs:
+            files_to_download.append(f)
 
     if not files_to_download:
-        log("Нет файлов за выбранный месяц/год")
+        log("Нет файлов за выбранный период")
         messagebox.showwarning("Инфо", "Нет файлов для загрузки")
         return
 
-    with ThreadPoolExecutor(max_workers=6) as executor:
-        for file in files_to_download:
-            src = os.path.join(FTP_FOLDER, file)
-            dst = os.path.join(DOWNLOAD_FOLDER, file)
-            executor.submit(download_file, src, dst, log)
+    total = len(files_to_download)
+    log(f"Найдено файлов для загрузки: {total}")
+    if set_title:
+        set_title(f"⏳ Загрузка 0 / {total}...")
 
+    completed = 0
+    with ThreadPoolExecutor(max_workers=_max_workers()) as executor:
+        futures = {
+            executor.submit(
+                _download_one,
+                os.path.join(FTP_FOLDER, f),
+                os.path.join(DOWNLOAD_FOLDER, f),
+                log,
+            ): f
+            for f in files_to_download
+        }
+        for future in as_completed(futures):
+            completed += 1
+            if progress_callback:
+                progress_callback(completed, total)
+            if set_title:
+                set_title(f"⏳ Загрузка {completed} / {total}...")
+
+    if set_title:
+        set_title("✅ Готово")
     messagebox.showinfo("Готово", f"Загрузка завершена!\nПапка: {DOWNLOAD_FOLDER}")
     log("Загрузка всех файлов завершена 🎉")
 
+
+# ── Очистка папки ─────────────────────────────────────────────────────────────
 
 def clear_download_folder(log, messagebox):
     files = [os.path.join(DOWNLOAD_FOLDER, f) for f in os.listdir(DOWNLOAD_FOLDER)]
@@ -129,16 +182,23 @@ def browse_output_folder(output_folder_var):
         output_folder_var.set(folder)
 
 
+# ── Обработка файлов ──────────────────────────────────────────────────────────
+
 def get_first_sheet_name(file_path):
-    import openpyxl
-
+    import openpyxl  # ленивый импорт
     wb = openpyxl.load_workbook(file_path, read_only=True)
-    return wb.sheetnames[0]
+    name = wb.sheetnames[0]
+    wb.close()
+    return name
 
 
-def process_file(file_path, output_folder, selected_filter, log, chunk_size=100_000):
+def process_file(file_path, output_folder, selected_filter, log):
+    """Фильтрует один Excel-файл и сохраняет CSV.
+    Использует polars write_csv напрямую — без конвертации в pandas."""
+    import polars as pl  # ленивый импорт
+
+    filename = os.path.basename(file_path)
     try:
-        filename = os.path.basename(file_path)
         log(f"Обработка: {filename}")
 
         sheet_name = get_first_sheet_name(file_path)
@@ -147,32 +207,102 @@ def process_file(file_path, output_folder, selected_filter, log, chunk_size=100_
             [pl.col(c).cast(pl.Utf8).str.strip_chars() for c in df.columns]
         )
 
-        mask = (
-            (df["group"] == selected_filter["group"])
-            & (df["category"] == selected_filter["category"])
-            & (df["retailer"].is_in(network_map))
-        )
-        df_filtered = df.filter(mask)
+        if isinstance(selected_filter, dict):
+            group_mask = (
+                (df["group"] == selected_filter["group"])
+                & (df["category"] == selected_filter["category"])
+            )
+        else:
+            group_mask = pl.lit(False)
+            for filt in selected_filter:
+                group_mask = group_mask | (
+                    (df["group"] == filt["group"])
+                    & (df["category"] == filt["category"])
+                )
+
+        df_filtered = df.filter(group_mask & df["retailer"].is_in(network_map))
 
         os.makedirs(output_folder, exist_ok=True)
-        output_file = os.path.join(
-            output_folder, os.path.splitext(filename)[0] + ".csv"
-        )
+        output_file = os.path.join(output_folder, os.path.splitext(filename)[0] + ".csv")
 
-        for start in range(0, df_filtered.height, chunk_size):
-            chunk = df_filtered[start : start + chunk_size].to_pandas()
-            mode = "w" if start == 0 else "a"
-            header = start == 0
-            chunk.to_csv(
-                output_file, index=False, encoding="utf-8-sig", mode=mode, header=header
-            )
+        # Polars write_csv быстрее и не требует pandas
+        df_filtered.write_csv(output_file, separator=",")
 
         log(f"Готово: {filename} | {df.height} → {df_filtered.height} строк")
+        return True
     except Exception as e:
         log(f"Ошибка обработки {filename}: {e}")
+        return False
 
+
+def process_files_thread(
+    output_folder_var,
+    filter_var,
+    FILTER_OPTIONS,
+    log,
+    messagebox,
+    stop_event,
+    refresh_power_query_files,
+    pq_file1,
+    pq_file2,
+    progress_callback=None,
+    set_title=None,
+):
+    output_folder = output_folder_var.get().strip()
+    if not output_folder:
+        messagebox.showwarning("Ошибка", "Укажите папку сохранения!")
+        return
+
+    selected_filter = FILTER_OPTIONS[filter_var.get()]
+
+    files = [
+        os.path.join(DOWNLOAD_FOLDER, f)
+        for f in os.listdir(DOWNLOAD_FOLDER)
+        if f.endswith(".xlsx")
+    ]
+    if not files:
+        messagebox.showwarning("Ошибка", "Нет Excel-файлов в папке Скаченное!")
+        return
+
+    total = len(files)
+    log(f"Начинаем обработку {total} файлов...")
+    if set_title:
+        set_title(f"⏳ Обработка 0 / {total}...")
+
+    completed = 0
+    with ThreadPoolExecutor(max_workers=_max_workers()) as executor:
+        futures = {
+            executor.submit(process_file, f, output_folder, selected_filter, log): f
+            for f in files
+        }
+        for future in as_completed(futures):
+            if stop_event.is_set():
+                log("⛔ Остановлено пользователем")
+                break
+            completed += 1
+            if progress_callback:
+                progress_callback(completed, total)
+            if set_title:
+                set_title(f"⏳ Обработка {completed} / {total}...")
+
+    if stop_event.is_set():
+        if set_title:
+            set_title("⛔ Остановлено")
+        return
+
+    if set_title:
+        set_title("✅ Готово")
+    log("Обработка промодаты завершена 🎉")
+    messagebox.showinfo("Готово", f"CSV-файлы сохранены в:\n{output_folder}")
+    refresh_power_query_files(pq_file1, pq_file2, log, stop_event)
+
+
+# ── Power Query / Excel refresh ───────────────────────────────────────────────
 
 def refresh_file(file_path, log, stop_event):
+    import pythoncom
+    import win32com.client as win32
+
     filename = os.path.basename(file_path)
     excel = None
     wb = None
@@ -189,7 +319,7 @@ def refresh_file(file_path, log, stop_event):
         log(f"{filename} — RefreshAll запущен...")
 
         timeout = 0
-        while timeout < 450:
+        while timeout < 450:  # ~15 минут
             if stop_event.is_set():
                 log(f"{filename} — остановлено пользователем")
                 return False
@@ -202,6 +332,11 @@ def refresh_file(file_path, log, stop_event):
             timeout += 1
         else:
             log(f"{filename} — тайм-аут ожидания")
+
+        # Проверяем stop_event перед сохранением (исправлен баг зависания)
+        if stop_event.is_set():
+            log(f"{filename} — остановлено до сохранения")
+            return False
 
         wb.Save()
         log(f"{filename} — сохранён ✅")
@@ -235,39 +370,3 @@ def refresh_power_query_files(pq_file1, pq_file2, log, stop_event):
         success2 = refresh_file(file2, log, stop_event)
         if success2:
             log("Promodate обновлён 🎉")
-
-
-def process_files_thread(
-    output_folder_var,
-    filter_var,
-    FILTER_OPTIONS,
-    log,
-    messagebox,
-    stop_event,
-    refresh_power_query_files,
-    pq_file1,
-    pq_file2,
-):
-    output_folder = output_folder_var.get().strip()
-    if not output_folder:
-        messagebox.showwarning("Ошибка", "Укажите папку сохранения!")
-        return
-
-    selected_filter = FILTER_OPTIONS[filter_var.get()]
-
-    files = [
-        os.path.join(DOWNLOAD_FOLDER, f)
-        for f in os.listdir(DOWNLOAD_FOLDER)
-        if f.endswith(".xlsx")
-    ]
-    if not files:
-        messagebox.showwarning("Ошибка", "Нет Excel-файлов в папке Скаченное!")
-        return
-
-    with ThreadPoolExecutor(max_workers=6) as executor:
-        for file in files:
-            executor.submit(process_file, file, output_folder, selected_filter, log)
-
-    log("Обработка промодаты завершена 🎉")
-    messagebox.showinfo("Готово", f"CSV-файлы сохранены в:\n{output_folder}")
-    refresh_power_query_files(pq_file1, pq_file2, log, stop_event)
