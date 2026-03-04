@@ -43,6 +43,7 @@ FILTER_OPTIONS = {
 STATUS_SHEET = "Проверка_обновления"
 STATUS_CELL = "A2"
 
+
 # ── Логирование в файл ────────────────────────────────────────────────────────
 
 def setup_file_logger():
@@ -55,6 +56,7 @@ def setup_file_logger():
         datefmt="%Y-%m-%d %H:%M:%S",
         encoding="utf-8",
     )
+
 
 def file_log(message: str):
     """Дублирует сообщение в файл лога."""
@@ -116,7 +118,6 @@ def download_files_thread(
 
     valid_pairs = set(_iter_months(month_from, year_from, month_to, year_to))
 
-    # Исправлено: extract_date вызывается ровно один раз на файл
     files_to_download = []
     for f in os.listdir(FTP_FOLDER):
         if not f.endswith(".xlsx"):
@@ -182,6 +183,27 @@ def browse_output_folder(output_folder_var):
         output_folder_var.set(folder)
 
 
+def clear_output_folder(output_folder_var, log, messagebox):
+    """Удаляет все файлы из папки сохранения CSV."""
+    folder = output_folder_var.get().strip()
+    if not folder or not os.path.isdir(folder):
+        messagebox.showwarning("Очистка", "Папка сохранения не задана или не существует")
+        return
+    files = [os.path.join(folder, f) for f in os.listdir(folder)
+             if os.path.isfile(os.path.join(folder, f))]
+    if not files:
+        messagebox.showinfo("Очистка", "Папка уже пуста")
+        return
+    for file in files:
+        try:
+            os.remove(file)
+            log(f"Удалён: {os.path.basename(file)}")
+        except Exception as e:
+            log(f"Ошибка удаления: {e}")
+    messagebox.showinfo("Очистка", f"Папка очищена! Удалено файлов: {len(files)}")
+    log("Очистка папки сохранения завершена 🎉")
+
+
 # ── Обработка файлов ──────────────────────────────────────────────────────────
 
 def get_first_sheet_name(file_path):
@@ -193,8 +215,7 @@ def get_first_sheet_name(file_path):
 
 
 def process_file(file_path, output_folder, selected_filter, log):
-    """Фильтрует один Excel-файл и сохраняет CSV.
-    Использует polars write_csv напрямую — без конвертации в pandas."""
+    """Фильтрует один Excel-файл и сохраняет CSV."""
     import polars as pl  # ленивый импорт
 
     filename = os.path.basename(file_path)
@@ -224,8 +245,6 @@ def process_file(file_path, output_folder, selected_filter, log):
 
         os.makedirs(output_folder, exist_ok=True)
         output_file = os.path.join(output_folder, os.path.splitext(filename)[0] + ".csv")
-
-        # Polars write_csv быстрее и не требует pandas
         df_filtered.write_csv(output_file, separator=",")
 
         log(f"Готово: {filename} | {df.height} → {df_filtered.height} строк")
@@ -245,6 +264,8 @@ def process_files_thread(
     refresh_power_query_files,
     pq_file1,
     pq_file2,
+    macro1_name,
+    macro2_name,
     progress_callback=None,
     set_title=None,
 ):
@@ -294,12 +315,18 @@ def process_files_thread(
         set_title("✅ Готово")
     log("Обработка промодаты завершена 🎉")
     messagebox.showinfo("Готово", f"CSV-файлы сохранены в:\n{output_folder}")
-    refresh_power_query_files(pq_file1, pq_file2, log, stop_event)
+
+    refresh_power_query_files(
+        pq_file1, pq_file2,
+        macro1_name, macro2_name,
+        log, stop_event,
+    )
 
 
 # ── Power Query / Excel refresh ───────────────────────────────────────────────
 
 def refresh_file(file_path, log, stop_event):
+    """Обновляет Power Query в обычном .xlsx файле."""
     import pythoncom
     import win32com.client as win32
 
@@ -319,7 +346,7 @@ def refresh_file(file_path, log, stop_event):
         log(f"{filename} — RefreshAll запущен...")
 
         timeout = 0
-        while timeout < 450:  # ~15 минут
+        while timeout < 450:
             if stop_event.is_set():
                 log(f"{filename} — остановлено пользователем")
                 return False
@@ -333,7 +360,6 @@ def refresh_file(file_path, log, stop_event):
         else:
             log(f"{filename} — тайм-аут ожидания")
 
-        # Проверяем stop_event перед сохранением (исправлен баг зависания)
         if stop_event.is_set():
             log(f"{filename} — остановлено до сохранения")
             return False
@@ -345,28 +371,314 @@ def refresh_file(file_path, log, stop_event):
         log(f"Ошибка {filename}: {e}")
         return False
     finally:
-        if wb:
-            wb.Close(SaveChanges=False)
+        try:
+            if wb: wb.Close(SaveChanges=False)
+        except Exception:
+            pass
+        finally:
             del wb
-        if excel:
-            excel.Quit()
+        try:
+            if excel: excel.Quit()
+        except Exception:
+            pass
+        finally:
             del excel
-        pythoncom.CoUninitialize()
+        try:
+            pythoncom.CoUninitialize()
+        except Exception:
+            pass
         gc.collect()
 
 
-def refresh_power_query_files(pq_file1, pq_file2, log, stop_event):
+def _excel_session(log, func):
+    """Открывает изолированный COM-сеанс Excel, выполняет func(excel) и корректно закрывает."""
+    import pythoncom
+    import win32com.client as win32
+
+    excel = None
+    pid = None
+    pythoncom.CoInitialize()
+    try:
+        excel = win32.DispatchEx("Excel.Application")
+        excel.Visible = False
+        excel.DisplayAlerts = False
+        excel.AutomationSecurity = 1
+        pid = _get_excel_pid(excel)
+        return func(excel)
+    except Exception as e:
+        raise
+    finally:
+        try:
+            if excel: excel.Quit()
+        except Exception:
+            pass
+        try:
+            del excel
+        except Exception:
+            pass
+        try:
+            pythoncom.CoUninitialize()
+        except Exception:
+            pass
+        gc.collect()
+        if pid:
+            kill_excel_pid(pid, log)
+
+
+def _refresh_xlsm_query(file_path, log, stop_event):
+    """Сеанс 1: открыть .xlsm, обновить Power Query, сохранить, закрыть."""
+    filename = os.path.basename(file_path)
+
+    def _run(excel):
+        wb = None
+        try:
+            wb = excel.Workbooks.Open(file_path, UpdateLinks=0, ReadOnly=False)
+
+            before = None
+            try:
+                before = wb.Worksheets[STATUS_SHEET].Range(STATUS_CELL).Value
+                log(f"{filename} — до обновления: {before}")
+            except Exception:
+                log(f"{filename} — лист «{STATUS_SHEET}» не найден, ждём по таймауту")
+
+            try:
+                wb.RefreshAll()
+            except Exception as e:
+                log(f"{filename} — RefreshAll ошибка (продолжаем): {e}")
+            log(f"{filename} — RefreshAll запущен...")
+
+            time.sleep(5)
+
+            timeout = 0
+            while timeout < 450:
+                if stop_event.is_set():
+                    log(f"{filename} — остановлено пользователем")
+                    return False
+                time.sleep(2)
+                try:
+                    excel.Calculate()
+                except Exception:
+                    timeout += 1
+                    continue
+                if before is not None:
+                    try:
+                        after = wb.Worksheets[STATUS_SHEET].Range(STATUS_CELL).Value
+                        if after is not None and after != before:
+                            log(f"{filename} — Power Query обновлён: {after}")
+                            break
+                    except Exception:
+                        pass
+                timeout += 1
+            else:
+                log(f"{filename} — тайм-аут ожидания Power Query")
+
+            if stop_event.is_set():
+                log(f"{filename} — остановлено до сохранения")
+                return False
+
+            time.sleep(3)
+            try:
+                wb.Save()
+            except Exception as e:
+                log(f"{filename} — ошибка сохранения: {e}")
+                return False
+            log(f"{filename} — сохранён после обновления ✅")
+            return True
+        finally:
+            try:
+                if wb: wb.Close(SaveChanges=False)
+            except Exception:
+                pass
+            try:
+                del wb
+            except Exception:
+                pass
+
+    try:
+        return _excel_session(log, _run)
+    except Exception as e:
+        log(f"Ошибка обновления квери {filename}: {e}")
+        return False
+
+
+def _run_xlsm_macros(file_path, macro_names, log, stop_event):
+    """Сеанс 2: открыть .xlsm, запустить макросы, сохранить, закрыть."""
+    filename = os.path.basename(file_path)
+    macros = [m.strip() for m in macro_names if m.strip()]
+
+    if not macros:
+        log(f"{filename} — имена макросов не заданы, шаг пропущен")
+        return True
+
+    def _run(excel):
+        wb = None
+        try:
+            wb = excel.Workbooks.Open(file_path, UpdateLinks=0, ReadOnly=False)
+
+            log(f"{filename} — запускаем макросы ({len(macros)} шт.)...")
+            for macro_name in macros:
+                if stop_event.is_set():
+                    log("⛔ Остановлено пользователем")
+                    return False
+                log(f"  ▷ Макрос: {macro_name}")
+                try:
+                    excel.Application.Run(macro_name)
+                    log(f"  ✅ {macro_name} — выполнен")
+                except Exception as e:
+                    log(f"  ❌ Ошибка макроса «{macro_name}»: {e}")
+
+            if stop_event.is_set():
+                log(f"{filename} — остановлено до сохранения")
+                return False
+
+            wb.Save()
+            log(f"{filename} — сохранён после макросов ✅")
+            return True
+        finally:
+            try:
+                if wb: wb.Close(SaveChanges=False)
+            except Exception:
+                pass
+            try:
+                del wb
+            except Exception:
+                pass
+
+    try:
+        return _excel_session(log, _run)
+    except Exception as e:
+        log(f"Ошибка запуска макросов {filename}: {e}")
+        return False
+
+
+def refresh_file_with_macros(file_path, macro_names, log, stop_event):
+    """RefreshAll → макросы — два отдельных COM-сеанса."""
+    filename = os.path.basename(file_path)
+
+    log(f"▶ {filename}: сеанс 1 — обновление Power Query")
+    ok = _refresh_xlsm_query(file_path, log, stop_event)
+    if not ok or stop_event.is_set():
+        return False
+
+    time.sleep(3)
+
+    log(f"▶ {filename}: сеанс 2 — запуск макросов")
+    return _run_xlsm_macros(file_path, macro_names, log, stop_event)
+
+
+def _get_excel_pid(excel) -> int | None:
+    try:
+        import win32process
+        import win32gui
+        hwnd = excel.Hwnd
+        _, pid = win32process.GetWindowThreadProcessId(hwnd)
+        return pid
+    except Exception:
+        return None
+
+
+def kill_excel_pid(pid: int | None, log):
+    if pid is None:
+        return
+    try:
+        import subprocess
+        result = subprocess.run(
+            ["taskkill", "/F", "/PID", str(pid)],
+            capture_output=True, text=True
+        )
+        if result.returncode == 0:
+            log(f"🧹 Процесс Excel (PID {pid}) завершён")
+        else:
+            log(f"🧹 Процесс Excel (PID {pid}) уже не активен")
+    except Exception as e:
+        log(f"Ошибка при завершении процесса Excel PID {pid}: {e}")
+
+
+def refresh_power_query_files(pq_file1, pq_file2, macro1_name, macro2_name, log, stop_event):
+    """Обновляет оба файла Promodate полностью."""
     file1 = pq_file1.get()
     file2 = pq_file2.get()
+
     if not file1 or not os.path.isfile(file1):
-        log("Power Query файл 1 не выбран!")
-        return
+        log("⚠️ Power Query файл 1 не выбран — шаг пропущен")
+    else:
+        log("▶ Обновляем Promodate (файл 1)...")
+        success1 = refresh_file(file1, log, stop_event)
+        if not success1:
+            log("⚠️ Файл 1 не обновлён, продолжаем...")
+        if stop_event.is_set():
+            return
+
     if not file2 or not os.path.isfile(file2):
-        log("Power Query файл 2 не выбран!")
+        log("⚠️ Power Query файл 2 не выбран — шаг пропущен")
         return
-    log("Обновляем Promodate...")
-    success1 = refresh_file(file1, log, stop_event)
-    if success1 and not stop_event.is_set():
-        success2 = refresh_file(file2, log, stop_event)
-        if success2:
-            log("Promodate обновлён 🎉")
+
+    m1 = macro1_name.get().strip() if hasattr(macro1_name, "get") else str(macro1_name).strip()
+    m2 = macro2_name.get().strip() if hasattr(macro2_name, "get") else str(macro2_name).strip()
+    macro_names = [m for m in [m1, m2] if m]
+
+    log("▶ Обновляем Promodate (файл 2 — xlsm + макросы)...")
+    success2 = refresh_file_with_macros(file2, macro_names, log, stop_event)
+    if success2:
+        log("Promodate полностью обновлён 🎉")
+
+
+# ── Поэтапный запуск ─────────────────────────────────────────────────────────
+
+def run_stage_query1(pq_file1_var, log, stop_event, messagebox=None):
+    """Только обновление файла 1 (xlsx)."""
+    file1 = pq_file1_var.get() if hasattr(pq_file1_var, "get") else str(pq_file1_var)
+    if not file1 or not os.path.isfile(file1):
+        msg = "⚠️ Power Query файл 1 не выбран или не существует"
+        log(msg)
+        if messagebox:
+            messagebox.showwarning("Ошибка", msg)
+        return False
+    log("▶ Стадия: Обновление Query 1...")
+    ok = refresh_file(file1, log, stop_event)
+    if ok:
+        log("✅ Query 1 обновлён!")
+    return ok
+
+
+def run_stage_query2(pq_file2_var, log, stop_event, messagebox=None):
+    """Только обновление Power Query файла 2 (xlsm), без макросов."""
+    file2 = pq_file2_var.get() if hasattr(pq_file2_var, "get") else str(pq_file2_var)
+    if not file2 or not os.path.isfile(file2):
+        msg = "⚠️ Power Query файл 2 не выбран или не существует"
+        log(msg)
+        if messagebox:
+            messagebox.showwarning("Ошибка", msg)
+        return False
+    log("▶ Стадия: Обновление Query 2 (xlsm)...")
+    ok = _refresh_xlsm_query(file2, log, stop_event)
+    if ok:
+        log("✅ Query 2 обновлён!")
+    return ok
+
+
+def run_stage_macros(pq_file2_var, macro1_name, macro2_name, log, stop_event, messagebox=None):
+    """Только запуск макросов файла 2 (xlsm), без обновления PQ."""
+    file2 = pq_file2_var.get() if hasattr(pq_file2_var, "get") else str(pq_file2_var)
+    if not file2 or not os.path.isfile(file2):
+        msg = "⚠️ Power Query файл 2 не выбран или не существует"
+        log(msg)
+        if messagebox:
+            messagebox.showwarning("Ошибка", msg)
+        return False
+
+    m1 = macro1_name.get().strip() if hasattr(macro1_name, "get") else str(macro1_name).strip()
+    m2 = macro2_name.get().strip() if hasattr(macro2_name, "get") else str(macro2_name).strip()
+    macro_names = [m for m in [m1, m2] if m]
+
+    if not macro_names:
+        log("⚠️ Имена макросов не заданы — нечего запускать")
+        if messagebox:
+            messagebox.showwarning("Ошибка", "Укажите имена макросов в полях выше")
+        return False
+
+    log(f"▶ Стадия: Запуск макросов ({', '.join(macro_names)})...")
+    ok = _run_xlsm_macros(file2, macro_names, log, stop_event)
+    if ok:
+        log("✅ Макросы выполнены!")
+    return ok
