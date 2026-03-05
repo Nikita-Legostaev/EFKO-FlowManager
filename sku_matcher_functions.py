@@ -11,32 +11,63 @@ import openpyxl
 # ─── Дескрипторы ──────────────────────────────────────────────────────────────
 
 DESCRIPTORS = [
-    'острый','острая','острое','томатный','томатная','томатное',
-    'оливковый','оливковая','классический','классическая',
-    'шашлычный','шашлычная','сладкий','сладкая',
-    'чесночный','чесночная','горчичный','горчичная',
-    'базилик','укроп','зелень','копченый','копченая',
-    'барбекю','bbq','провансаль','уральский','уральская',
-    'сметанный','сметанная','перепелиный','перепелином',
-    'новосибирский','саратовский','московский',
+    "острый",
+    "острая",
+    "острое",
+    "томатный",
+    "томатная",
+    "томатное",
+    "оливковый",
+    "оливковая",
+    "классический",
+    "классическая",
+    "шашлычный",
+    "шашлычная",
+    "сладкий",
+    "сладкая",
+    "чесночный",
+    "чесночная",
+    "горчичный",
+    "горчичная",
+    "базилик",
+    "укроп",
+    "зелень",
+    "копченый",
+    "копченая",
+    "барбекю",
+    "bbq",
+    "провансаль",
+    "уральский",
+    "уральская",
+    "сметанный",
+    "сметанная",
+    "перепелиный",
+    "перепелином",
+    "новосибирский",
+    "саратовский",
+    "московский",
 ]
 
 
 # ─── Алгоритм сходства ────────────────────────────────────────────────────────
 
+
 def extract_weight(s: str):
     matches = re.findall(
-        r'(\d+(?:[.,]\d+)?)\s*(мл|мг|кг|л(?=[^а-яёa-z]|$)|г(?=[^а-яёa-z]|$)|kg|ml|mg|lb)',
-        s, re.IGNORECASE
+        r"(\d+(?:[.,]\d+)?)\s*(мл|мг|кг|л(?=[^а-яёa-z]|$)|г(?=[^а-яёa-z]|$)|kg|ml|mg|lb)",
+        s,
+        re.IGNORECASE,
     )
     if not matches:
         return None
     vals = []
     for num_str, unit in matches:
-        num = float(num_str.replace(',', '.'))
+        num = float(num_str.replace(",", "."))
         u = unit.lower()
-        if u == 'л':  num *= 1000
-        if u in ('кг', 'kg'): num *= 1000
+        if u == "л":
+            num *= 1000
+        if u in ("кг", "kg"):
+            num *= 1000
         vals.append(num)
     return max(vals)
 
@@ -67,7 +98,11 @@ def levenshtein_ratio(a: str, b: str) -> float:
     for i in range(1, la + 1):
         curr = [i] + [0] * lb
         for j in range(1, lb + 1):
-            curr[j] = prev[j-1] if a[i-1] == b[j-1] else 1 + min(prev[j], curr[j-1], prev[j-1])
+            curr[j] = (
+                prev[j - 1]
+                if a[i - 1] == b[j - 1]
+                else 1 + min(prev[j], curr[j - 1], prev[j - 1])
+            )
         prev = curr
     return 1 - prev[lb] / max(la, lb)
 
@@ -78,7 +113,10 @@ def similarity(a: str, b: str) -> float:
 
 # ─── Основной пайплайн ────────────────────────────────────────────────────────
 
-def run_matching(ref_path: str, csv_folder: str, threshold: float, on_progress, on_done):
+
+def run_matching(
+    ref_path: str, csv_folder: str, threshold: float, on_progress, on_done
+):
     """
     Запускается в отдельном потоке.
     on_progress(msg: str)
@@ -86,14 +124,16 @@ def run_matching(ref_path: str, csv_folder: str, threshold: float, on_progress, 
     """
     try:
         wb = openpyxl.load_workbook(ref_path)
-        ws = wb['SKU'] if 'SKU' in wb.sheetnames else wb.active
+        ws = wb["SKU"] if "SKU" in wb.sheetnames else wb.active
         ref_rows = [list(row) for row in ws.iter_rows(min_row=2, values_only=True)]
 
-        indicative = [r for r in ref_rows if r[4] == 'индикативное']
-        existing   = {r[2] for r in ref_rows if r[2]}
-        on_progress(f"Справочник: {len(ref_rows)} строк, индикативных: {len(indicative)}")
+        indicative = [r for r in ref_rows if r[4] == "индикативное"]
+        existing = {r[2] for r in ref_rows if r[2]}
+        on_progress(
+            f"Справочник: {len(ref_rows)} строк, индикативных: {len(indicative)}"
+        )
 
-        csv_files = list(Path(csv_folder).glob('*.csv'))
+        csv_files = list(Path(csv_folder).glob("*.csv"))
         if not csv_files:
             on_done([], error="В папке нет CSV файлов")
             return
@@ -102,11 +142,11 @@ def run_matching(ref_path: str, csv_folder: str, threshold: float, on_progress, 
         for f in csv_files:
             try:
                 df = pd.read_csv(f)
-                if 'pd_sku' not in df.columns:
+                if "pd_sku" not in df.columns:
                     on_progress(f"⚠ Пропущен {f.name} — нет pd_sku")
                     continue
-                cols = [c for c in ['pd_sku', 'brand', 'category'] if c in df.columns]
-                frames.append(df[cols].drop_duplicates('pd_sku'))
+                cols = [c for c in ["pd_sku", "brand", "category"] if c in df.columns]
+                frames.append(df[cols].drop_duplicates("pd_sku"))
                 on_progress(f"→ {f.name}: {len(df)} строк")
             except Exception as e:
                 on_progress(f"⚠ Ошибка {f.name}: {e}")
@@ -115,41 +155,43 @@ def run_matching(ref_path: str, csv_folder: str, threshold: float, on_progress, 
             on_done([], error="Ни один CSV не подошёл")
             return
 
-        all_skus = pd.concat(frames).drop_duplicates('pd_sku')
-        new_skus = all_skus[~all_skus['pd_sku'].isin(existing)]
+        all_skus = pd.concat(frames).drop_duplicates("pd_sku")
+        new_skus = all_skus[~all_skus["pd_sku"].isin(existing)]
         on_progress(f"Новых SKU для матчинга: {len(new_skus)}")
 
         results = []
         total = len(new_skus)
         for idx, (_, row) in enumerate(new_skus.iterrows()):
-            csv_sku   = row['pd_sku']
-            csv_brand = str(row.get('brand', '')).lower()
+            csv_sku = row["pd_sku"]
+            csv_brand = str(row.get("brand", "")).lower()
 
             best_score, best_ind = 0.0, None
             for ind in indicative:
-                if csv_brand and csv_brand != 'nan':
-                    ind_brand = str(ind[1] or '').lower()
+                if csv_brand and csv_brand != "nan":
+                    ind_brand = str(ind[1] or "").lower()
                     if ind_brand not in csv_brand and csv_brand not in ind_brand:
                         continue
-                score = similarity(csv_sku, str(ind[2] or ''))
+                score = similarity(csv_sku, str(ind[2] or ""))
                 if score > best_score:
                     best_score, best_ind = score, ind
 
             if best_score >= threshold and best_ind:
-                results.append({
-                    'Категория':        best_ind[0],
-                    'Бренд':            best_ind[1],
-                    'Наименование SKU': csv_sku,
-                    'Совпало с':        best_ind[2],
-                    'SKU скорр':        best_ind[3],
-                    'Статус SKU':       'индикативное',
-                    'Уверенность':      round(best_score, 2),
-                })
+                results.append(
+                    {
+                        "Категория": best_ind[0],
+                        "Бренд": best_ind[1],
+                        "Наименование SKU": csv_sku,
+                        "Совпало с": best_ind[2],
+                        "SKU скорр": best_ind[3],
+                        "Статус SKU": "индикативное",
+                        "Уверенность": round(best_score, 2),
+                    }
+                )
 
             if idx % 20 == 0:
                 on_progress(f"Обработано: {idx + 1}/{total}...")
 
-        results.sort(key=lambda x: -x['Уверенность'])
+        results.sort(key=lambda x: -x["Уверенность"])
         on_done(results)
 
     except Exception as e:
@@ -158,22 +200,23 @@ def run_matching(ref_path: str, csv_folder: str, threshold: float, on_progress, 
 
 # ─── Сохранение ───────────────────────────────────────────────────────────────
 
+
 def save_to_reference(selected_results: list, ref_path: str) -> int:
     """Дописывает выбранные строки в лист SKU справочника."""
     wb = openpyxl.load_workbook(ref_path)
-    ws = wb['SKU'] if 'SKU' in wb.sheetnames else wb.active
+    ws = wb["SKU"] if "SKU" in wb.sheetnames else wb.active
 
-    if ws.cell(row=1, column=6).value != 'Уверенность совпадения':
-        ws.cell(row=1, column=6).value = 'Уверенность совпадения'
+    if ws.cell(row=1, column=6).value != "Уверенность совпадения":
+        ws.cell(row=1, column=6).value = "Уверенность совпадения"
 
     next_row = ws.max_row + 1
     for r in selected_results:
-        ws.cell(row=next_row, column=1).value = r['Категория']
-        ws.cell(row=next_row, column=2).value = r['Бренд']
-        ws.cell(row=next_row, column=3).value = r['Наименование SKU']
-        ws.cell(row=next_row, column=4).value = r['SKU скорр']
-        ws.cell(row=next_row, column=5).value = r['Статус SKU']
-        ws.cell(row=next_row, column=6).value = r['Уверенность']
+        ws.cell(row=next_row, column=1).value = r["Категория"]
+        ws.cell(row=next_row, column=2).value = r["Бренд"]
+        ws.cell(row=next_row, column=3).value = r["Наименование SKU"]
+        ws.cell(row=next_row, column=4).value = r["SKU скорр"]
+        ws.cell(row=next_row, column=5).value = r["Статус SKU"]
+        ws.cell(row=next_row, column=6).value = r["Уверенность"]
         next_row += 1
 
     wb.save(ref_path)
