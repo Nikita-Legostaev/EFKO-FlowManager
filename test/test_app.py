@@ -1,7 +1,11 @@
+# ruff: noqa: F821
+# ruff: noqa: F811
+# ruff: noqa: F841
+# ruff: noqa: E402 
 import os
 import threading
 from datetime import datetime
-from unittest.mock import MagicMock, patch, mock_open, PropertyMock
+from unittest.mock import MagicMock, patch, PropertyMock
 import polars as pl
 import tempfile
 
@@ -48,14 +52,11 @@ class TestDownloadFilesThread:
             "data_2024-04-01_retail.xlsx",
             "other.txt",
         ]
-        
+
         mock_ctx = MagicMock()
-import os
-import threading
-from datetime import datetime
-from unittest.mock import MagicMock, patch, mock_open, PropertyMock
-import polars as pl
-import tempfile
+
+
+from unittest.mock import patch
 
 
 class TestExtractDate:
@@ -569,7 +570,7 @@ class TestProcessFile:
     def test_matching_row_is_saved(self, mock_mkd, mock_sheet):
         """Test that matching rows are saved correctly"""
         df = self._make_df("Соусы и масла", "Масло растительное", "Пятёрочка")
-        
+
         log = MagicMock()
         # Mock at the function level to avoid import-time issues
         with patch("promodate_functions.pl.read_excel") as mock_read:
@@ -587,7 +588,7 @@ class TestProcessFile:
         with patch("promodate_functions.pl.read_excel") as mock_read:
             mock_read.side_effect = Exception("read error")
             self.fn("/fake/bad.xlsx", "/out", self.filter, log)
-        
+
         error_logged = any("Ошибка" in str(c) for c in log.call_args_list)
         assert error_logged
 
@@ -731,7 +732,7 @@ class TestRefreshFile:
         """Test successful file refresh with COM/Excel interaction"""
         log = MagicMock()
         stop = threading.Event()
-        
+
         # Mock win32 at patch time, not import time
         with patch("competitors_functions.win32") as mock_win32:
             mock_excel = MagicMock()
@@ -745,7 +746,7 @@ class TestRefreshFile:
 
             with patch("competitors_functions.time.sleep"):
                 result = self.fn("/fake/file.xlsx", log, stop)
-            
+
             assert isinstance(result, bool)
 
     @patch("competitors_functions.pythoncom")
@@ -775,11 +776,11 @@ class TestRefreshFile:
         """Test that COM errors are caught and logged"""
         with patch("competitors_functions.win32.DispatchEx") as mock_dispatch:
             mock_dispatch.side_effect = Exception("COM error")
-            
+
             log = MagicMock()
             stop = threading.Event()
             result = self.fn("/fake/file.xlsx", log, stop)
-            
+
             assert result is False
             error_logged = any("Ошибка" in str(c) for c in log.call_args_list)
             assert error_logged
@@ -907,7 +908,7 @@ class TestLoadSheet:
     def test_reads_excel_and_writes_cache(self, tmp_path):
         """Test reading from Excel when cache doesn't exist"""
         df = pl.DataFrame({"Col1": ["a"], "Col2": [1.0]})
-        
+
         log = MagicMock()
         with patch("nielsen_functions.pl.read_excel") as mock_read:
             mock_read.return_value = df
@@ -915,12 +916,14 @@ class TestLoadSheet:
 
             assert name == "BRAND"
             assert (tmp_path / "BRAND.parquet").exists()
-            assert any("Excel" in str(c) or "Читаем" in str(c) for c in log.call_args_list)
+            assert any(
+                "Excel" in str(c) or "Читаем" in str(c) for c in log.call_args_list
+            )
 
     def test_drops_columns_starting_with_unnamed(self, tmp_path):
         """Test that Unnamed columns are dropped"""
         df = pl.DataFrame({"Unnamed_0": [1], "Value": [2], "Unnamed_1": [3]})
-        
+
         log = MagicMock()
         with patch("nielsen_functions.pl.read_excel") as mock_read:
             mock_read.return_value = df
@@ -932,7 +935,7 @@ class TestLoadSheet:
     def test_drops_all_null_rows(self, tmp_path):
         """Test that rows with all null values are dropped"""
         df = pl.DataFrame({"A": [1, None, 3], "B": [4, None, 6]})
-        
+
         log = MagicMock()
         with patch("nielsen_functions.pl.read_excel") as mock_read:
             mock_read.return_value = df
@@ -943,7 +946,7 @@ class TestLoadSheet:
     def test_deduplicates_column_names(self, tmp_path):
         """Test that duplicate column names get suffixes"""
         df = pl.DataFrame({"A": [1], "A_1": [2]})
-        
+
         log = MagicMock()
         with patch("nielsen_functions.pl.read_excel") as mock_read:
             mock_read.return_value = df
@@ -1428,7 +1431,9 @@ class TestProcessFilesThread:
         pq2 = MagicMock()
         mock_pq = MagicMock()
 
-        with patch("promodate_functions.os.listdir", return_value=["readme.txt", "data.csv"]):
+        with patch(
+            "promodate_functions.os.listdir", return_value=["readme.txt", "data.csv"]
+        ):
             self.fn(
                 output_var,
                 filter_var,
