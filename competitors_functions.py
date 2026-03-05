@@ -2,20 +2,22 @@
 import os
 import time
 import gc
-import pythoncom
-import win32com.client as win32
 
-# ====================== POWER QUERY ======================
+# Тяжёлые COM-библиотеки — ленивый импорт, чтобы не тормозить запуск exe
+
 STATUS_SHEET = "Проверка_обновления"
 STATUS_CELL = "A2"
 
 
-def refresh_file(file_path, log, stop_event):
+def refresh_file(file_path, log, stop_event, timeout_minutes: int = 15):
+    import pythoncom  # ленивый импорт
+    import win32com.client as win32
+
     filename = os.path.basename(file_path)
     excel = None
     wb = None
     try:
-        pythoncom.CoInitialize()  # Инициализация COM для этого потока
+        pythoncom.CoInitialize()
         excel = win32.DispatchEx("Excel.Application")
         excel.Visible = False
         excel.DisplayAlerts = False
@@ -27,7 +29,8 @@ def refresh_file(file_path, log, stop_event):
         log(f"{filename} — RefreshAll запущен...")
 
         timeout = 0
-        while timeout < 450:  # ~15 минут
+        max_iter = timeout_minutes * 30  # итераций (sleep 2 сек → 30 итер/мин)
+        while timeout < max_iter:
             if stop_event.is_set():
                 log(f"{filename} — остановлено пользователем")
                 return False
@@ -40,6 +43,11 @@ def refresh_file(file_path, log, stop_event):
             timeout += 1
         else:
             log(f"{filename} — тайм-аут ожидания")
+
+        # Исправлено: проверяем stop_event перед сохранением
+        if stop_event.is_set():
+            log(f"{filename} — остановлено до сохранения")
+            return False
 
         wb.Save()
         log(f"{filename} — сохранён ✅")
@@ -54,12 +62,17 @@ def refresh_file(file_path, log, stop_event):
         if excel:
             excel.Quit()
             del excel
-        pythoncom.CoUninitialize()  # Очистка COM
+        pythoncom.CoUninitialize()
         gc.collect()
 
 
 def refresh_competitors_pipeline(
-    olap_file, competitors_file, log, messagebox, stop_event
+    olap_file,
+    competitors_file,
+    log,
+    messagebox,
+    stop_event,
+    on_file_updated=None,  # callback(path) → app.py обновит свой last_updated_competitors_file
 ):
     olap_path = olap_file.get()
     competitors_path = competitors_file.get()
@@ -74,11 +87,13 @@ def refresh_competitors_pipeline(
         return
 
     log("=== ЗАПУСК ПАЙПЛАЙНА «ПОЛОЖЕНИЕ КОНКУРЕНТОВ» ===")
-    stop_event.clear()
+    # Исправлено: убран stop_event.clear() — app.py делает это сам перед запуском
 
     if not refresh_file(olap_path, log, stop_event):
-        log("❌ OLAP не обновлён — прерываем")
+        if not stop_event.is_set():
+            log("❌ OLAP не обновлён — прерываем")
         return
+
     if stop_event.is_set():
         return
 
@@ -86,8 +101,9 @@ def refresh_competitors_pipeline(
     success = refresh_file(competitors_path, log, stop_event)
 
     if success and not stop_event.is_set():
-        global last_updated_competitors_file
-        last_updated_competitors_file = competitors_path
+        # Исправлено: сообщаем app.py через callback вместо своего глобала
+        if on_file_updated:
+            on_file_updated(competitors_path)
         log("✅ Положение конкурентов успешно обновлено!")
         messagebox.showinfo("Готово", "Положение конкурентов обновлено!")
     else:
