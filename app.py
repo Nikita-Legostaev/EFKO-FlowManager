@@ -1,550 +1,622 @@
-import os
-import customtkinter as ctk
-from tkinter import messagebox, filedialog
-from datetime import datetime
+# ruff: noqa: E402
+"""
+EFKO FlowManager — pywebview backend
+pip install pywebview
+"""
+
+# ═══════════════════════════════════════════════════════════════════════════
+# СПЛЭШ — САМЫЕ ПЕРВЫЕ СТРОКИ, до любых импортов
+# tkinter встроен в Python, поэтому грузится мгновенно
+# ═══════════════════════════════════════════════════════════════════════════
+import tkinter as tk
+
+
+def _make_splash():
+    W, H = 400, 240
+    root = tk.Tk()
+    root.overrideredirect(True)
+    root.attributes("-topmost", True)
+    sw, sh = root.winfo_screenwidth(), root.winfo_screenheight()
+    root.geometry(f"{W}x{H}+{(sw-W)//2}+{(sh-H)//2}")
+    root.configure(bg="#1e8c42")
+
+    c = tk.Canvas(root, width=W, height=H, bg="#1e8c42", highlightthickness=0)
+    c.pack(fill="both", expand=True)
+
+    # Градиент
+    for i in range(48):
+        t = i / 48
+        r = int(0x18 + (0x30 - 0x18) * t)
+        g = int(0x8C + (0xC7 - 0x8C) * t)
+        b = int(0x3A + (0x55 - 0x3A) * t)
+        y0, y1 = int(H * i / 48), int(H * (i + 1) / 48) + 1
+        c.create_rectangle(0, y0, W, y1, fill=f"#{r:02x}{g:02x}{b:02x}", outline="")
+
+    # Иконка
+    cx, cy = W // 2, 72
+    c.create_oval(
+        cx - 28, cy - 28, cx + 28, cy + 28, fill="#2aaa52", outline="#aaffbb", width=1
+    )
+    c.create_line(
+        cx - 13,
+        cy + 2,
+        cx - 3,
+        cy + 12,
+        cx + 14,
+        cy - 9,
+        fill="white",
+        width=3,
+        capstyle="round",
+        joinstyle="round",
+    )
+
+    # Название
+    c.create_text(
+        W // 2 - 1,
+        124,
+        text="Flow",
+        font=("Segoe UI", 26, "bold"),
+        fill="#ffffff",
+        anchor="e",
+    )
+    c.create_text(
+        W // 2 - 1,
+        124,
+        text="Manager",
+        font=("Segoe UI", 26),
+        fill="#aaeebb",
+        anchor="w",
+    )
+    c.create_text(
+        W // 2, 150, text="EFKO  ·  v3.0", font=("Segoe UI", 9), fill="#88ccaa"
+    )
+
+    # Прогресс
+    bx1, by1, bx2, by2 = 50, 178, W - 50, 183
+    c.create_rectangle(bx1, by1, bx2, by2, fill="#2aaa52", outline="")
+    bar = c.create_rectangle(bx1, by1, bx1, by2, fill="white", outline="")
+    hint = c.create_text(
+        W // 2, 200, text="Запуск…", font=("Segoe UI", 9), fill="#88ccaa"
+    )
+
+    root.lift()
+    root.focus_force()
+    root.update()
+
+    def set_progress(pct, text=""):
+        try:
+            w = (bx2 - bx1) * min(pct, 100) / 100
+            c.coords(bar, bx1, by1, bx1 + w, by2)
+            if text:
+                c.itemconfigure(hint, text=text)
+            root.update()
+        except Exception:
+            pass
+
+    def close():
+        try:
+            root.destroy()
+        except Exception:
+            pass
+
+    return set_progress, close
+
+
+_splash_set, _splash_close = _make_splash()
+_splash_set(8, "Загрузка модулей…")
+
+# ── Теперь грузим всё тяжёлое ─────────────────────────────────────────────
+import webview
 import threading
+import json
+import os
+import logging
+from pathlib import Path
+from datetime import datetime
+
+_splash_set(18, "Базовые модули…")
 
 
 from promodate_functions import (
     FILTER_OPTIONS,
     download_files_thread,
     clear_download_folder,
-    browse_output_folder,
+    clear_output_folder,
     process_files_thread,
     refresh_power_query_files,
+    run_stage_query1,
+    run_stage_query2,
+    run_stage_macros,
 )
+
+_splash_set(35, "Загрузка функций промодаты…")
+
+from sku_matcher_functions import run_matching, save_to_reference
+
+_splash_set(50, "SKU Matcher…")
+
 from competitors_functions import refresh_competitors_pipeline
+
+_splash_set(62, "Модуль конкурентов…")
+
 from nielsen_functions import process_nielsen
 
-ctk.set_appearance_mode("light")
-ctk.set_default_color_theme("green")
+_splash_set(74, "Nielsen…")
 
-CONFIG_FILE = "last_folder.txt"
+from production_functions import run_production, MONTH_LABELS
 
-stop_event = threading.Event()
-last_updated_competitors_file = None
+_splash_set(85, "Модуль производства…")
 
-
-def log(message):
-    log_text.configure(state="normal")
-    log_text.insert(ctk.END, f"[{datetime.now().strftime('%H:%M:%S')}] {message}\n")
-    log_text.see(ctk.END)
-    log_text.update_idletasks()
-    log_text.configure(state="disabled")
+CONFIG_FILE = "config.json"
 
 
-def save_config():
+# ── Logger ────────────────────────────────────────────────────────────────────
+
+
+def setup_logger():
+    log_path = os.path.join(os.getcwd(), "flowmanager.log")
+    logging.basicConfig(
+        filename=log_path,
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+        encoding="utf-8",
+    )
+
+
+# ── Config ────────────────────────────────────────────────────────────────────
+
+
+def load_config() -> dict:
+    defaults = {
+        "output_folder": "",
+        "pq_file1": "",
+        "pq_file2": "",
+        "macro1": "ExtendDatesAndFormulas",
+        "macro2": "ExtendDatesAndFormulas_MNZ",
+        "olap_file": "",
+        "competitors_file": "",
+        "nielsen_input": "",
+        "nielsen_output": "",
+        "nielsen_format": "csv",
+        "nielsen_category": "Масло",
+        "query_refresh_file": "",
+        "prod_svod_folder": "",
+        "prod_npk_file": "",
+        "prod_tolyatti": "",
+        "prod_target": "",
+        "prod_mapping": "",
+        "prod_year": str(datetime.now().year),
+        "prod_month": MONTH_LABELS[datetime.now().month - 1],
+        "dark_theme": False,
+    }
+    if not os.path.exists(CONFIG_FILE):
+        return defaults
+    try:
+        with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        for k in defaults:
+            if k in data:
+                defaults[k] = data[k]
+    except Exception as e:
+        logging.error(f"Config load error: {e}")
+    return defaults
+
+
+def save_config_data(data: dict):
     try:
         with open(CONFIG_FILE, "w", encoding="utf-8") as f:
-            f.write(output_folder_var.get().strip() + "\n")
-            f.write(pq_file1.get().strip() + "\n")
-            f.write(pq_file2.get().strip() + "\n")
-            f.write(olap_file.get().strip() + "\n")
-            f.write(competitors_file.get().strip() + "\n")
-            f.write(nielsen_input_file.get().strip() + "\n")
-            f.write(nielsen_output_dir.get().strip() + "\n")
-            f.write(nielsen_format.get() + "\n")
-            f.write(nielsen_category_var.get() + "\n")
+            json.dump(data, f, ensure_ascii=False, indent=2)
     except Exception as e:
-        log(f"Ошибка сохранения конфига: {e}")
+        logging.error(f"Config save error: {e}")
 
 
-def load_config():
-    output_folder = ""
-    file1 = ""
-    file2 = ""
-    olap = ""
-    competitors = ""
-    nielsen_input = ""
-    nielsen_output = ""
-    nielsen_fmt = "csv"
-    nielsen_category = "Масло"
-    if os.path.exists(CONFIG_FILE):
+# ── Mock helpers ──────────────────────────────────────────────────────────────
+
+
+class _SV:
+    """Mock StringVar for legacy function compatibility."""
+
+    def __init__(self, v):
+        self._v = v
+
+    def get(self):
+        return str(self._v) if self._v is not None else ""
+
+
+class _MB:
+    """Mock tkinter.messagebox → push JS toasts."""
+
+    def __init__(self, api):
+        self._api = api
+
+    def showinfo(self, title, msg):
+        self._api._emit("toast", {"type": "success", "message": str(msg)})
+
+    def showwarning(self, title, msg):
+        self._api._emit("toast", {"type": "warning", "message": str(msg)})
+
+    def showerror(self, title, msg):
+        self._api._emit("toast", {"type": "error", "message": str(msg)})
+
+    def askyesno(self, title, msg):
         try:
-            with open(CONFIG_FILE, "r", encoding="utf-8") as f:
-                lines = [line.strip() for line in f.readlines()]
-                if len(lines) >= 1 and os.path.isdir(lines[0]):
-                    output_folder = lines[0]
-                if len(lines) >= 2 and os.path.isfile(lines[1]):
-                    file1 = lines[1]
-                if len(lines) >= 3 and os.path.isfile(lines[2]):
-                    file2 = lines[2]
-                if len(lines) >= 4 and os.path.isfile(lines[3]):
-                    olap = lines[3]
-                if len(lines) >= 5 and os.path.isfile(lines[4]):
-                    competitors = lines[4]
-                if len(lines) >= 6 and os.path.isfile(lines[5]):
-                    nielsen_input = lines[5]
-                if len(lines) >= 7 and os.path.isdir(lines[6]):
-                    nielsen_output = lines[6]
-                if len(lines) >= 8:
-                    nielsen_fmt = lines[7]
-                if len(lines) >= 9:
-                    nielsen_category = lines[8]
-        except Exception as e:
-            log(f"Ошибка загрузки конфига: {e}")
-    return (
-        output_folder,
-        file1,
-        file2,
-        olap,
-        competitors,
-        nielsen_input,
-        nielsen_output,
-        nielsen_fmt,
-        nielsen_category,
-    )
+            return bool(
+                self._api._window.evaluate_js(f"confirm({json.dumps(str(msg))})")
+            )
+        except Exception:
+            return False
+
+    def askokcancel(self, title, msg):
+        return self.askyesno(title, msg)
 
 
-def start_download_thread():
-    threading.Thread(
-        target=download_files_thread,
-        args=(month_var, year_var, log, messagebox),
-        daemon=True,
-    ).start()
+# ═════════════════════════════════════════════════════════════════════════════
+# API exposed to JS
+# ═════════════════════════════════════════════════════════════════════════════
 
 
-def start_clear_download_thread():
-    threading.Thread(
-        target=clear_download_folder, args=(log, messagebox), daemon=True
-    ).start()
+class Api:
+    def __init__(self):
+        self._window = None
+        self._stop_event = threading.Event()
+        self._mb = _MB(self)
+        self._last_competitors_file = None
 
+    # ── Push events to JS ─────────────────────────────────────────────────────
 
-def browse_power_query_file(var):
-    file = filedialog.askopenfilename(
-        title="Выберите Excel файл", filetypes=[("Excel", "*.xlsx *.xlsm")]
-    )
-    if file:
-        var.set(file)
-        log(f"Выбран файл: {file}")
-        save_config()
+    def _emit(self, event_type, data=None):
+        if self._window:
+            try:
+                payload = json.dumps({"type": event_type, "data": data})
+                self._window.evaluate_js(f"window.__pyEvent({payload})")
+            except Exception as e:
+                logging.error(f"emit error [{event_type}]: {e}")
 
+    def _log(self, msg):
+        logging.info(msg)
+        self._emit("log", str(msg))
 
-def browse_nielsen_input():
-    file = filedialog.askopenfilename(
-        title="Выберите файл Nielsen", filetypes=[("Excel", "*.xlsx")]
-    )
-    if file:
-        nielsen_input_file.set(file)
-        log(f"Выбран файл Nielsen: {file}")
-        save_config()
+    def _progress(self, done, total):
+        self._emit("progress", {"done": done, "total": total})
 
+    def _set_title(self, text):
+        self._emit("set_title", str(text))
 
-def browse_nielsen_output():
-    folder = filedialog.askdirectory(title="Выберите папку сохранения")
-    if folder:
-        nielsen_output_dir.set(folder)
-        log(f"Выбрана папка сохранения Nielsen: {folder}")
-        save_config()
+    # ── Config ────────────────────────────────────────────────────────────────
 
+    def get_config(self):
+        return load_config()
 
-def start_processing_thread():
-    threading.Thread(
-        target=process_files_thread,
-        args=(
-            output_folder_var,
-            filter_var,
-            FILTER_OPTIONS,
-            log,
-            messagebox,
-            stop_event,
-            refresh_power_query_files,
-            pq_file1,
-            pq_file2,
-        ),
-        daemon=True,
-    ).start()
+    def save_config(self, data):
+        save_config_data(data)
+        return True
 
+    def get_filter_options(self):
+        return list(FILTER_OPTIONS.keys())
 
-def start_main_action():
-    stop_event.clear()
-    mode = action_var.get()
-    if mode == "promodate":
-        log("Запущен режим: Фильтрация промодаты + Promodate")
-        start_processing_thread()
-    elif mode == "competitors":
-        log("Запущен режим: Положение конкурентов")
+    def get_month_labels(self):
+        return MONTH_LABELS
+
+    # ── File dialogs ──────────────────────────────────────────────────────────
+
+    def browse_file(self):
+        result = self._window.create_file_dialog(
+            webview.OPEN_DIALOG,
+            file_types=("Excel Files (*.xlsx;*.xlsm)", "All Files (*.*)"),
+        )
+        return result[0] if result else None
+
+    def browse_folder(self):
+        result = self._window.create_file_dialog(webview.FOLDER_DIALOG)
+        return result[0] if result else None
+
+    # ── Utilities ─────────────────────────────────────────────────────────────
+
+    def open_folder(self, path):
+        if path and os.path.isdir(path):
+            try:
+                os.startfile(path)
+            except Exception as e:
+                self._emit("toast", {"type": "error", "message": str(e)})
+        return True
+
+    def open_file(self, path):
+        if path and os.path.isfile(path):
+            try:
+                os.startfile(path)
+            except Exception as e:
+                self._emit("toast", {"type": "error", "message": str(e)})
+        return True
+
+    def stop(self):
+        self._stop_event.set()
+        self._emit("toast", {"type": "warning", "message": "Операция остановлена"})
+        self._emit("set_title", "")
+        return True
+
+    def clear_downloads(self):
         threading.Thread(
-            target=refresh_competitors_pipeline,
-            args=(olap_file, competitors_file, log, messagebox, stop_event),
+            target=clear_download_folder, args=(self._log, self._mb), daemon=True
+        ).start()
+        return True
+
+    def clear_output(self, path):
+        threading.Thread(
+            target=clear_output_folder,
+            args=(_SV(path), self._log, self._mb),
             daemon=True,
         ).start()
-    elif mode == "nielsen":
-        log("Запущен режим: Обработка Nielsen")
+        return True
+
+    def open_last_competitors_file(self):
+        if self._last_competitors_file:
+            self.open_file(self._last_competitors_file)
+        else:
+            self._emit(
+                "toast", {"type": "warning", "message": "Последний файл не найден"}
+            )
+        return True
+
+    def get_csv_count(self, folder):
+        if folder and os.path.isdir(folder):
+            return len(list(Path(folder).glob("*.csv")))
+        return 0
+
+    # ── Download ──────────────────────────────────────────────────────────────
+
+    def start_download(self, p):
+        self._stop_event.clear()
+
+        def _w():
+            download_files_thread(
+                _SV(p["month_from"]),
+                _SV(p["year_from"]),
+                _SV(p["month_to"]),
+                _SV(p["year_to"]),
+                self._log,
+                self._mb,
+                progress_callback=self._progress,
+                set_title=self._set_title,
+            )
+            self._emit("set_title", "")
+            self._emit("hide_progress")
+
+        threading.Thread(target=_w, daemon=True).start()
+        return True
+
+    # ── Process (full pipeline) ───────────────────────────────────────────────
+
+    def start_process(self, p):
+        self._stop_event.clear()
+
+        def _w():
+            process_files_thread(
+                _SV(p["output_folder"]),
+                _SV(p["category"]),
+                FILTER_OPTIONS,
+                self._log,
+                self._mb,
+                self._stop_event,
+                refresh_power_query_files,
+                _SV(p["pq_file1"]),
+                _SV(p["pq_file2"]),
+                _SV(p["macro1"]),
+                _SV(p["macro2"]),
+                progress_callback=self._progress,
+                set_title=self._set_title,
+            )
+            self._emit("set_title", "")
+            self._emit("hide_progress")
+
+        threading.Thread(target=_w, daemon=True).start()
+        return True
+
+    # ── Stages ────────────────────────────────────────────────────────────────
+
+    def run_stage_q1(self, p):
+        self._stop_event.clear()
         threading.Thread(
-            target=process_nielsen,
-            args=(
-                nielsen_input_file.get(),
-                nielsen_output_dir.get(),
-                nielsen_format.get(),
-                log,
-                messagebox,
-                stop_event,
-                nielsen_category_var.get(),
+            target=lambda: (
+                run_stage_query1(
+                    _SV(p["pq_file1"]), self._log, self._stop_event, self._mb
+                ),
+                self._emit("set_title", ""),
             ),
             daemon=True,
         ).start()
-    else:
-        messagebox.showwarning("Ошибка", "Выберите режим работы")
+        return True
 
+    def run_stage_q2(self, p):
+        self._stop_event.clear()
+        threading.Thread(
+            target=lambda: (
+                run_stage_query2(
+                    _SV(p["pq_file2"]), self._log, self._stop_event, self._mb
+                ),
+                self._emit("set_title", ""),
+            ),
+            daemon=True,
+        ).start()
+        return True
 
-def open_last_file():
-    global last_updated_competitors_file
-    if last_updated_competitors_file and os.path.exists(last_updated_competitors_file):
+    def run_stage_macros(self, p):
+        self._stop_event.clear()
+        threading.Thread(
+            target=lambda: (
+                run_stage_macros(
+                    _SV(p["pq_file2"]),
+                    _SV(p["macro1"]),
+                    _SV(p["macro2"]),
+                    self._log,
+                    self._stop_event,
+                    self._mb,
+                ),
+                self._emit("set_title", ""),
+            ),
+            daemon=True,
+        ).start()
+        return True
+
+    # ── Competitors ───────────────────────────────────────────────────────────
+
+    def run_competitors(self, p):
+        self._stop_event.clear()
+
+        def _w():
+            def _upd(path):
+                self._last_competitors_file = path
+
+            refresh_competitors_pipeline(
+                _SV(p["olap_file"]),
+                _SV(p["competitors_file"]),
+                self._log,
+                self._mb,
+                self._stop_event,
+                on_file_updated=_upd,
+            )
+            self._emit("set_title", "")
+
+        threading.Thread(target=_w, daemon=True).start()
+        return True
+
+    # ── Nielsen ───────────────────────────────────────────────────────────────
+
+    def run_nielsen(self, p):
+        self._stop_event.clear()
+        threading.Thread(
+            target=lambda: (
+                process_nielsen(
+                    p["input_file"],
+                    p["output_dir"],
+                    p["format"],
+                    self._log,
+                    self._mb,
+                    self._stop_event,
+                    p["category"],
+                ),
+                self._emit("set_title", ""),
+            ),
+            daemon=True,
+        ).start()
+        return True
+
+    # ── Query Refresh ─────────────────────────────────────────────────────────
+
+    def run_query_refresh(self, p):
+        self._stop_event.clear()
+
+        def _w():
+            from competitors_functions import refresh_file
+
+            ok = refresh_file(
+                p["file"], self._log, self._stop_event, timeout_minutes=90
+            )
+            if ok:
+                self._emit(
+                    "toast",
+                    {
+                        "type": "success",
+                        "message": f"Обновлено: {os.path.basename(p['file'])}",
+                    },
+                )
+            self._emit("set_title", "")
+
+        threading.Thread(target=_w, daemon=True).start()
+        return True
+
+    # ── Production ────────────────────────────────────────────────────────────
+
+    def run_production(self, p):
+        self._stop_event.clear()
+        threading.Thread(
+            target=lambda: (
+                run_production(
+                    p["svod_folder"],
+                    p["npk_file"],
+                    p["tolyatti_folder"],
+                    p["target_file"],
+                    p["mapping_file"],
+                    p["month_str"],
+                    p["year"],
+                    self._log,
+                    self._mb,
+                    self._stop_event,
+                ),
+                self._emit("set_title", ""),
+            ),
+            daemon=True,
+        ).start()
+        return True
+
+    # ── SKU Matcher ───────────────────────────────────────────────────────────
+
+    def run_sku_matching(self, p):
+        def _prog(msg):
+            self._emit("sku_log", msg)
+
+        def _done(results, error=None):
+            if error:
+                self._emit("sku_error", str(error))
+            else:
+                self._emit("sku_results", results)
+
+        threading.Thread(
+            target=run_matching,
+            args=(p["ref_path"], p["csv_folder"], float(p["threshold"]), _prog, _done),
+            daemon=True,
+        ).start()
+        return True
+
+    def save_sku_results(self, p):
         try:
-            os.startfile(last_updated_competitors_file)
-            log(f"Открыт: {os.path.basename(last_updated_competitors_file)}")
+            count = save_to_reference(p["results"], p["ref_path"])
+            return {"success": True, "count": count}
         except Exception as e:
-            log(f"Не удалось открыть файл: {e}")
-    else:
-        messagebox.showinfo(
-            "Инфо", "Последний файл не найден (запустите обновление конкурентов)"
-        )
+            return {"success": False, "error": str(e)}
 
 
-def update_gui(*args):
-    mode = action_var.get()
-    if mode == "promodate":
-        label_month.grid()
-        menu_month.grid()
-        label_year.grid()
-        menu_year.grid()
-        label_category.grid()
-        menu_category.grid()
-        label_output.grid()
-        entry_output.grid()
-        btn_output.grid()
-        label_pq1.grid()
-        entry_pq1.grid()
-        btn_pq1.grid()
-        label_pq2.grid()
-        entry_pq2.grid()
-        btn_pq2.grid()
+# ── Entry point ───────────────────────────────────────────────────────────────
 
-        label_olap.grid_remove()
-        entry_olap.grid_remove()
-        btn_olap.grid_remove()
-        label_competitors.grid_remove()
-        entry_competitors.grid_remove()
-        btn_competitors.grid_remove()
+setup_logger()
+_splash_set(92, "Запуск интерфейса…")
+api = Api()
 
-        label_nielsen_input.grid_remove()
-        entry_nielsen_input.grid_remove()
-        btn_nielsen_input.grid_remove()
-        label_nielsen_output.grid_remove()
-        entry_nielsen_output.grid_remove()
-        btn_nielsen_output.grid_remove()
-        label_nielsen_format.grid_remove()
-        menu_nielsen_format.grid_remove()
-        label_nielsen_category.grid_remove()
-        menu_nielsen_category.grid_remove()
-
-        btn_download.grid(row=0, column=0, padx=10, pady=5)
-        btn_clear.grid(row=0, column=1, padx=10, pady=5)
-        start_btn.grid(row=0, column=2, padx=10, pady=5)
-        stop_btn.grid(row=0, column=3, padx=10, pady=5)
-        btn_open_last.grid_remove()
-
-    elif mode == "competitors":
-        label_month.grid_remove()
-        menu_month.grid_remove()
-        label_year.grid_remove()
-        menu_year.grid_remove()
-        label_category.grid_remove()
-        menu_category.grid_remove()
-        label_output.grid_remove()
-        entry_output.grid_remove()
-        btn_output.grid_remove()
-        label_pq1.grid_remove()
-        entry_pq1.grid_remove()
-        btn_pq1.grid_remove()
-        label_pq2.grid_remove()
-        entry_pq2.grid_remove()
-        btn_pq2.grid_remove()
-
-        label_olap.grid()
-        entry_olap.grid()
-        btn_olap.grid()
-        label_competitors.grid()
-        entry_competitors.grid()
-        btn_competitors.grid()
-
-        label_nielsen_input.grid_remove()
-        entry_nielsen_input.grid_remove()
-        btn_nielsen_input.grid_remove()
-        label_nielsen_output.grid_remove()
-        entry_nielsen_output.grid_remove()
-        btn_nielsen_output.grid_remove()
-        label_nielsen_format.grid_remove()
-        menu_nielsen_format.grid_remove()
-        label_nielsen_category.grid_remove()
-        menu_nielsen_category.grid_remove()
-
-        btn_download.grid_remove()
-        btn_clear.grid_remove()
-        start_btn.grid(row=0, column=0, padx=10, pady=5)
-        stop_btn.grid(row=0, column=1, padx=10, pady=5)
-        btn_open_last.grid(row=0, column=2, padx=10, pady=5)
-
-    elif mode == "nielsen":
-        label_month.grid_remove()
-        menu_month.grid_remove()
-        label_year.grid_remove()
-        menu_year.grid_remove()
-        label_category.grid_remove()
-        menu_category.grid_remove()
-        label_output.grid_remove()
-        entry_output.grid_remove()
-        btn_output.grid_remove()
-        label_pq1.grid_remove()
-        entry_pq1.grid_remove()
-        btn_pq1.grid_remove()
-        label_pq2.grid_remove()
-        entry_pq2.grid_remove()
-        btn_pq2.grid_remove()
-
-        label_olap.grid_remove()
-        entry_olap.grid_remove()
-        btn_olap.grid_remove()
-        label_competitors.grid_remove()
-        entry_competitors.grid_remove()
-        btn_competitors.grid_remove()
-
-        label_nielsen_input.grid()
-        entry_nielsen_input.grid()
-        btn_nielsen_input.grid()
-        label_nielsen_output.grid()
-        entry_nielsen_output.grid()
-        btn_nielsen_output.grid()
-        label_nielsen_format.grid()
-        menu_nielsen_format.grid()
-        label_nielsen_category.grid()
-        menu_nielsen_category.grid()
-
-        btn_download.grid_remove()
-        btn_clear.grid_remove()
-        start_btn.grid(row=0, column=0, padx=10, pady=5)
-        stop_btn.grid(row=0, column=1, padx=10, pady=5)
-        btn_open_last.grid_remove()
-
-    root.update_idletasks()
-
-
-root = ctk.CTk()
-root.title("Промодата + Положение конкурентов + Обработка Nielsen")
-root.geometry("1150x750")
-
-(
-    last_output,
-    last_pq1,
-    last_pq2,
-    last_olap,
-    last_competitors,
-    last_nielsen_input,
-    last_nielsen_output,
-    last_nielsen_fmt,
-    last_nielsen_category,
-) = load_config()
-month_var = ctk.StringVar(value=str(datetime.now().month))
-year_var = ctk.StringVar(value=str(datetime.now().year))
-output_folder_var = ctk.StringVar(value=last_output)
-filter_var = ctk.StringVar(value="Масло")
-pq_file1 = ctk.StringVar(value=last_pq1)
-pq_file2 = ctk.StringVar(value=last_pq2)
-olap_file = ctk.StringVar(value=last_olap)
-competitors_file = ctk.StringVar(value=last_competitors)
-nielsen_input_file = ctk.StringVar(value=last_nielsen_input)
-nielsen_output_dir = ctk.StringVar(value=last_nielsen_output)
-nielsen_format = ctk.StringVar(value=last_nielsen_fmt)
-nielsen_category_var = ctk.StringVar(value=last_nielsen_category)
-action_var = ctk.StringVar(value="promodate")
-
-top_frame = ctk.CTkFrame(root)
-top_frame.pack(fill="x", padx=20, pady=10)
-
-label_month = ctk.CTkLabel(top_frame, text="Месяц:")
-label_month.grid(row=0, column=0, sticky="e", padx=5, pady=5)
-menu_month = ctk.CTkOptionMenu(
-    top_frame, variable=month_var, values=[str(i) for i in range(1, 13)]
-)
-menu_month.grid(row=0, column=1, padx=5, pady=5)
-
-label_year = ctk.CTkLabel(top_frame, text="Год:")
-label_year.grid(row=0, column=2, sticky="e", padx=5, pady=5)
-menu_year = ctk.CTkOptionMenu(
-    top_frame, variable=year_var, values=[str(y) for y in range(2020, 2031)]
-)
-menu_year.grid(row=0, column=3, padx=5, pady=5)
-
-label_category = ctk.CTkLabel(top_frame, text="Категория:")
-label_category.grid(row=1, column=0, sticky="e", padx=5, pady=5)
-menu_category = ctk.CTkOptionMenu(
-    top_frame, variable=filter_var, values=list(FILTER_OPTIONS.keys())
-)
-menu_category.grid(row=1, column=1, columnspan=3, sticky="w", padx=5, pady=5)
-
-label_output = ctk.CTkLabel(top_frame, text="Папка сохранения:")
-label_output.grid(row=2, column=0, sticky="e", padx=5, pady=5)
-entry_output = ctk.CTkEntry(top_frame, textvariable=output_folder_var, width=700)
-entry_output.grid(row=2, column=1, columnspan=3, padx=5, pady=5)
-btn_output = ctk.CTkButton(
-    top_frame, text="Обзор", command=lambda: browse_output_folder(output_folder_var)
-)
-btn_output.grid(row=2, column=4, padx=5, pady=5)
-
-label_pq1 = ctk.CTkLabel(top_frame, text="Power Query (Promodate 1):")
-label_pq1.grid(row=3, column=0, sticky="e", padx=5, pady=5)
-entry_pq1 = ctk.CTkEntry(top_frame, textvariable=pq_file1, width=700)
-entry_pq1.grid(row=3, column=1, columnspan=3, padx=5, pady=5)
-btn_pq1 = ctk.CTkButton(
-    top_frame, text="Выбрать", command=lambda: browse_power_query_file(pq_file1)
-)
-btn_pq1.grid(row=3, column=4, padx=5, pady=5)
-
-label_pq2 = ctk.CTkLabel(top_frame, text="Power Query (Promodate 2):")
-label_pq2.grid(row=4, column=0, sticky="e", padx=5, pady=5)
-entry_pq2 = ctk.CTkEntry(top_frame, textvariable=pq_file2, width=700)
-entry_pq2.grid(row=4, column=1, columnspan=3, padx=5, pady=5)
-btn_pq2 = ctk.CTkButton(
-    top_frame, text="Выбрать", command=lambda: browse_power_query_file(pq_file2)
-)
-btn_pq2.grid(row=4, column=4, padx=5, pady=5)
-
-label_olap = ctk.CTkLabel(top_frame, text="OLAP файл:")
-label_olap.grid(row=5, column=0, sticky="e", padx=5, pady=5)
-entry_olap = ctk.CTkEntry(top_frame, textvariable=olap_file, width=700)
-entry_olap.grid(row=5, column=1, columnspan=3, padx=5, pady=5)
-btn_olap = ctk.CTkButton(
-    top_frame, text="Выбрать", command=lambda: browse_power_query_file(olap_file)
-)
-btn_olap.grid(row=5, column=4, padx=5, pady=5)
-
-label_competitors = ctk.CTkLabel(top_frame, text="Положение конкурентов:")
-label_competitors.grid(row=6, column=0, sticky="e", padx=5, pady=5)
-entry_competitors = ctk.CTkEntry(top_frame, textvariable=competitors_file, width=700)
-entry_competitors.grid(row=6, column=1, columnspan=3, padx=5, pady=5)
-btn_competitors = ctk.CTkButton(
-    top_frame, text="Выбрать", command=lambda: browse_power_query_file(competitors_file)
-)
-btn_competitors.grid(row=6, column=4, padx=5, pady=5)
-
-label_nielsen_input = ctk.CTkLabel(top_frame, text="Входной файл Nielsen:")
-label_nielsen_input.grid(row=7, column=0, sticky="e", padx=5, pady=5)
-entry_nielsen_input = ctk.CTkEntry(
-    top_frame, textvariable=nielsen_input_file, width=700
-)
-entry_nielsen_input.grid(row=7, column=1, columnspan=3, padx=5, pady=5)
-btn_nielsen_input = ctk.CTkButton(
-    top_frame, text="Выбрать", command=browse_nielsen_input
-)
-btn_nielsen_input.grid(row=7, column=4, padx=5, pady=5)
-
-label_nielsen_output = ctk.CTkLabel(top_frame, text="Папка сохранения:")
-label_nielsen_output.grid(row=8, column=0, sticky="e", padx=5, pady=5)
-entry_nielsen_output = ctk.CTkEntry(
-    top_frame, textvariable=nielsen_output_dir, width=700
-)
-entry_nielsen_output.grid(row=8, column=1, columnspan=3, padx=5, pady=5)
-btn_nielsen_output = ctk.CTkButton(
-    top_frame, text="Обзор", command=browse_nielsen_output
-)
-btn_nielsen_output.grid(row=8, column=4, padx=5, pady=5)
-
-label_nielsen_format = ctk.CTkLabel(top_frame, text="Формат сохранения:")
-label_nielsen_format.grid(row=9, column=0, sticky="e", padx=5, pady=5)
-menu_nielsen_format = ctk.CTkOptionMenu(
-    top_frame, variable=nielsen_format, values=["csv", "excel"]
-)
-menu_nielsen_format.grid(row=9, column=1, columnspan=3, sticky="w", padx=5, pady=5)
-
-label_nielsen_category = ctk.CTkLabel(top_frame, text="Категория:")
-label_nielsen_category.grid(row=10, column=0, sticky="e", padx=5, pady=5)
-menu_nielsen_category = ctk.CTkOptionMenu(
-    top_frame,
-    variable=nielsen_category_var,
-    values=["Масло", "Кетчуп", "Майонез", "Маргарин"],
-)
-menu_nielsen_category.grid(row=10, column=1, columnspan=3, sticky="w", padx=5, pady=5)
-
-mode_frame = ctk.CTkFrame(root, fg_color="transparent")
-mode_frame.pack(fill="x", padx=20, pady=10)
-
-ctk.CTkLabel(
-    mode_frame, text="Выберите действие", font=ctk.CTkFont(size=14, weight="bold")
-).pack(anchor="w", pady=5)
-
-radio_promodate = ctk.CTkRadioButton(
-    mode_frame,
-    text="Фильтрация промодаты + обновление Promodate",
-    variable=action_var,
-    value="promodate",
-)
-radio_promodate.pack(anchor="w", pady=5)
-
-radio_competitors = ctk.CTkRadioButton(
-    mode_frame,
-    text="Обновление «Положение конкурентов»",
-    variable=action_var,
-    value="competitors",
-)
-radio_competitors.pack(anchor="w", pady=5)
-
-radio_nielsen = ctk.CTkRadioButton(
-    mode_frame, text="Обработка Nielsen", variable=action_var, value="nielsen"
-)
-radio_nielsen.pack(anchor="w", pady=5)
-
-btn_frame = ctk.CTkFrame(root)
-btn_frame.pack(fill="x", padx=20, pady=10)
-
-btn_download = ctk.CTkButton(
-    btn_frame, text="Скачать файлы", command=start_download_thread, width=200
-)
-btn_clear = ctk.CTkButton(
-    btn_frame, text="Очистить Скаченное", command=start_clear_download_thread, width=200
-)
-start_btn = ctk.CTkButton(
-    btn_frame,
-    text="▶ ЗАПУСТИТЬ",
-    command=start_main_action,
-    width=200,
-    height=40,
-    font=ctk.CTkFont(size=14, weight="bold"),
-)
-stop_btn = ctk.CTkButton(
-    btn_frame,
-    text="■ Остановить",
-    command=lambda: stop_event.set(),
-    width=200,
-    height=40,
-)
-btn_open_last = ctk.CTkButton(
-    btn_frame,
-    text="Открыть последний файл",
-    command=open_last_file,
-    width=200,
-    height=40,
+html_path = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "web", "index.html"
 )
 
-log_frame = ctk.CTkFrame(root)
-log_frame.pack(fill="both", expand=True, padx=20, pady=10)
-ctk.CTkLabel(
-    log_frame, text="Лог работы:", font=ctk.CTkFont(size=14, weight="bold")
-).pack(anchor="nw", pady=5)
-log_text = ctk.CTkTextbox(log_frame, state="disabled", height=200)
-log_text.pack(fill="both", expand=True)
-
-action_var.trace("w", update_gui)
-
-update_gui()
-
-
-def on_closing():
-    if messagebox.askokcancel("Выход", "Закрыть приложение?"):
-        save_config()
-        root.destroy()
+window = webview.create_window(
+    "EFKO FlowManager",
+    html_path,
+    js_api=api,
+    width=1480,
+    height=960,
+    min_size=(1000, 700),
+    background_color="#F5F5F7",
+    easy_drag=False,
+)
+api._window = window
 
 
-root.protocol("WM_DELETE_WINDOW", on_closing)
-log("Приложение запущено. Выберите режим и нажмите ЗАПУСТИТЬ")
-root.mainloop()
+# Выносим окно на передний план через 1 сек после старта (из фонового потока)
+def _bring_to_front():
+    import ctypes
+
+    try:
+        # Находим окно по заголовку и выносим вперёд
+        hwnd = ctypes.windll.user32.FindWindowW(None, "EFKO FlowManager")
+        if hwnd:
+            ctypes.windll.user32.ShowWindow(hwnd, 9)  # SW_RESTORE
+            ctypes.windll.user32.SetForegroundWindow(hwnd)
+    except Exception:
+        pass
+
+
+threading.Thread(target=_bring_to_front, daemon=True).start()
+
+# Закрываем сплэш ДО webview.start() — иначе конфликт главного потока
+_splash_set(100, "Готово!")
+_splash_close()
+
+webview.start(debug=False)
