@@ -1,7 +1,7 @@
 # ruff: noqa: F821
 # ruff: noqa: F811
 # ruff: noqa: F841
-# ruff: noqa: E402 
+# ruff: noqa: E402
 import os
 import threading
 from datetime import datetime
