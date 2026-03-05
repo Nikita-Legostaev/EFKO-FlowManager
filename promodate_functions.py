@@ -14,20 +14,42 @@ DOWNLOAD_FOLDER = os.path.join(os.getcwd(), "Скаченное")
 os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
 
 network_map = {
-    "Globus", "Metro", "Ашан", "Дикси",
-    "Лента Гипер", "Лента Супер", "Лента Эконом",
-    "Магнит (у дома)", "Магнит Мини", "Магнит Семейный", "Магнит Экстра",
-    "Монетка", "О'кей", "Перекрёсток*", "Пятёрочка", "Чижик",
+    "Globus",
+    "Metro",
+    "Ашан",
+    "Дикси",
+    "Лента Гипер",
+    "Лента Супер",
+    "Лента Эконом",
+    "Магнит (у дома)",
+    "Магнит Мини",
+    "Магнит Семейный",
+    "Магнит Экстра",
+    "Монетка",
+    "О'кей",
+    "Перекрёсток*",
+    "Пятёрочка",
+    "Чижик",
 }
 
 needed_columns = [
-    "group", "category", "brand", "pd_sku",
-    "retailer", "region", "date", "promo", "regular",
+    "group",
+    "category",
+    "brand",
+    "pd_sku",
+    "retailer",
+    "region",
+    "date",
+    "promo",
+    "regular",
 ]
 
 FILTER_OPTIONS = {
     "Масло": {"group": "Соусы и масла", "category": "Масло растительное"},
-    "Маргарин": {"group": "Майонез, масло сливочное, яйцо", "category": "Маргарин, спред, жир"},
+    "Маргарин": {
+        "group": "Майонез, масло сливочное, яйцо",
+        "category": "Маргарин, спред, жир",
+    },
     "Майонез": {"group": "Майонез, масло сливочное, яйцо", "category": "Майонез"},
     "Кетчуп": {"group": "Соусы и масла", "category": "Кетчупы"},
     "Кетчуп+Майонез": [
@@ -45,6 +67,7 @@ STATUS_CELL = "A2"
 
 
 # ── Логирование в файл ────────────────────────────────────────────────────────
+
 
 def setup_file_logger():
     """Инициализирует запись лога в файл рядом с exe."""
@@ -64,6 +87,7 @@ def file_log(message: str):
 
 
 # ── Вспомогательные функции ───────────────────────────────────────────────────
+
 
 def extract_date(filename: str) -> datetime | None:
     for part in filename.split("_"):
@@ -91,6 +115,7 @@ def _max_workers() -> int:
 
 # ── Скачивание ────────────────────────────────────────────────────────────────
 
+
 def _download_one(src, dst, log):
     filename = os.path.basename(src)
     try:
@@ -104,13 +129,19 @@ def _download_one(src, dst, log):
 
 
 def download_files_thread(
-    month_from_var, year_from_var, month_to_var, year_to_var,
-    log, messagebox, progress_callback=None, set_title=None,
+    month_from_var,
+    year_from_var,
+    month_to_var,
+    year_to_var,
+    log,
+    messagebox,
+    progress_callback=None,
+    set_title=None,
 ):
     month_from = int(month_from_var.get())
-    year_from  = int(year_from_var.get())
-    month_to   = int(month_to_var.get())
-    year_to    = int(year_to_var.get())
+    year_from = int(year_from_var.get())
+    month_to = int(month_to_var.get())
+    year_to = int(year_to_var.get())
 
     if (year_from, month_from) > (year_to, month_to):
         messagebox.showwarning("Ошибка", "Начало диапазона не может быть позже конца!")
@@ -162,6 +193,7 @@ def download_files_thread(
 
 # ── Очистка папки ─────────────────────────────────────────────────────────────
 
+
 def clear_download_folder(log, messagebox):
     files = [os.path.join(DOWNLOAD_FOLDER, f) for f in os.listdir(DOWNLOAD_FOLDER)]
     if not files:
@@ -187,10 +219,15 @@ def clear_output_folder(output_folder_var, log, messagebox):
     """Удаляет все файлы из папки сохранения CSV."""
     folder = output_folder_var.get().strip()
     if not folder or not os.path.isdir(folder):
-        messagebox.showwarning("Очистка", "Папка сохранения не задана или не существует")
+        messagebox.showwarning(
+            "Очистка", "Папка сохранения не задана или не существует"
+        )
         return
-    files = [os.path.join(folder, f) for f in os.listdir(folder)
-             if os.path.isfile(os.path.join(folder, f))]
+    files = [
+        os.path.join(folder, f)
+        for f in os.listdir(folder)
+        if os.path.isfile(os.path.join(folder, f))
+    ]
     if not files:
         messagebox.showinfo("Очистка", "Папка уже пуста")
         return
@@ -206,8 +243,10 @@ def clear_output_folder(output_folder_var, log, messagebox):
 
 # ── Обработка файлов ──────────────────────────────────────────────────────────
 
+
 def get_first_sheet_name(file_path):
     import openpyxl  # ленивый импорт
+
     wb = openpyxl.load_workbook(file_path, read_only=True)
     name = wb.sheetnames[0]
     wb.close()
@@ -229,9 +268,8 @@ def process_file(file_path, output_folder, selected_filter, log):
         )
 
         if isinstance(selected_filter, dict):
-            group_mask = (
-                (df["group"] == selected_filter["group"])
-                & (df["category"] == selected_filter["category"])
+            group_mask = (df["group"] == selected_filter["group"]) & (
+                df["category"] == selected_filter["category"]
             )
         else:
             group_mask = pl.lit(False)
@@ -244,7 +282,9 @@ def process_file(file_path, output_folder, selected_filter, log):
         df_filtered = df.filter(group_mask & df["retailer"].is_in(network_map))
 
         os.makedirs(output_folder, exist_ok=True)
-        output_file = os.path.join(output_folder, os.path.splitext(filename)[0] + ".csv")
+        output_file = os.path.join(
+            output_folder, os.path.splitext(filename)[0] + ".csv"
+        )
         df_filtered.write_csv(output_file, separator=",")
 
         log(f"Готово: {filename} | {df.height} → {df_filtered.height} строк")
@@ -317,13 +357,17 @@ def process_files_thread(
     messagebox.showinfo("Готово", f"CSV-файлы сохранены в:\n{output_folder}")
 
     refresh_power_query_files(
-        pq_file1, pq_file2,
-        macro1_name, macro2_name,
-        log, stop_event,
+        pq_file1,
+        pq_file2,
+        macro1_name,
+        macro2_name,
+        log,
+        stop_event,
     )
 
 
 # ── Power Query / Excel refresh ───────────────────────────────────────────────
+
 
 def refresh_file(file_path, log, stop_event):
     """Обновляет Power Query в обычном .xlsx файле."""
@@ -372,13 +416,15 @@ def refresh_file(file_path, log, stop_event):
         return False
     finally:
         try:
-            if wb: wb.Close(SaveChanges=False)
+            if wb:
+                wb.Close(SaveChanges=False)
         except Exception:
             pass
         finally:
             del wb
         try:
-            if excel: excel.Quit()
+            if excel:
+                excel.Quit()
         except Exception:
             pass
         finally:
@@ -405,11 +451,12 @@ def _excel_session(log, func):
         excel.AutomationSecurity = 1
         pid = _get_excel_pid(excel)
         return func(excel)
-    except Exception as e:
+    except Exception:
         raise
     finally:
         try:
-            if excel: excel.Quit()
+            if excel:
+                excel.Quit()
         except Exception:
             pass
         try:
@@ -486,7 +533,8 @@ def _refresh_xlsm_query(file_path, log, stop_event):
             return True
         finally:
             try:
-                if wb: wb.Close(SaveChanges=False)
+                if wb:
+                    wb.Close(SaveChanges=False)
             except Exception:
                 pass
             try:
@@ -536,7 +584,8 @@ def _run_xlsm_macros(file_path, macro_names, log, stop_event):
             return True
         finally:
             try:
-                if wb: wb.Close(SaveChanges=False)
+                if wb:
+                    wb.Close(SaveChanges=False)
             except Exception:
                 pass
             try:
@@ -569,7 +618,7 @@ def refresh_file_with_macros(file_path, macro_names, log, stop_event):
 def _get_excel_pid(excel) -> int | None:
     try:
         import win32process
-        import win32gui
+
         hwnd = excel.Hwnd
         _, pid = win32process.GetWindowThreadProcessId(hwnd)
         return pid
@@ -582,9 +631,9 @@ def kill_excel_pid(pid: int | None, log):
         return
     try:
         import subprocess
+
         result = subprocess.run(
-            ["taskkill", "/F", "/PID", str(pid)],
-            capture_output=True, text=True
+            ["taskkill", "/F", "/PID", str(pid)], capture_output=True, text=True
         )
         if result.returncode == 0:
             log(f"🧹 Процесс Excel (PID {pid}) завершён")
@@ -594,7 +643,9 @@ def kill_excel_pid(pid: int | None, log):
         log(f"Ошибка при завершении процесса Excel PID {pid}: {e}")
 
 
-def refresh_power_query_files(pq_file1, pq_file2, macro1_name, macro2_name, log, stop_event):
+def refresh_power_query_files(
+    pq_file1, pq_file2, macro1_name, macro2_name, log, stop_event
+):
     """Обновляет оба файла Promodate полностью."""
     file1 = pq_file1.get()
     file2 = pq_file2.get()
@@ -613,8 +664,16 @@ def refresh_power_query_files(pq_file1, pq_file2, macro1_name, macro2_name, log,
         log("⚠️ Power Query файл 2 не выбран — шаг пропущен")
         return
 
-    m1 = macro1_name.get().strip() if hasattr(macro1_name, "get") else str(macro1_name).strip()
-    m2 = macro2_name.get().strip() if hasattr(macro2_name, "get") else str(macro2_name).strip()
+    m1 = (
+        macro1_name.get().strip()
+        if hasattr(macro1_name, "get")
+        else str(macro1_name).strip()
+    )
+    m2 = (
+        macro2_name.get().strip()
+        if hasattr(macro2_name, "get")
+        else str(macro2_name).strip()
+    )
     macro_names = [m for m in [m1, m2] if m]
 
     log("▶ Обновляем Promodate (файл 2 — xlsm + макросы)...")
@@ -624,6 +683,7 @@ def refresh_power_query_files(pq_file1, pq_file2, macro1_name, macro2_name, log,
 
 
 # ── Поэтапный запуск ─────────────────────────────────────────────────────────
+
 
 def run_stage_query1(pq_file1_var, log, stop_event, messagebox=None):
     """Только обновление файла 1 (xlsx)."""
@@ -657,7 +717,9 @@ def run_stage_query2(pq_file2_var, log, stop_event, messagebox=None):
     return ok
 
 
-def run_stage_macros(pq_file2_var, macro1_name, macro2_name, log, stop_event, messagebox=None):
+def run_stage_macros(
+    pq_file2_var, macro1_name, macro2_name, log, stop_event, messagebox=None
+):
     """Только запуск макросов файла 2 (xlsm), без обновления PQ."""
     file2 = pq_file2_var.get() if hasattr(pq_file2_var, "get") else str(pq_file2_var)
     if not file2 or not os.path.isfile(file2):
@@ -667,8 +729,16 @@ def run_stage_macros(pq_file2_var, macro1_name, macro2_name, log, stop_event, me
             messagebox.showwarning("Ошибка", msg)
         return False
 
-    m1 = macro1_name.get().strip() if hasattr(macro1_name, "get") else str(macro1_name).strip()
-    m2 = macro2_name.get().strip() if hasattr(macro2_name, "get") else str(macro2_name).strip()
+    m1 = (
+        macro1_name.get().strip()
+        if hasattr(macro1_name, "get")
+        else str(macro1_name).strip()
+    )
+    m2 = (
+        macro2_name.get().strip()
+        if hasattr(macro2_name, "get")
+        else str(macro2_name).strip()
+    )
     macro_names = [m for m in [m1, m2] if m]
 
     if not macro_names:

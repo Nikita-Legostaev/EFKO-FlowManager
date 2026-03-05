@@ -10,7 +10,7 @@ STATUS_CELL = "A2"
 
 
 def refresh_file(file_path, log, stop_event, timeout_minutes: int = 15):
-    import pythoncom              # ленивый импорт
+    import pythoncom  # ленивый импорт
     import win32com.client as win32
 
     filename = os.path.basename(file_path)
@@ -67,8 +67,12 @@ def refresh_file(file_path, log, stop_event, timeout_minutes: int = 15):
 
 
 def refresh_competitors_pipeline(
-    olap_file, competitors_file, log, messagebox, stop_event,
-    on_file_updated=None,   # callback(path) → app.py обновит свой last_updated_competitors_file
+    olap_file,
+    competitors_file,
+    log,
+    messagebox,
+    stop_event,
+    on_file_updated=None,  # callback(path) → app.py обновит свой last_updated_competitors_file
 ):
     olap_path = olap_file.get()
     competitors_path = competitors_file.get()
