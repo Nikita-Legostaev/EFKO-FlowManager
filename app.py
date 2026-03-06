@@ -31,33 +31,68 @@ def _make_splash():
         c.create_rectangle(0, y0, W, y1, fill=f"#{r:02x}{g:02x}{b:02x}", outline="")
 
     cx, cy = W // 2, 72
-    c.create_oval(cx-28, cy-28, cx+28, cy+28, fill="#2aaa52", outline="#aaffbb", width=1)
-    c.create_line(cx-13, cy+2, cx-3, cy+12, cx+14, cy-9,
-                  fill="white", width=3, capstyle="round", joinstyle="round")
+    c.create_oval(
+        cx - 28, cy - 28, cx + 28, cy + 28, fill="#2aaa52", outline="#aaffbb", width=1
+    )
+    c.create_line(
+        cx - 13,
+        cy + 2,
+        cx - 3,
+        cy + 12,
+        cx + 14,
+        cy - 9,
+        fill="white",
+        width=3,
+        capstyle="round",
+        joinstyle="round",
+    )
 
-    c.create_text(W//2-1, 124, text="Flow",    font=("Segoe UI",26,"bold"), fill="#ffffff",  anchor="e")
-    c.create_text(W//2-1, 124, text="Manager", font=("Segoe UI",26),        fill="#aaeebb",  anchor="w")
-    c.create_text(W//2,   150, text="EFKO  ·  v3.0", font=("Segoe UI",9),   fill="#88ccaa")
+    c.create_text(
+        W // 2 - 1,
+        124,
+        text="Flow",
+        font=("Segoe UI", 26, "bold"),
+        fill="#ffffff",
+        anchor="e",
+    )
+    c.create_text(
+        W // 2 - 1,
+        124,
+        text="Manager",
+        font=("Segoe UI", 26),
+        fill="#aaeebb",
+        anchor="w",
+    )
+    c.create_text(
+        W // 2, 150, text="EFKO  ·  v3.0", font=("Segoe UI", 9), fill="#88ccaa"
+    )
 
-    bx1, by1, bx2, by2 = 50, 178, W-50, 183
+    bx1, by1, bx2, by2 = 50, 178, W - 50, 183
     c.create_rectangle(bx1, by1, bx2, by2, fill="#2aaa52", outline="")
-    bar  = c.create_rectangle(bx1, by1, bx1, by2, fill="white", outline="")
-    hint = c.create_text(W//2, 200, text="Запуск…", font=("Segoe UI",9), fill="#88ccaa")
+    bar = c.create_rectangle(bx1, by1, bx1, by2, fill="white", outline="")
+    hint = c.create_text(
+        W // 2, 200, text="Запуск…", font=("Segoe UI", 9), fill="#88ccaa"
+    )
 
-    root.lift(); root.focus_force(); root.update()
+    root.lift()
+    root.focus_force()
+    root.update()
 
     def set_progress(pct, text=""):
         try:
-            w = (bx2-bx1) * min(pct,100) / 100
-            c.coords(bar, bx1, by1, bx1+w, by2)
-            if text: c.itemconfigure(hint, text=text)
+            w = (bx2 - bx1) * min(pct, 100) / 100
+            c.coords(bar, bx1, by1, bx1 + w, by2)
+            if text:
+                c.itemconfigure(hint, text=text)
             root.update()
         except Exception:
             pass
 
     def close():
-        try: root.destroy()
-        except Exception: pass
+        try:
+            root.destroy()
+        except Exception:
+            pass
 
     return set_progress, close
 
@@ -115,16 +150,20 @@ CONFIG_FILE = "config.json"
 
 # ── Logger ────────────────────────────────────────────────────────────────
 
+
 def setup_logger():
     log_path = os.path.join(os.getcwd(), "flowmanager.log")
     logging.basicConfig(
-        filename=log_path, level=logging.INFO,
+        filename=log_path,
+        level=logging.INFO,
         format="%(asctime)s [%(levelname)s] %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S", encoding="utf-8",
+        datefmt="%Y-%m-%d %H:%M:%S",
+        encoding="utf-8",
     )
 
 
 # ── Config ────────────────────────────────────────────────────────────────
+
 
 def load_config() -> dict:
     defaults = {
@@ -179,24 +218,36 @@ def save_config_data(data: dict):
 
 # ── Mock helpers ──────────────────────────────────────────────────────────
 
+
 class _SV:
-    def __init__(self, v): self._v = v
-    def get(self): return str(self._v) if self._v is not None else ""
+    def __init__(self, v):
+        self._v = v
+
+    def get(self):
+        return str(self._v) if self._v is not None else ""
 
 
 class _MB:
-    def __init__(self, api): self._api = api
+    def __init__(self, api):
+        self._api = api
+
     def showinfo(self, title, msg):
         self._api._emit("toast", {"type": "success", "message": str(msg)})
+
     def showwarning(self, title, msg):
         self._api._emit("toast", {"type": "warning", "message": str(msg)})
+
     def showerror(self, title, msg):
         self._api._emit("toast", {"type": "error", "message": str(msg)})
+
     def askyesno(self, title, msg):
         try:
-            return bool(self._api._window.evaluate_js(f"confirm({json.dumps(str(msg))})"))
+            return bool(
+                self._api._window.evaluate_js(f"confirm({json.dumps(str(msg))})")
+            )
         except Exception:
             return False
+
     def askokcancel(self, title, msg):
         return self.askyesno(title, msg)
 
@@ -204,6 +255,7 @@ class _MB:
 # ═════════════════════════════════════════════════════════════════════════════
 # API exposed to JS
 # ═════════════════════════════════════════════════════════════════════════════
+
 
 class Api:
     def __init__(self):
@@ -234,10 +286,18 @@ class Api:
 
     # ── Config ────────────────────────────────────────────────────────────────
 
-    def get_config(self):          return load_config()
-    def save_config(self, data):   save_config_data(data); return True
-    def get_filter_options(self):  return list(FILTER_OPTIONS.keys())
-    def get_month_labels(self):    return MONTH_LABELS
+    def get_config(self):
+        return load_config()
+
+    def save_config(self, data):
+        save_config_data(data)
+        return True
+
+    def get_filter_options(self):
+        return list(FILTER_OPTIONS.keys())
+
+    def get_month_labels(self):
+        return MONTH_LABELS
 
     # ── File dialogs ──────────────────────────────────────────────────────────
 
@@ -264,14 +324,16 @@ class Api:
 
     def open_folder(self, path):
         if path and os.path.isdir(path):
-            try: os.startfile(path)
+            try:
+                os.startfile(path)
             except Exception as e:
                 self._emit("toast", {"type": "error", "message": str(e)})
         return True
 
     def open_file(self, path):
         if path and os.path.isfile(path):
-            try: os.startfile(path)
+            try:
+                os.startfile(path)
             except Exception as e:
                 self._emit("toast", {"type": "error", "message": str(e)})
         return True
@@ -283,18 +345,26 @@ class Api:
         return True
 
     def clear_downloads(self):
-        threading.Thread(target=clear_download_folder, args=(self._log, self._mb), daemon=True).start()
+        threading.Thread(
+            target=clear_download_folder, args=(self._log, self._mb), daemon=True
+        ).start()
         return True
 
     def clear_output(self, path):
-        threading.Thread(target=clear_output_folder, args=(_SV(path), self._log, self._mb), daemon=True).start()
+        threading.Thread(
+            target=clear_output_folder,
+            args=(_SV(path), self._log, self._mb),
+            daemon=True,
+        ).start()
         return True
 
     def open_last_competitors_file(self):
         if self._last_competitors_file:
             self.open_file(self._last_competitors_file)
         else:
-            self._emit("toast", {"type": "warning", "message": "Последний файл не найден"})
+            self._emit(
+                "toast", {"type": "warning", "message": "Последний файл не найден"}
+            )
         return True
 
     def get_csv_count(self, folder):
@@ -306,14 +376,21 @@ class Api:
 
     def start_download(self, p):
         self._stop_event.clear()
+
         def _w():
             download_files_thread(
-                _SV(p["month_from"]), _SV(p["year_from"]),
-                _SV(p["month_to"]),   _SV(p["year_to"]),
-                self._log, self._mb,
-                progress_callback=self._progress, set_title=self._set_title,
+                _SV(p["month_from"]),
+                _SV(p["year_from"]),
+                _SV(p["month_to"]),
+                _SV(p["year_to"]),
+                self._log,
+                self._mb,
+                progress_callback=self._progress,
+                set_title=self._set_title,
             )
-            self._emit("set_title", ""); self._emit("hide_progress")
+            self._emit("set_title", "")
+            self._emit("hide_progress")
+
         threading.Thread(target=_w, daemon=True).start()
         return True
 
@@ -321,16 +398,26 @@ class Api:
 
     def start_process(self, p):
         self._stop_event.clear()
+
         def _w():
             process_files_thread(
-                _SV(p["output_folder"]), _SV(p["category"]),
-                FILTER_OPTIONS, self._log, self._mb, self._stop_event,
+                _SV(p["output_folder"]),
+                _SV(p["category"]),
+                FILTER_OPTIONS,
+                self._log,
+                self._mb,
+                self._stop_event,
                 refresh_power_query_files,
-                _SV(p["pq_file1"]), _SV(p["pq_file2"]),
-                _SV(p["macro1"]),   _SV(p["macro2"]),
-                progress_callback=self._progress, set_title=self._set_title,
+                _SV(p["pq_file1"]),
+                _SV(p["pq_file2"]),
+                _SV(p["macro1"]),
+                _SV(p["macro2"]),
+                progress_callback=self._progress,
+                set_title=self._set_title,
             )
-            self._emit("set_title", ""); self._emit("hide_progress")
+            self._emit("set_title", "")
+            self._emit("hide_progress")
+
         threading.Thread(target=_w, daemon=True).start()
         return True
 
@@ -338,42 +425,67 @@ class Api:
 
     def run_stage_q1(self, p):
         self._stop_event.clear()
-        threading.Thread(target=lambda: (
-            run_stage_query1(_SV(p["pq_file1"]), self._log, self._stop_event, self._mb),
-            self._emit("set_title", ""),
-        ), daemon=True).start()
+        threading.Thread(
+            target=lambda: (
+                run_stage_query1(
+                    _SV(p["pq_file1"]), self._log, self._stop_event, self._mb
+                ),
+                self._emit("set_title", ""),
+            ),
+            daemon=True,
+        ).start()
         return True
 
     def run_stage_q2(self, p):
         self._stop_event.clear()
-        threading.Thread(target=lambda: (
-            run_stage_query2(_SV(p["pq_file2"]), self._log, self._stop_event, self._mb),
-            self._emit("set_title", ""),
-        ), daemon=True).start()
+        threading.Thread(
+            target=lambda: (
+                run_stage_query2(
+                    _SV(p["pq_file2"]), self._log, self._stop_event, self._mb
+                ),
+                self._emit("set_title", ""),
+            ),
+            daemon=True,
+        ).start()
         return True
 
     def run_stage_macros(self, p):
         self._stop_event.clear()
-        threading.Thread(target=lambda: (
-            run_stage_macros(
-                _SV(p["pq_file2"]), _SV(p["macro1"]), _SV(p["macro2"]),
-                self._log, self._stop_event, self._mb,
+        threading.Thread(
+            target=lambda: (
+                run_stage_macros(
+                    _SV(p["pq_file2"]),
+                    _SV(p["macro1"]),
+                    _SV(p["macro2"]),
+                    self._log,
+                    self._stop_event,
+                    self._mb,
+                ),
+                self._emit("set_title", ""),
             ),
-            self._emit("set_title", ""),
-        ), daemon=True).start()
+            daemon=True,
+        ).start()
         return True
 
     # ── Competitors ───────────────────────────────────────────────────────────
 
     def run_competitors(self, p):
         self._stop_event.clear()
+
         def _w():
-            def _upd(path): self._last_competitors_file = path
+            def _upd(path):
+                self._last_competitors_file = path
+
             refresh_competitors_pipeline(
-                _SV(p["olap_file"]), _SV(p["competitors_file"]),
-                self._log, self._mb, self._stop_event, on_file_updated=_upd,
+                _SV(p["olap_file"]),
+                _SV(p["competitors_file"]),
+                self._log,
+                self._mb,
+                self._stop_event,
+                on_file_updated=_upd,
             )
             self._emit("set_title", "")
+
         threading.Thread(target=_w, daemon=True).start()
         return True
 
@@ -381,24 +493,44 @@ class Api:
 
     def run_nielsen(self, p):
         self._stop_event.clear()
-        threading.Thread(target=lambda: (
-            process_nielsen(p["input_file"], p["output_dir"], p["format"],
-                            self._log, self._mb, self._stop_event, p["category"]),
-            self._emit("set_title", ""),
-        ), daemon=True).start()
+        threading.Thread(
+            target=lambda: (
+                process_nielsen(
+                    p["input_file"],
+                    p["output_dir"],
+                    p["format"],
+                    self._log,
+                    self._mb,
+                    self._stop_event,
+                    p["category"],
+                ),
+                self._emit("set_title", ""),
+            ),
+            daemon=True,
+        ).start()
         return True
 
     # ── Query Refresh ─────────────────────────────────────────────────────────
 
     def run_query_refresh(self, p):
         self._stop_event.clear()
+
         def _w():
             from competitors_functions import refresh_file
-            ok = refresh_file(p["file"], self._log, self._stop_event, timeout_minutes=90)
+
+            ok = refresh_file(
+                p["file"], self._log, self._stop_event, timeout_minutes=90
+            )
             if ok:
-                self._emit("toast", {"type": "success",
-                                     "message": f"Обновлено: {os.path.basename(p['file'])}"})
+                self._emit(
+                    "toast",
+                    {
+                        "type": "success",
+                        "message": f"Обновлено: {os.path.basename(p['file'])}",
+                    },
+                )
             self._emit("set_title", "")
+
         threading.Thread(target=_w, daemon=True).start()
         return True
 
@@ -406,24 +538,38 @@ class Api:
 
     def run_production(self, p):
         self._stop_event.clear()
-        threading.Thread(target=lambda: (
-            run_production(
-                p["svod_folder"], p["npk_file"], p["tolyatti_folder"],
-                p["target_file"], p["mapping_file"],
-                p["month_str"], p["year"],
-                self._log, self._mb, self._stop_event,
+        threading.Thread(
+            target=lambda: (
+                run_production(
+                    p["svod_folder"],
+                    p["npk_file"],
+                    p["tolyatti_folder"],
+                    p["target_file"],
+                    p["mapping_file"],
+                    p["month_str"],
+                    p["year"],
+                    self._log,
+                    self._mb,
+                    self._stop_event,
+                ),
+                self._emit("set_title", ""),
             ),
-            self._emit("set_title", ""),
-        ), daemon=True).start()
+            daemon=True,
+        ).start()
         return True
 
     # ── SKU Matcher ───────────────────────────────────────────────────────────
 
     def run_sku_matching(self, p):
-        def _prog(msg): self._emit("sku_log", msg)
+        def _prog(msg):
+            self._emit("sku_log", msg)
+
         def _done(results, error=None):
-            if error: self._emit("sku_error", str(error))
-            else:     self._emit("sku_results", results)
+            if error:
+                self._emit("sku_error", str(error))
+            else:
+                self._emit("sku_results", results)
+
         threading.Thread(
             target=run_matching,
             args=(p["ref_path"], p["csv_folder"], float(p["threshold"]), _prog, _done),
@@ -451,19 +597,22 @@ class Api:
             self._emit("pc_started", None)
             try:
                 n = run_price_comparison(
-                    path_kuper    = p["kuper_file"],
-                    path_promodata= p["promo_file"],
-                    path_sprav    = p["sprav_file"],
-                    output_file   = p["output_file"],
-                    threshold     = float(p.get("threshold", 0.5)),
-                    log           = self._pc_log,
-                    stop_event    = self._stop_event,
+                    path_kuper=p["kuper_file"],
+                    path_promodata=p["promo_file"],
+                    path_sprav=p["sprav_file"],
+                    output_file=p["output_file"],
+                    threshold=float(p.get("threshold", 0.5)),
+                    log=self._pc_log,
+                    stop_event=self._stop_event,
                 )
                 self._emit("pc_done", {"rows": n, "output": p["output_file"]})
-                self._emit("toast", {
-                    "type": "success",
-                    "message": f"Готово: {n} строк → {os.path.basename(p['output_file'])}",
-                })
+                self._emit(
+                    "toast",
+                    {
+                        "type": "success",
+                        "message": f"Готово: {n} строк → {os.path.basename(p['output_file'])}",
+                    },
+                )
             except Exception as e:
                 logging.error(f"price_comparison error: {e}")
                 self._emit("pc_error", str(e))
@@ -491,18 +640,26 @@ setup_logger()
 _splash_set(96, "Запуск интерфейса…")
 api = Api()
 
-html_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "web", "index.html")
+html_path = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "web", "index.html"
+)
 
 window = webview.create_window(
-    "EFKO FlowManager", html_path, js_api=api,
-    width=1480, height=960, min_size=(1000, 700),
-    background_color="#F5F5F7", easy_drag=False,
+    "EFKO FlowManager",
+    html_path,
+    js_api=api,
+    width=1480,
+    height=960,
+    min_size=(1000, 700),
+    background_color="#F5F5F7",
+    easy_drag=False,
 )
 api._window = window
 
 
 def _bring_to_front():
     import ctypes
+
     try:
         hwnd = ctypes.windll.user32.FindWindowW(None, "EFKO FlowManager")
         if hwnd:
@@ -510,6 +667,7 @@ def _bring_to_front():
             ctypes.windll.user32.SetForegroundWindow(hwnd)
     except Exception:
         pass
+
 
 threading.Thread(target=_bring_to_front, daemon=True).start()
 
