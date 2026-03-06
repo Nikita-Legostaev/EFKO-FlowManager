@@ -25,28 +25,20 @@
   "pc_threshold": "0.65",
   "dark_theme": true,
   "scheduler_enabled": true,
-  "scheduler_time": "08:00",
+  "scheduler_time": "14:33",
   "scheduler_days": [
-    "mon",
-    "tue",
-    "wed",
-    "thu",
     "fri"
   ],
   "scheduler_steps": [
-    "download",
-    "process",
-    "query1",
-    "query2",
-    "macros"
+    "download"
   ],
-  "scheduler_auto_month": true,
-  "scheduler_month_from": 3,
+  "scheduler_auto_month": false,
+  "scheduler_month_from": 2,
   "scheduler_year_from": 2026,
-  "scheduler_month_to": 3,
+  "scheduler_month_to": 2,
   "scheduler_year_to": 2026,
-  "scheduler_category": "Кетчуп",
-  "scheduler_win_task": false,
-  "scheduler_last_run": "",
-  "scheduler_last_status": ""
+  "scheduler_category": "Кетчуп+Майонез",
+  "scheduler_win_task": true,
+  "scheduler_last_run": "2026-03-06T14:37:13",
+  "scheduler_last_status": "success"
 }

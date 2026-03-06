@@ -147,21 +147,54 @@ _splash_set(90, "Модуль сравнения цен…")
 
 from scheduler_functions import PromodateScheduler, SCHEDULER_DEFAULTS
 
-CONFIG_FILE = "config.json"
+# ── Путь к ресурсам (работает и в EXE через PyInstaller, и из исходников) ────
+import sys as _sys
+
+
+def _resource(rel_path: str) -> str:
+    """Возвращает абсолютный путь к файлу — корректно и в EXE, и в исходниках."""
+    if getattr(_sys, "frozen", False):
+        # Запущено как PyInstaller EXE — ресурсы рядом с exe
+        base = os.path.dirname(_sys.executable)
+    else:
+        # Обычный запуск из исходников
+        base = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(base, rel_path)
+
+
+CONFIG_FILE = _resource("config.json")
 
 
 # ── Logger ────────────────────────────────────────────────────────────────
 
 
 def setup_logger():
-    log_path = os.path.join(os.getcwd(), "flowmanager.log")
-    logging.basicConfig(
-        filename=log_path,
-        level=logging.INFO,
-        format="%(asctime)s [%(levelname)s] %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-        encoding="utf-8",
+    # Всегда пишем лог рядом с exe / app.py, а не в рабочей директории
+    import sys as _s
+
+    if getattr(_s, "frozen", False):
+        base = os.path.dirname(_s.executable)
+    else:
+        base = os.path.dirname(os.path.abspath(__file__))
+    log_path = os.path.join(base, "flowmanager.log")
+
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+    fmt = logging.Formatter(
+        "%(asctime)s [%(levelname)s] %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
     )
+
+    # Файловый хендлер
+    fh = logging.FileHandler(log_path, encoding="utf-8")
+    fh.setFormatter(fmt)
+    logger.addHandler(fh)
+
+    # Консольный хендлер (виден в VS Code / терминале)
+    ch = logging.StreamHandler()
+    ch.setFormatter(fmt)
+    logger.addHandler(ch)
+
+    logging.info(f"Лог: {log_path}")
 
 
 # ── Config ────────────────────────────────────────────────────────────────
@@ -392,15 +425,15 @@ class Api:
         def _w():
             download_files_thread(
                 _SV(p.get("month_from", "")),
-                _SV(p.get("year_from",  "")),
-                _SV(p.get("month_to",   "")),
-                _SV(p.get("year_to",    "")),
+                _SV(p.get("year_from", "")),
+                _SV(p.get("month_to", "")),
+                _SV(p.get("year_to", "")),
                 self._log,
                 self._mb,
                 progress_callback=self._progress,
                 set_title=self._set_title,
                 date_from_str=p.get("date_from") or None,
-                date_to_str=p.get("date_to")     or None,
+                date_to_str=p.get("date_to") or None,
             )
             self._emit("set_title", "")
             self._emit("hide_progress")
@@ -647,25 +680,38 @@ class Api:
         self.open_file(path)
         return True
 
-
     # ── Планировщик промодаты ─────────────────────────────────────────────────
 
-    def _run_scheduled_pipeline(self, cfg, steps, month_from, year_from, month_to, year_to, date_from=None, date_to=None):
+    def _run_scheduled_pipeline(
+        self,
+        cfg,
+        steps,
+        month_from,
+        year_from,
+        month_to,
+        year_to,
+        date_from=None,
+        date_to=None,
+    ):
         """Выполняется в фоновом потоке планировщика."""
         from promodate_functions import (
-            FILTER_OPTIONS, download_files_thread, process_files_thread,
-            run_stage_query1, run_stage_query2, run_stage_macros,
+            FILTER_OPTIONS,
+            download_files_thread,
+            process_files_thread,
+            run_stage_query1,
+            run_stage_query2,
+            run_stage_macros,
         )
 
         stop_event = threading.Event()
         mb = self._mb
 
-        category      = cfg.get("scheduler_category") or cfg.get("category", "Масло")
+        category = cfg.get("scheduler_category") or cfg.get("category", "Масло")
         output_folder = cfg.get("output_folder", "")
-        pq_file1      = cfg.get("pq_file1", "")
-        pq_file2      = cfg.get("pq_file2", "")
-        macro1        = cfg.get("macro1", "")
-        macro2        = cfg.get("macro2", "")
+        pq_file1 = cfg.get("pq_file1", "")
+        pq_file2 = cfg.get("pq_file2", "")
+        macro1 = cfg.get("macro1", "")
+        macro2 = cfg.get("macro2", "")
 
         self._log(
             f"🕐 Планировщик: промодата {month_from}/{year_from}–{month_to}/{year_to} | {steps}"
@@ -675,9 +721,12 @@ class Api:
             self._log("📥 [Планировщик] Скачивание файлов FTP...")
             try:
                 download_files_thread(
-                    _SV(month_from), _SV(year_from),
-                    _SV(month_to),   _SV(year_to),
-                    self._log, mb,
+                    _SV(month_from),
+                    _SV(year_from),
+                    _SV(month_to),
+                    _SV(year_to),
+                    self._log,
+                    mb,
                     date_from_str=date_from,
                     date_to_str=date_to,
                 )
@@ -687,11 +736,22 @@ class Api:
         if "process" in steps:
             self._log("⚙️ [Планировщик] Обработка файлов → CSV...")
             try:
-                def _noop(*a, **kw): pass
+
+                def _noop(*a, **kw):
+                    pass
+
                 process_files_thread(
-                    _SV(output_folder), _SV(category), FILTER_OPTIONS,
-                    self._log, mb, stop_event,
-                    _noop, _SV(pq_file1), _SV(pq_file2), _SV(macro1), _SV(macro2),
+                    _SV(output_folder),
+                    _SV(category),
+                    FILTER_OPTIONS,
+                    self._log,
+                    mb,
+                    stop_event,
+                    _noop,
+                    _SV(pq_file1),
+                    _SV(pq_file2),
+                    _SV(macro1),
+                    _SV(macro2),
                 )
             except Exception as e:
                 self._log(f"⚠️ Ошибка обработки: {e}")
@@ -714,8 +774,12 @@ class Api:
             self._log("▶ [Планировщик] Макросы...")
             try:
                 run_stage_macros(
-                    _SV(pq_file2), _SV(macro1), _SV(macro2),
-                    self._log, stop_event, mb,
+                    _SV(pq_file2),
+                    _SV(macro1),
+                    _SV(macro2),
+                    self._log,
+                    stop_event,
+                    mb,
                 )
             except Exception as e:
                 self._log(f"⚠️ Ошибка макросов: {e}")
@@ -732,30 +796,41 @@ class Api:
             if k in data:
                 cfg[k] = data[k]
         save_config_data(cfg)
-        self._scheduler.stop()
-        self._scheduler.start()
+        # НЕ перезапускаем поток — _tick() сам читает конфиг с диска каждые 20 сек.
+        # Перезапуск вызывал race condition когда старый поток ещё жил.
+        enabled = cfg.get("scheduler_enabled", False)
+        logging.info(
+            f"Конфиг планировщика сохранён: "
+            f"enabled={enabled}, "
+            f"time={cfg.get('scheduler_time','')}, "
+            f"days={cfg.get('scheduler_days','')}"
+        )
         return True
 
     def scheduler_run_now(self, data: dict):
         cfg = load_config()
-        steps = data.get("steps") or cfg.get("scheduler_steps", list(SCHEDULER_DEFAULTS["scheduler_steps"]))
-        now   = __import__('datetime').datetime.now()
-        auto  = data.get("auto_month", True)
+        steps = data.get("steps") or cfg.get(
+            "scheduler_steps", list(SCHEDULER_DEFAULTS["scheduler_steps"])
+        )
+        now = __import__("datetime").datetime.now()
+        auto = data.get("auto_month", True)
         if auto:
             mf = mt = now.month
             yf = yt = now.year
         else:
             mf = int(data.get("month_from") or now.month)
-            yf = int(data.get("year_from")  or now.year)
-            mt = int(data.get("month_to")   or mf)
-            yt = int(data.get("year_to")    or yf)
+            yf = int(data.get("year_from") or now.year)
+            mt = int(data.get("month_to") or mf)
+            yt = int(data.get("year_to") or yf)
         # Override category if passed from UI
         cat = data.get("category")
         if cat:
             cfg["scheduler_category"] = cat
         df = data.get("date_from") or None
-        dt = data.get("date_to")   or None
-        self._scheduler.run_now(cfg, steps=steps, mf=mf, yf=yf, mt=mt, yt=yt, date_from=df, date_to=dt)
+        dt = data.get("date_to") or None
+        self._scheduler.run_now(
+            cfg, steps=steps, mf=mf, yf=yf, mt=mt, yt=yt, date_from=df, date_to=dt
+        )
         return True
 
     # ── Windows Task Scheduler интеграция ────────────────────────────────────
@@ -763,13 +838,28 @@ class Api:
     TASK_NAME = "EFKO PromoData Auto"
 
     def _get_python_exe(self) -> str:
-        """Возвращает путь к pythonw.exe рядом с текущим python."""
-        import sys, os
-        base = os.path.dirname(sys.executable)
+        """Возвращает путь к исполняемому файлу для запуска headless скрипта."""
+        if getattr(_sys, "frozen", False):
+            # В EXE режиме headless_exe запускается напрямую
+            base = os.path.dirname(_sys.executable)
+            headless = os.path.join(base, "promodate_headless.exe")
+            if os.path.exists(headless):
+                return headless
+        import sys as _s
+
+        base = os.path.dirname(_s.executable)
         pythonw = os.path.join(base, "pythonw.exe")
-        return pythonw if os.path.exists(pythonw) else sys.executable
+        return pythonw if os.path.exists(pythonw) else _s.executable
 
     def _get_script_path(self) -> str:
+        if getattr(_sys, "frozen", False):
+            # EXE mode — headless тоже должен быть собран как EXE
+            base = os.path.dirname(_sys.executable)
+            headless_exe = os.path.join(base, "promodate_headless.exe")
+            if os.path.exists(headless_exe):
+                return headless_exe
+            # Fallback: рядом лежит .py скрипт
+            return os.path.join(base, "promodate_headless.py")
         base = os.path.dirname(os.path.abspath(__file__))
         return os.path.join(base, "promodate_headless.py")
 
@@ -784,20 +874,22 @@ class Api:
         except ImportError:
             return {"ok": False, "msg": "Требуется pywin32: pip install pywin32"}
 
-        cfg      = load_config()
+        cfg = load_config()
         time_str = data.get("time", cfg.get("scheduler_time", "08:00"))
-        days_raw = data.get("days", cfg.get("scheduler_days", ["mon","tue","wed","thu","fri"]))
+        days_raw = data.get(
+            "days", cfg.get("scheduler_days", ["mon", "tue", "wed", "thu", "fri"])
+        )
 
         # Карта дней: win32com использует числа 1=Вс,2=Пн,...,7=Сб
-        day_num = {"sun":1,"mon":2,"tue":3,"wed":4,"thu":5,"fri":6,"sat":7}
+        day_num = {"sun": 1, "mon": 2, "tue": 3, "wed": 4, "thu": 5, "fri": 6, "sat": 7}
         days_bits = 0
         for d in days_raw:
             if d in day_num:
-                days_bits |= (1 << (day_num[d] - 1))  # bitmask
+                days_bits |= 1 << (day_num[d] - 1)  # bitmask
         if days_bits == 0:
             days_bits = 0b0111110  # Пн-Пт по умолчанию
 
-        python_exe  = self._get_python_exe()
+        python_exe = self._get_python_exe()
         script_path = self._get_script_path()
 
         hh, mm = map(int, time_str.split(":"))
@@ -818,45 +910,51 @@ class Api:
             # Создаём определение задачи
             td = svc.NewTask(0)
             td.RegistrationInfo.Description = "EFKO FlowManager — автозапуск промодаты"
-            td.Settings.Enabled             = True
+            td.Settings.Enabled = True
             td.Settings.StopIfGoingOnBatteries = False
             td.Settings.DisallowStartIfOnBatteries = False
-            td.Settings.ExecutionTimeLimit  = "PT4H"  # макс 4 часа
-            td.Settings.StartWhenAvailable  = True    # запустить если пропущен
+            td.Settings.ExecutionTimeLimit = "PT4H"  # макс 4 часа
+            td.Settings.StartWhenAvailable = True  # запустить если пропущен
 
             # Триггер: еженедельный
-            trigger = td.Triggers.Create(3)   # TASK_TRIGGER_WEEKLY = 3
+            trigger = td.Triggers.Create(3)  # TASK_TRIGGER_WEEKLY = 3
             # Время старта: сегодня в нужный час
             now = datetime.now()
             start_str = now.strftime(f"%Y-%m-%dT{hh:02d}:{mm:02d}:00")
-            trigger.StartBoundary    = start_str
-            trigger.Enabled          = True
-            trigger.DaysOfWeek       = days_bits
-            trigger.WeeksInterval    = 1
+            trigger.StartBoundary = start_str
+            trigger.Enabled = True
+            trigger.DaysOfWeek = days_bits
+            trigger.WeeksInterval = 1
 
             # Действие: запуск python-скрипта
-            action = td.Actions.Create(0)     # TASK_ACTION_EXEC = 0
-            action.Path              = python_exe
-            action.Arguments         = f'"{script_path}"'
-            action.WorkingDirectory  = os.path.dirname(script_path)
+            action = td.Actions.Create(0)  # TASK_ACTION_EXEC = 0
+            action.Path = python_exe
+            action.Arguments = f'"{script_path}"'
+            action.WorkingDirectory = os.path.dirname(script_path)
 
             # Регистрируем задачу (TASK_CREATE_OR_UPDATE = 6, TASK_LOGON_INTERACTIVE_TOKEN = 3)
             folder.RegisterTaskDefinition(
                 self.TASK_NAME,
                 td,
-                6,    # TASK_CREATE_OR_UPDATE
-                "",   # пользователь — текущий
-                "",   # пароль — не нужен
-                3,    # TASK_LOGON_INTERACTIVE_TOKEN (только когда залогинен)
-                ""
+                6,  # TASK_CREATE_OR_UPDATE
+                "",  # пользователь — текущий
+                "",  # пароль — не нужен
+                3,  # TASK_LOGON_INTERACTIVE_TOKEN (только когда залогинен)
+                "",
             )
 
             cfg["scheduler_win_task"] = True
-            cfg["scheduler_time"]     = time_str
-            cfg["scheduler_days"]     = days_raw
+            cfg["scheduler_time"] = time_str
+            cfg["scheduler_days"] = days_raw
             save_config_data(cfg)
             logging.info(f"Windows Task создана через COM: {self.TASK_NAME}")
-            self._emit("toast", {"type": "success", "message": "Задача создана в Планировщике Windows ✅"})
+            self._emit(
+                "toast",
+                {
+                    "type": "success",
+                    "message": "Задача создана в Планировщике Windows ✅",
+                },
+            )
             return {"ok": True, "msg": ""}
 
         except Exception as e:
@@ -873,33 +971,56 @@ class Api:
     def _create_task_schtasks_fallback(self, data, cfg, time_str, days_raw):
         """Запасной вариант через schtasks (без /rl HIGHEST)."""
         import subprocess
-        days_map = {"mon":"MON","tue":"TUE","wed":"WED","thu":"THU","fri":"FRI","sat":"SAT","sun":"SUN"}
+
+        days_map = {
+            "mon": "MON",
+            "tue": "TUE",
+            "wed": "WED",
+            "thu": "THU",
+            "fri": "FRI",
+            "sat": "SAT",
+            "sun": "SUN",
+        }
         days_str = ",".join(days_map[d] for d in days_raw if d in days_map) or "MON"
-        python_exe  = self._get_python_exe()
+        python_exe = self._get_python_exe()
         script_path = self._get_script_path()
 
-        subprocess.run(["schtasks","/delete","/tn",self.TASK_NAME,"/f"], capture_output=True)
+        subprocess.run(
+            ["schtasks", "/delete", "/tn", self.TASK_NAME, "/f"], capture_output=True
+        )
 
         cmd = [
-            "schtasks", "/create",
-            "/tn", self.TASK_NAME,
-            "/tr", f'"{python_exe}" "{script_path}"',
-            "/sc", "WEEKLY",
-            "/d", days_str,
-            "/st", time_str,
+            "schtasks",
+            "/create",
+            "/tn",
+            self.TASK_NAME,
+            "/tr",
+            f'"{python_exe}" "{script_path}"',
+            "/sc",
+            "WEEKLY",
+            "/d",
+            days_str,
+            "/st",
+            time_str,
             "/f",
             # Без /rl HIGHEST — не требует прав администратора
         ]
         result = subprocess.run(cmd, capture_output=True)
         stdout = (result.stdout or b"").decode("cp866", errors="replace")
         stderr = (result.stderr or b"").decode("cp866", errors="replace")
-        ok  = result.returncode == 0
+        ok = result.returncode == 0
         msg = stdout.strip() or stderr.strip()
 
         if ok:
             cfg["scheduler_win_task"] = True
             save_config_data(cfg)
-            self._emit("toast", {"type": "success", "message": "Задача создана в Планировщике Windows ✅"})
+            self._emit(
+                "toast",
+                {
+                    "type": "success",
+                    "message": "Задача создана в Планировщике Windows ✅",
+                },
+            )
         else:
             self._emit("toast", {"type": "error", "message": f"Ошибка: {msg}"})
             logging.error(f"schtasks fallback error: {msg}")
@@ -909,7 +1030,9 @@ class Api:
         """Удаляет задачу из Windows Task Scheduler (COM API + schtasks fallback)."""
         ok = False
         try:
-            import pythoncom, win32com.client as win32
+            import pythoncom
+            import win32com.client as win32
+
             pythoncom.CoInitialize()
             svc = win32.Dispatch("Schedule.Service")
             svc.Connect()
@@ -918,57 +1041,77 @@ class Api:
         except Exception:
             # Fallback через schtasks
             import subprocess
-            r = subprocess.run(["schtasks","/delete","/tn",self.TASK_NAME,"/f"], capture_output=True)
+
+            r = subprocess.run(
+                ["schtasks", "/delete", "/tn", self.TASK_NAME, "/f"],
+                capture_output=True,
+            )
             ok = r.returncode == 0
         finally:
-            try: pythoncom.CoUninitialize()
-            except Exception: pass
+            try:
+                pythoncom.CoUninitialize()
+            except Exception:
+                pass
 
         cfg = load_config()
         cfg["scheduler_win_task"] = False
         save_config_data(cfg)
         if ok:
-            self._emit("toast", {"type": "success", "message": "Задача удалена из Планировщика Windows"})
+            self._emit(
+                "toast",
+                {
+                    "type": "success",
+                    "message": "Задача удалена из Планировщика Windows",
+                },
+            )
         return {"ok": ok}
 
     def get_windows_task_status(self):
         """Проверяет статус задачи в Windows Task Scheduler."""
         import subprocess
+
         result = subprocess.run(
             ["schtasks", "/query", "/tn", self.TASK_NAME, "/fo", "LIST"],
-            capture_output=True
+            capture_output=True,
         )
         if result.returncode != 0:
             return {"exists": False}
 
-        out   = (result.stdout or b"").decode("cp866", errors="replace")
+        out = (result.stdout or b"").decode("cp866", errors="replace")
         lines = {
             line.split(":")[0].strip(): ":".join(line.split(":")[1:]).strip()
-            for line in out.splitlines() if ":" in line
+            for line in out.splitlines()
+            if ":" in line
         }
         # Ключи могут быть на русском (русский Windows) или английском
-        status_key  = next((k for k in lines if "Стат" in k or "Status" in k), None)
-        next_key    = next((k for k in lines if "Следующ" in k or "Next Run" in k), None)
-        last_key    = next((k for k in lines if "Последн" in k or "Last Run" in k), None)
+        status_key = next((k for k in lines if "Стат" in k or "Status" in k), None)
+        next_key = next((k for k in lines if "Следующ" in k or "Next Run" in k), None)
+        last_key = next((k for k in lines if "Последн" in k or "Last Run" in k), None)
 
         return {
-            "exists":   True,
-            "status":   lines.get(status_key, ""),
+            "exists": True,
+            "status": lines.get(status_key, ""),
             "next_run": lines.get(next_key, ""),
             "last_run": lines.get(last_key, ""),
-            "raw":      out[:400],
+            "raw": out[:400],
         }
 
     def run_windows_task_now(self):
         """Запускает задачу немедленно через schtasks /run."""
         import subprocess
+
         result = subprocess.run(
-            ["schtasks", "/run", "/tn", self.TASK_NAME],
-            capture_output=True
+            ["schtasks", "/run", "/tn", self.TASK_NAME], capture_output=True
         )
         ok = result.returncode == 0
         if ok:
-            self._emit("toast", {"type": "success", "message": "Задача запущена через Планировщик Windows"})
+            self._emit(
+                "toast",
+                {
+                    "type": "success",
+                    "message": "Задача запущена через Планировщик Windows",
+                },
+            )
         return {"ok": ok}
 
     def export_ics(self, data: dict):
@@ -976,24 +1119,31 @@ class Api:
         import uuid
         from datetime import timedelta
 
-        cfg      = load_config()
+        cfg = load_config()
         time_str = data.get("time", cfg.get("scheduler_time", "08:00"))
-        days_raw = data.get("days", cfg.get("scheduler_days", ["mon","tue","wed","thu","fri"]))
-        hh, mm   = map(int, time_str.split(":"))
+        days_raw = data.get(
+            "days", cfg.get("scheduler_days", ["mon", "tue", "wed", "thu", "fri"])
+        )
+        hh, mm = map(int, time_str.split(":"))
 
         # BYDAY для RRULE
         day_ical = {
-            "mon": "MO", "tue": "TU", "wed": "WE",
-            "thu": "TH", "fri": "FR", "sat": "SA", "sun": "SU",
+            "mon": "MO",
+            "tue": "TU",
+            "wed": "WE",
+            "thu": "TH",
+            "fri": "FR",
+            "sat": "SA",
+            "sun": "SU",
         }
         byday = ",".join(day_ical[d] for d in days_raw if d in day_ical) or "MO"
 
         now = datetime.now()
         dtstart = now.replace(hour=hh, minute=mm, second=0, microsecond=0)
-        dtend   = dtstart + timedelta(hours=2)
+        dtend = dtstart + timedelta(hours=2)
 
-        uid  = str(uuid.uuid4())
-        fmt  = "%Y%m%dT%H%M%S"
+        uid = str(uuid.uuid4())
+        fmt = "%Y%m%dT%H%M%S"
 
         ics = f"""BEGIN:VCALENDAR
 VERSION:2.0
@@ -1009,7 +1159,9 @@ STATUS:CONFIRMED
 END:VEVENT
 END:VCALENDAR"""
 
-        save_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "promodata_schedule.ics")
+        save_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), "promodata_schedule.ics"
+        )
         with open(save_path, "w", encoding="utf-8") as f:
             f.write(ics)
 
@@ -1027,19 +1179,18 @@ setup_logger()
 _splash_set(96, "Запуск интерфейса…")
 api = Api()
 
-html_path = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), "web", "index.html"
-)
+html_path = _resource(os.path.join("web", "index.html"))
 
 window = webview.create_window(
     "EFKO FlowManager",
     html_path,
     js_api=api,
-    width=1480,
-    height=960,
+    width=1700,
+    height=1200,
     min_size=(1000, 700),
     background_color="#F5F5F7",
     easy_drag=False,
+    maximized=True,
 )
 api._window = window
 

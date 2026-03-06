@@ -137,20 +137,22 @@ def download_files_thread(
     messagebox,
     progress_callback=None,
     set_title=None,
-    date_from_str=None,   # "YYYY-MM-DD" — если задан, фильтр по дню
-    date_to_str=None,     # "YYYY-MM-DD" — если задан, фильтр по дню
+    date_from_str=None,  # "YYYY-MM-DD" — если задан, фильтр по дню
+    date_to_str=None,  # "YYYY-MM-DD" — если задан, фильтр по дню
 ):
     # Если переданы конкретные даты — используем day-level фильтр
     if date_from_str and date_to_str:
         try:
             d_from = datetime.strptime(date_from_str, "%Y-%m-%d")
-            d_to   = datetime.strptime(date_to_str,   "%Y-%m-%d")
+            d_to = datetime.strptime(date_to_str, "%Y-%m-%d")
         except ValueError:
             date_from_str = date_to_str = None
 
     if date_from_str and date_to_str:
         if d_from > d_to:
-            messagebox.showwarning("Ошибка", "Начало диапазона не может быть позже конца!")
+            messagebox.showwarning(
+                "Ошибка", "Начало диапазона не может быть позже конца!"
+            )
             return
         files_to_download = []
         for f in os.listdir(FTP_FOLDER):
@@ -162,12 +164,14 @@ def download_files_thread(
     else:
         # Fallback: month-level (legacy)
         month_from = int(month_from_var.get()) if month_from_var else 1
-        year_from  = int(year_from_var.get())  if year_from_var  else datetime.now().year
-        month_to   = int(month_to_var.get())   if month_to_var   else month_from
-        year_to    = int(year_to_var.get())    if year_to_var    else year_from
+        year_from = int(year_from_var.get()) if year_from_var else datetime.now().year
+        month_to = int(month_to_var.get()) if month_to_var else month_from
+        year_to = int(year_to_var.get()) if year_to_var else year_from
 
         if (year_from, month_from) > (year_to, month_to):
-            messagebox.showwarning("Ошибка", "Начало диапазона не может быть позже конца!")
+            messagebox.showwarning(
+                "Ошибка", "Начало диапазона не может быть позже конца!"
+            )
             return
 
         valid_pairs = set(_iter_months(month_from, year_from, month_to, year_to))
