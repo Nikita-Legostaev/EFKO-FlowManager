@@ -447,6 +447,76 @@ body.dark .pc-wip-banner {
 .toast.warning { background: #B35300; }
 .toast.error   { background: #C0392B; }
 .toast-icon { font-size: 15px; flex-shrink: 0; }
+
+    /* ── Scheduler drawer ───────────────────────────────── */
+    .sd {
+      display:flex;align-items:center;justify-content:center;
+      padding:6px 2px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;
+      border:1.5px solid var(--border);background:var(--surface);
+      color:var(--text2);user-select:none;transition:.15s;text-align:center;
+    }
+    .sd input { display:none }
+    .sd:has(input:checked) { background:#1e8c42;color:#fff;border-color:#1e8c42 }
+    body.dark .sd { background:var(--surface2) }
+    body.dark .sd:has(input:checked) { background:#1e8c42;border-color:#1e8c42 }
+
+    .sched-step-row {
+      display:flex;align-items:center;gap:10px;padding:8px 10px;
+      border-radius:10px;border:1.5px solid var(--border);background:var(--surface);
+      cursor:pointer;user-select:none;transition:border-color .15s, background .15s;
+    }
+    .sched-step-row input { display:none }
+    .sched-step-row:has(input:checked) { border-color:#1e8c42;background:var(--green-muted) }
+    .sched-step-icon { font-size:16px;flex-shrink:0;width:24px;text-align:center }
+    body.dark .sched-step-row { background:var(--surface2) }
+
+    .sched-cal-month {
+      padding:6px 2px;border-radius:8px;border:none;background:none;
+      font-size:12px;font-weight:500;color:var(--text2);cursor:pointer;
+      text-align:center;transition:background .12s,color .12s;
+    }
+    .sched-cal-month:hover { background:var(--surface2) }
+    .sched-cal-month.in-range { background:var(--green-muted);color:var(--green-dark) }
+    .sched-cal-month.range-start, .sched-cal-month.range-end {
+      background:#1e8c42 !important;color:#fff !important;font-weight:700;
+    }
+    body.dark .sched-cal-month.in-range { background:#0d2e18;color:#32D75A }
+    #sched-open-btn:hover { background:var(--green-dim) !important }
+
+    /* ── Day Calendar ───────────────────────────────────────── */
+    .cal-nav-btn {
+      width:28px;height:28px;border:none;background:none;
+      color:var(--text2);font-size:16px;cursor:pointer;border-radius:6px;
+      display:flex;align-items:center;justify-content:center;transition:background .12s;
+    }
+    .cal-nav-btn:hover { background:var(--surface2) }
+    .dl-cal-grid {
+      display:grid;grid-template-columns:repeat(7,1fr);gap:2px;
+    }
+    .cal-dow {
+      text-align:center;font-size:10px;font-weight:700;color:var(--text3);
+      padding:3px 0;
+    }
+    .cal-day {
+      text-align:center;padding:5px 2px;border-radius:6px;font-size:11px;
+      font-weight:500;cursor:pointer;color:var(--text2);border:none;background:none;
+      transition:background .1s,color .1s;line-height:1;
+    }
+    .cal-day:hover:not(:disabled) { background:var(--surface2) }
+    .cal-day.today { font-weight:700;color:var(--green-dark) }
+    .cal-day.in-range { background:var(--green-muted);color:var(--green-dark);border-radius:0 }
+    .cal-day.range-start { background:#1e8c42 !important;color:#fff !important;border-radius:6px 0 0 6px !important;font-weight:700 }
+    .cal-day.range-end   { background:#1e8c42 !important;color:#fff !important;border-radius:0 6px 6px 0 !important;font-weight:700 }
+    .cal-day.range-start.range-end { border-radius:6px !important }
+    .cal-day:disabled { color:var(--text3);cursor:default;opacity:.4 }
+    .cal-day.other-month { color:var(--text3);opacity:.5 }
+    .cal-preset {
+      padding:4px 10px;border-radius:20px;border:1px solid var(--border);
+      background:var(--surface2);color:var(--text2);font-size:11px;font-weight:500;
+      cursor:pointer;transition:background .12s,border-color .12s,color .12s;white-space:nowrap;
+    }
+    .cal-preset:hover { background:var(--green-muted);border-color:var(--green);color:var(--green-dark) }
+    body.dark .cal-day.in-range { background:#0d2e18;color:#32D75A }
 </style>
 </head>
 <body>
@@ -495,25 +565,66 @@ body.dark .pc-wip-banner {
     <div id="page-header">
       <span id="page-title">Промодата</span>
       <span id="page-status"></span>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
+        <button id="sched-open-btn" onclick="schedDrawerOpen()" title="Автозапуск по расписанию"
+          style="height:34px;padding:0 14px;border-radius:10px;border:none;
+                 background:var(--green-muted);color:var(--green-dark);
+                 font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;
+                 transition:background .15s">
+          <span style="font-size:15px">🕐</span> Автозапуск
+          <span id="sched-dot" style="width:7px;height:7px;border-radius:50%;background:#ccc;display:inline-block"></span>
+        </button>
+      </div>
     </div>
 
     <div id="scroll-area">
 
       <!-- ── ПРОМОДАТА ── -->
       <div class="pane active" id="pane-promodate">
+        <!-- Скрытые поля для обратной совместимости -->
+        <input type="hidden" data-field="month_from" id="sel-month-from">
+        <input type="hidden" data-field="year_from"  id="sel-year-from">
+        <input type="hidden" data-field="month_to"   id="sel-month-to">
+        <input type="hidden" data-field="year_to"    id="sel-year-to">
+
         <div class="card">
-          <div class="card-section"><span class="card-section-icon">📅</span><span class="card-section-title">Диапазон дат</span></div>
-          <div class="card-body">
-            <div class="opts-row">
-              <span class="opts-label">Месяц с:</span>
-              <select class="form-select" data-field="month_from" style="width:72px" id="sel-month-from"></select>
-              <span class="opts-sep">—</span>
-              <select class="form-select" data-field="month_to" style="width:72px" id="sel-month-to"></select>
-              <span style="width:20px"></span>
-              <span class="opts-label" style="min-width:60px">Год с:</span>
-              <select class="form-select" data-field="year_from" style="width:96px" id="sel-year-from"></select>
-              <span class="opts-sep">—</span>
-              <select class="form-select" data-field="year_to" style="width:96px" id="sel-year-to"></select>
+          <div class="card-section">
+            <span class="card-section-icon">📅</span>
+            <span class="card-section-title">Диапазон дат скачивания</span>
+            <span id="dl-range-badge" style="margin-left:auto;font-size:11px;font-weight:600;
+              padding:2px 10px;border-radius:20px;background:var(--green-muted);
+              color:var(--green-dark)">выберите даты</span>
+          </div>
+          <div class="card-body" style="padding:10px 16px 14px">
+            <!-- Two-month calendar -->
+            <div style="display:flex;gap:16px;flex-wrap:wrap">
+              <!-- Left month -->
+              <div style="flex:1;min-width:220px">
+                <div style="display:flex;align-items:center;margin-bottom:6px">
+                  <button onclick="dlCalPrev()" class="cal-nav-btn">‹</button>
+                  <span id="dl-cal-title-l" style="flex:1;text-align:center;font-size:12px;font-weight:700;color:var(--text)"></span>
+                  <div style="width:28px"></div>
+                </div>
+                <div id="dl-cal-left" class="dl-cal-grid"></div>
+              </div>
+              <!-- Right month -->
+              <div style="flex:1;min-width:220px">
+                <div style="display:flex;align-items:center;margin-bottom:6px">
+                  <div style="width:28px"></div>
+                  <span id="dl-cal-title-r" style="flex:1;text-align:center;font-size:12px;font-weight:700;color:var(--text)"></span>
+                  <button onclick="dlCalNext()" class="cal-nav-btn">›</button>
+                </div>
+                <div id="dl-cal-right" class="dl-cal-grid"></div>
+              </div>
+            </div>
+            <!-- Quick presets -->
+            <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
+              <button class="cal-preset" onclick="dlPreset('today')">Сегодня</button>
+              <button class="cal-preset" onclick="dlPreset('week')">Эта неделя</button>
+              <button class="cal-preset" onclick="dlPreset('month')">Этот месяц</button>
+              <button class="cal-preset" onclick="dlPreset('prev_month')">Прошлый месяц</button>
+              <button class="cal-preset" onclick="dlPreset('quarter')">Квартал</button>
+              <button class="cal-preset" onclick="dlPreset('year')">Год</button>
             </div>
           </div>
         </div>
@@ -785,6 +896,253 @@ body.dark .pc-wip-banner {
     </div>
 
   </main>
+<!-- ══════════ SCHEDULER DRAWER ══════════ -->
+<div id="sched-overlay" onclick="schedDrawerClose()" style="
+  position:fixed;inset:0;background:rgba(0,0,0,0);pointer-events:none;
+  z-index:900;transition:background .25s"></div>
+
+<aside id="sched-drawer" style="
+  position:fixed;top:0;right:0;bottom:0;width:360px;
+  background:var(--surface);border-left:1px solid var(--border);
+  box-shadow:-8px 0 40px rgba(0,0,0,.12);
+  z-index:901;transform:translateX(100%);transition:transform .28s cubic-bezier(.4,0,.2,1);
+  display:flex;flex-direction:column;overflow:hidden">
+
+  <!-- Header -->
+  <div style="padding:18px 20px 14px;border-bottom:1px solid var(--border);flex-shrink:0;
+              display:flex;align-items:center;gap:10px">
+    <span style="font-size:18px">🕐</span>
+    <div>
+      <div style="font-size:14px;font-weight:700;color:var(--text)">Автозапуск промодаты</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:1px">Запуск по расписанию без GUI</div>
+    </div>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:10px">
+      <!-- Toggle -->
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none">
+        <div id="sched-toggle-wrap" onclick="schedToggleEnabled()" style="
+          width:42px;height:24px;border-radius:12px;background:#ccc;
+          position:relative;cursor:pointer;transition:background .2s;flex-shrink:0">
+          <div id="sched-toggle-thumb" style="
+            position:absolute;top:3px;left:3px;width:18px;height:18px;
+            border-radius:50%;background:#fff;transition:left .2s;
+            box-shadow:0 1px 4px rgba(0,0,0,.3)"></div>
+        </div>
+        <span id="sched-toggle-lbl" style="font-size:12px;font-weight:600;color:var(--text3)">Выкл</span>
+      </label>
+      <button onclick="schedDrawerClose()" style="
+        width:28px;height:28px;border-radius:8px;border:none;
+        background:var(--surface2);color:var(--text2);font-size:16px;
+        cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
+    </div>
+  </div>
+
+  <!-- Body (scrollable) -->
+  <div style="flex:1;overflow-y:auto;padding:16px">
+
+    <!-- Time & Days -->
+    <div style="margin-bottom:14px">
+      <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Расписание</div>
+
+      <!-- Время -->
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <span style="font-size:12px;color:var(--text2);min-width:80px">Время запуска</span>
+        <input type="time" id="sched-time" value="08:00"
+          style="height:32px;padding:0 10px;border-radius:8px;border:1px solid var(--border2);
+                 background:var(--surface2);color:var(--text);font-size:13px;font-weight:600;
+                 outline:none;width:110px" oninput="schedSave()">
+      </div>
+
+      <!-- Дни — кастомный выбор + кнопки пресетов -->
+      <div style="font-size:11px;color:var(--text3);margin-bottom:6px;display:flex;align-items:center;justify-content:space-between">
+        <span>Дни недели</span>
+        <div style="display:flex;gap:4px">
+          <button onclick="schedDayPreset('workdays')" style="font-size:10px;padding:2px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);cursor:pointer">Будни</button>
+          <button onclick="schedDayPreset('all')"      style="font-size:10px;padding:2px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);cursor:pointer">Каждый</button>
+          <button onclick="schedDayPreset('none')"     style="font-size:10px;padding:2px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);cursor:pointer">Сбросить</button>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:12px">
+        <label class="sd" data-day="mon"><input type="checkbox" checked onchange="schedSave()"><span>Пн</span></label>
+        <label class="sd" data-day="tue"><input type="checkbox" checked onchange="schedSave()"><span>Вт</span></label>
+        <label class="sd" data-day="wed"><input type="checkbox" checked onchange="schedSave()"><span>Ср</span></label>
+        <label class="sd" data-day="thu"><input type="checkbox" checked onchange="schedSave()"><span>Чт</span></label>
+        <label class="sd" data-day="fri"><input type="checkbox" checked onchange="schedSave()"><span>Пт</span></label>
+        <label class="sd" data-day="sat"><input type="checkbox" onchange="schedSave()"><span>Сб</span></label>
+        <label class="sd" data-day="sun"><input type="checkbox" onchange="schedSave()"><span>Вс</span></label>
+      </div>
+
+      <!-- Windows Task Scheduler блок -->
+      <div style="font-size:11px;color:var(--text3);margin-bottom:6px">📅 Интеграция с Windows</div>
+      <div id="win-task-card" style="border-radius:10px;border:1.5px solid var(--border);overflow:hidden">
+        <!-- Статус задачи -->
+        <div style="padding:10px 12px;display:flex;align-items:center;gap:10px;background:var(--surface2)">
+          <span id="win-task-icon" style="font-size:16px">⬜</span>
+          <div style="flex:1">
+            <div id="win-task-name" style="font-size:11px;font-weight:700;color:var(--text)">Планировщик задач Windows</div>
+            <div id="win-task-next" style="font-size:10px;color:var(--text3)">Задача не зарегистрирована</div>
+          </div>
+          <button id="win-task-refresh" onclick="winTaskRefresh()" title="Обновить статус"
+            style="width:26px;height:26px;border-radius:6px;border:none;background:none;
+                   color:var(--text3);font-size:14px;cursor:pointer">↻</button>
+        </div>
+        <!-- Кнопки -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--border)">
+          <button id="win-task-create" onclick="winTaskCreate()"
+            style="padding:9px 6px;border:none;background:none;cursor:pointer;
+                   font-size:11px;font-weight:600;color:#1e8c42;
+                   border-right:1px solid var(--border);transition:background .15s"
+            onmouseover="this.style.background='var(--green-muted)'"
+            onmouseout="this.style.background='none'">
+            ✚ Создать задачу
+          </button>
+          <button id="win-task-delete" onclick="winTaskDelete()"
+            style="padding:9px 6px;border:none;background:none;cursor:pointer;
+                   font-size:11px;font-weight:600;color:var(--red);transition:background .15s"
+            onmouseover="this.style.background='#fff0f0'"
+            onmouseout="this.style.background='none'">
+            🗑 Удалить
+          </button>
+        </div>
+      </div>
+
+      <!-- Экспорт в Календарь -->
+      <button onclick="winExportIcs()"
+        style="width:100%;margin-top:8px;padding:8px;border-radius:8px;
+               border:1px dashed var(--border);background:none;
+               font-size:11px;color:var(--text3);cursor:pointer;
+               display:flex;align-items:center;justify-content:center;gap:6px;
+               transition:border-color .15s,color .15s"
+        onmouseover="this.style.borderColor='#1e8c42';this.style.color='#1e8c42'"
+        onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text3)'">
+        📆 Экспортировать в Календарь Windows (.ics)
+      </button>
+    </div>
+
+    <div style="height:1px;background:var(--border);margin:12px 0"></div>
+
+    <!-- Date Range -->
+    <div style="margin-bottom:14px">
+      <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Период данных</div>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:10px">
+        <div id="sched-auto-wrap" onclick="schedAutoToggle()" style="
+          width:36px;height:20px;border-radius:10px;background:var(--green);
+          position:relative;cursor:pointer;transition:background .2s;flex-shrink:0">
+          <div id="sched-auto-thumb" style="
+            position:absolute;top:2px;left:18px;width:16px;height:16px;
+            border-radius:50%;background:#fff;transition:left .2s;
+            box-shadow:0 1px 3px rgba(0,0,0,.3)"></div>
+        </div>
+        <span style="font-size:12px;color:var(--text2)">Текущий месяц автоматически</span>
+      </label>
+
+      <!-- Calendar date range picker - day level -->
+      <div id="sched-cal-wrap" style="display:none">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:8px">Диапазон данных (до дня):</div>
+        <!-- Calendar header -->
+        <div style="display:flex;align-items:center;margin-bottom:6px;gap:4px">
+          <button onclick="schedCalPrev()" class="cal-nav-btn" style="width:26px;height:26px;font-size:14px">‹</button>
+          <span id="sched-cal-title" style="flex:1;text-align:center;font-size:12px;font-weight:700;color:var(--text)"></span>
+          <button onclick="schedCalNext()" class="cal-nav-btn" style="width:26px;height:26px;font-size:14px">›</button>
+        </div>
+        <div id="sched-cal-grid" class="dl-cal-grid" style="font-size:11px"></div>
+        <!-- Selected range display -->
+        <div id="sched-range-display" style="margin-top:8px;padding:7px 10px;border-radius:8px;
+          background:var(--green-muted);border:1px solid var(--green-dim);
+          font-size:11px;color:var(--green-dark);font-weight:600;text-align:center">
+          Выберите начало диапазона
+        </div>
+      </div>
+    </div>
+
+    <div style="height:1px;background:var(--border);margin:12px 0"></div>
+
+    <!-- Steps -->
+    <div style="margin-bottom:14px">
+      <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Шаги выполнения</div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <label class="sched-step-row" data-step="download">
+          <input type="checkbox" checked onchange="schedSave()">
+          <span class="sched-step-icon">📥</span>
+          <div><div style="font-size:12px;font-weight:600;color:var(--text)">Скачать с FTP</div>
+               <div style="font-size:10px;color:var(--text3)">Загрузка xlsx из M:\FTP</div></div>
+        </label>
+        <label class="sched-step-row" data-step="process">
+          <input type="checkbox" checked onchange="schedSave()">
+          <span class="sched-step-icon">⚙️</span>
+          <div><div style="font-size:12px;font-weight:600;color:var(--text)">Обработать</div>
+               <div style="font-size:10px;color:var(--text3)">Фильтрация и экспорт CSV</div></div>
+        </label>
+        <label class="sched-step-row" data-step="query1">
+          <input type="checkbox" checked onchange="schedSave()">
+          <span class="sched-step-icon">🔄</span>
+          <div><div style="font-size:12px;font-weight:600;color:var(--text)">Query 1</div>
+               <div style="font-size:10px;color:var(--text3)">Обновление Promodate.xlsx</div></div>
+        </label>
+        <label class="sched-step-row" data-step="query2">
+          <input type="checkbox" checked onchange="schedSave()">
+          <span class="sched-step-icon">🔄</span>
+          <div><div style="font-size:12px;font-weight:600;color:var(--text)">Query 2</div>
+               <div style="font-size:10px;color:var(--text3)">Обновление .xlsm Power Query</div></div>
+        </label>
+        <label class="sched-step-row" data-step="macros">
+          <input type="checkbox" checked onchange="schedSave()">
+          <span class="sched-step-icon">▶</span>
+          <div><div style="font-size:12px;font-weight:600;color:var(--text)">Макросы</div>
+               <div style="font-size:10px;color:var(--text3)">Запуск Excel макросов</div></div>
+        </label>
+      </div>
+    </div>
+
+
+    <div style="height:1px;background:var(--border);margin:12px 0"></div>
+
+    <!-- Category -->
+    <div style="margin-bottom:14px">
+      <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Категория</div>
+      <select id="sched-category" onchange="schedSave()"
+        style="width:100%;height:36px;padding:0 10px;border-radius:8px;
+               border:1px solid var(--border2);background:var(--surface2);
+               color:var(--text);font-size:13px;font-weight:500;outline:none;
+               appearance:none;cursor:pointer;
+               background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23AEAEB2' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+               background-repeat:no-repeat;background-position:right 10px center;padding-right:28px">
+        <!-- filled dynamically by schedLoad() -->
+      </select>
+    </div>
+
+    <div style="height:1px;background:var(--border);margin:12px 0"></div>
+
+    <!-- Last run status -->
+    <div style="margin-bottom:14px">
+      <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Последний запуск</div>
+      <div id="sched-status-row" style="padding:10px 12px;border-radius:10px;background:var(--surface2);
+        display:flex;align-items:center;gap:10px;border:1px solid var(--border)">
+        <span id="sched-status-icon" style="font-size:16px">⏳</span>
+        <div>
+          <div id="sched-status-text" style="font-size:12px;color:var(--text2)">Ещё не запускался</div>
+          <div id="sched-status-ts" style="font-size:10px;color:var(--text3)"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer with run button -->
+  <div style="padding:14px 16px;border-top:1px solid var(--border);flex-shrink:0;display:flex;gap:8px">
+    <button onclick="schedRunNow()" style="
+      flex:1;height:40px;border-radius:10px;border:none;
+      background:#1e8c42;color:#fff;font-size:13px;font-weight:600;
+      cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;
+      transition:background .15s">
+      ▶ Запустить сейчас
+    </button>
+    <button onclick="schedDrawerClose()" style="
+      height:40px;padding:0 16px;border-radius:10px;border:1px solid var(--border);
+      background:var(--surface2);color:var(--text2);font-size:13px;font-weight:500;cursor:pointer">
+      Закрыть
+    </button>
+  </div>
+</aside>
+
 </div><!-- /app -->
 
 <!-- ══════════ SKU MATCHER OVERLAY ══════════ -->
@@ -922,6 +1280,8 @@ window.__pyEvent = function(payload) {
     case 'pc_log':        pcAddLog(data); break;
     case 'pc_done':       pcOnDone(data); break;
     case 'pc_error':      pcOnError(data); break;
+    case 'scheduler_fired': schedUpdateStatus(new Date().toISOString().slice(0,19),'running'); break;
+    case 'scheduler_done':  schedUpdateStatus(data.ts||'', data.status); break;
   }
 };
 
@@ -950,8 +1310,11 @@ window.addEventListener('pywebviewready', async () => {
     el.addEventListener('change', autoSave);
     el.addEventListener('input',  autoSave);
   });
+  dlCalInit(cfg);
   navigate('promodate');
+  schedLoad();
   _hideSplash();
+  
 });
 
 function buildSelects() {
@@ -980,22 +1343,7 @@ function buildSelects() {
     return { mf, mt, yf, yt, from, to };
   }
 
-  document.getElementById('sel-month-from').addEventListener('change', function() {
-    const { mf, mt, yf, yt, from, to } = clampDates();
-    if (from > to) {
-      document.getElementById('sel-month-to').value = mf;
-      document.getElementById('sel-year-to').value  = yf;
-    }
-    autoSave();
-  });
-  document.getElementById('sel-year-from').addEventListener('change', function() {
-    const { mf, mt, yf, yt, from, to } = clampDates();
-    if (from > to) {
-      document.getElementById('sel-month-to').value = mf;
-      document.getElementById('sel-year-to').value  = yf;
-    }
-    autoSave();
-  });
+  // Date pickers now handled by dlCalRender() / dlOnDayClick()
   document.getElementById('sel-month-to').addEventListener('change', function() {
     const { mf, mt, yf, yt, from, to } = clampDates();
     if (to < from) {
@@ -1082,6 +1430,8 @@ async function runAction() {
     const p = {
       month_from:getField('month_from'), year_from:getField('year_from'),
       month_to:getField('month_to'),     year_to:getField('year_to'),
+      date_from: _dlFrom ? _dateKey(_dlFrom) : null,
+      date_to:   _dlTo   ? _dateKey(_dlTo)   : null,
       output_folder:getField('output_folder'), category:getField('category'),
       pq_file1:getField('pq_file1'), pq_file2:getField('pq_file2'),
       macro1:getField('macro1'), macro2:getField('macro2'),
@@ -1339,6 +1689,583 @@ function applyThemeUI(isDark){
 function applyThemeFromConfig(cfg){
   if(cfg.dark_theme){document.body.classList.add('dark');applyThemeUI(true);}
 }
+
+  // ══════════════════════════════════════════════════════════════════════
+  // ПЛАНИРОВЩИК — ПРАВЫЙ DRAWER
+  // ══════════════════════════════════════════════════════════════════════
+
+  // ── Открытие / закрытие drawer ────────────────────────────────────────
+  let _schedOpen = false;
+  function schedDrawerOpen() {
+    _schedOpen = true;
+    document.getElementById('sched-drawer').style.transform = 'translateX(0)';
+    const ov = document.getElementById('sched-overlay');
+    ov.style.pointerEvents = 'all';
+    ov.style.background    = 'rgba(0,0,0,.25)';
+  }
+  function schedDrawerClose() {
+    _schedOpen = false;
+    document.getElementById('sched-drawer').style.transform = 'translateX(100%)';
+    const ov = document.getElementById('sched-overlay');
+    ov.style.pointerEvents = 'none';
+    ov.style.background    = 'rgba(0,0,0,0)';
+  }
+
+  // ── Toggle enabled ────────────────────────────────────────────────────
+  let _schedEnabled = false;
+  function schedToggleEnabled() {
+    _schedEnabled = !_schedEnabled;
+    _schedApplyToggle(_schedEnabled);
+    schedSave();
+  }
+  function _schedApplyToggle(on) {
+    const wrap  = document.getElementById('sched-toggle-wrap');
+    const thumb = document.getElementById('sched-toggle-thumb');
+    const lbl   = document.getElementById('sched-toggle-lbl');
+    const dot   = document.getElementById('sched-dot');
+    if (on) {
+      wrap.style.background  = '#1e8c42';
+      thumb.style.left       = '21px';
+      lbl.textContent        = 'Вкл';
+      lbl.style.color        = '#1e8c42';
+      if (dot) { dot.style.background = '#1e8c42'; dot.style.boxShadow = '0 0 0 2px rgba(30,140,66,.3)'; }
+    } else {
+      wrap.style.background  = '#ccc';
+      thumb.style.left       = '3px';
+      lbl.textContent        = 'Выкл';
+      lbl.style.color        = 'var(--text3)';
+      if (dot) { dot.style.background = '#ccc'; dot.style.boxShadow = 'none'; }
+    }
+  }
+
+  // ── Auto month toggle ─────────────────────────────────────────────────
+  let _schedAutoMonth = true;
+  function schedAutoToggle() {
+    _schedAutoMonth = !_schedAutoMonth;
+    _schedApplyAutoMonth(_schedAutoMonth);
+    schedSave();
+  }
+  function _schedApplyAutoMonth(on) {
+    const wrap  = document.getElementById('sched-auto-wrap');
+    const thumb = document.getElementById('sched-auto-thumb');
+    const cal   = document.getElementById('sched-cal-wrap');
+    if (on) {
+      wrap.style.background = 'var(--green)';
+      thumb.style.left = '18px';
+      cal.style.display = 'none';
+    } else {
+      wrap.style.background = '#ccc';
+      thumb.style.left = '2px';
+      cal.style.display = 'block';
+      schedCalRender();
+    }
+  }
+
+  // ── Calendar (month range picker) ─────────────────────────────────────
+  const MONTH_NAMES_SHORT = ['Янв','Фев','Мар','Апр','Май','Июн','Июл','Авг','Сен','Окт','Ноя','Дек'];
+  let _calYear   = new Date().getFullYear();
+  let _calFrom   = null;  // {month:1-12, year}
+  let _calTo     = null;
+  let _calPhase  = 'from'; // 'from' | 'to'
+
+  function schedCalPrevYear() { _calYear--; schedCalRender(); }
+  function schedCalNextYear() { _calYear++; schedCalRender(); }
+
+  function schedCalRender() {
+    document.getElementById('sched-cal-year').textContent = _calYear;
+    const grid = document.getElementById('sched-cal-grid');
+    grid.innerHTML = '';
+    for (let m = 1; m <= 12; m++) {
+      const btn = document.createElement('button');
+      btn.className = 'sched-cal-month';
+      btn.textContent = MONTH_NAMES_SHORT[m-1];
+      btn.dataset.m = m;
+      btn.dataset.y = _calYear;
+
+      const cur = _calYear * 12 + m;
+      const from = _calFrom ? (_calFrom.year * 12 + _calFrom.month) : null;
+      const to   = _calTo   ? (_calTo.year   * 12 + _calTo.month)   : null;
+
+      if (from && cur === from) btn.classList.add('range-start');
+      if (to   && cur === to)   btn.classList.add('range-end');
+      if (from && to && cur > from && cur < to) btn.classList.add('in-range');
+
+      btn.addEventListener('click', () => schedCalClick(parseInt(btn.dataset.m), parseInt(btn.dataset.y)));
+      grid.appendChild(btn);
+    }
+    // Update range display
+    const disp = document.getElementById('sched-range-display');
+    if (_calFrom && _calTo) {
+      disp.textContent = `${MONTH_NAMES_SHORT[_calFrom.month-1]} ${_calFrom.year} — ${MONTH_NAMES_SHORT[_calTo.month-1]} ${_calTo.year}`;
+      disp.style.background = 'var(--green-muted)';
+    } else if (_calFrom) {
+      disp.textContent = `${MONTH_NAMES_SHORT[_calFrom.month-1]} ${_calFrom.year} — выберите конец`;
+      disp.style.background = 'var(--surface2)';
+    } else {
+      disp.textContent = 'Нажмите месяц для начала диапазона';
+      disp.style.background = 'var(--surface2)';
+    }
+  }
+
+  function schedCalClick(m, y) {
+    if (_calPhase === 'from') {
+      _calFrom  = {month: m, year: y};
+      _calTo    = null;
+      _calPhase = 'to';
+    } else {
+      const cur  = y * 12 + m;
+      const from = _calFrom.year * 12 + _calFrom.month;
+      if (cur < from) {
+        // Swap
+        _calTo    = _calFrom;
+        _calFrom  = {month: m, year: y};
+      } else {
+        _calTo = {month: m, year: y};
+      }
+      _calPhase = 'from';
+      schedSave();
+    }
+    schedCalRender();
+  }
+
+  // ── Load config ───────────────────────────────────────────────────────
+  async function schedLoad() {
+    const cfg = await pywebview.api.get_scheduler_config();
+
+    _schedEnabled = !!cfg.scheduler_enabled;
+    _schedApplyToggle(_schedEnabled);
+
+    document.getElementById('sched-time').value = cfg.scheduler_time || '08:00';
+
+    const days = cfg.scheduler_days || ['mon','tue','wed','thu','fri'];
+    document.querySelectorAll('.sd').forEach(el => {
+      el.querySelector('input').checked = days.includes(el.dataset.day);
+    });
+
+    const steps = cfg.scheduler_steps || ['download','process','query1','query2','macros'];
+    document.querySelectorAll('.sched-step-row').forEach(el => {
+      if (el.dataset.step) el.querySelector('input').checked = steps.includes(el.dataset.step);
+    });
+
+    _schedAutoMonth = cfg.scheduler_auto_month !== false;
+    _schedApplyAutoMonth(_schedAutoMonth);
+
+    // Init day calendar from config
+    if (!_schedAutoMonth) {
+      if (cfg.scheduler_date_from) { _scFrom = new Date(cfg.scheduler_date_from); }
+      if (cfg.scheduler_date_to)   { _scTo   = new Date(cfg.scheduler_date_to);   }
+    }
+    if (_scFrom) { _scViewYear = _scFrom.getFullYear(); _scViewMonth = _scFrom.getMonth(); }
+    schedCalRender();
+
+    schedUpdateStatus(cfg.scheduler_last_run, cfg.scheduler_last_status);
+    winTaskRefresh();
+
+    // Populate category from main selector options
+    const mainCat = document.getElementById('sel-category');
+    const schedCat = document.getElementById('sched-category');
+    if (mainCat && schedCat) {
+      schedCat.innerHTML = mainCat.innerHTML;
+      const savedCat = cfg.scheduler_category || (mainCat.value);
+      if (savedCat) schedCat.value = savedCat;
+    }
+  }
+
+  // ── Save config ───────────────────────────────────────────────────────
+  async function schedSave() {
+    const days = [];
+    document.querySelectorAll('.sd').forEach(el => {
+      if (el.querySelector('input').checked) days.push(el.dataset.day);
+    });
+    const steps = [];
+    document.querySelectorAll('.sched-step-row').forEach(el => {
+      if (el.dataset.step && el.querySelector('input').checked) steps.push(el.dataset.step);
+    });
+
+    const now = new Date();
+    await pywebview.api.save_scheduler_config({
+      scheduler_enabled:     _schedEnabled,
+      scheduler_time:        document.getElementById('sched-time').value,
+      scheduler_days:        days,
+      scheduler_steps:       steps,
+      scheduler_auto_month:  _schedAutoMonth,
+      scheduler_date_from:   _scFrom ? _dateKey(_scFrom) : null,
+      scheduler_date_to:     _scTo   ? _dateKey(_scTo)   : null,
+      scheduler_month_from:  _scFrom ? _scFrom.getMonth()+1 : now.getMonth()+1,
+      scheduler_year_from:   _scFrom ? _scFrom.getFullYear() : now.getFullYear(),
+      scheduler_month_to:    _scTo   ? _scTo.getMonth()+1 : now.getMonth()+1,
+      scheduler_year_to:     _scTo   ? _scTo.getFullYear() : now.getFullYear(),
+      scheduler_category:    document.getElementById('sched-category')?.value || '',
+    });
+  }
+
+  // ── Run now ───────────────────────────────────────────────────────────
+  async function schedRunNow() {
+    const steps = [];
+    document.querySelectorAll('.sched-step-row').forEach(el => {
+      if (el.dataset.step && el.querySelector('input').checked) steps.push(el.dataset.step);
+    });
+    const now = new Date();
+    await pywebview.api.scheduler_run_now({
+      steps,
+      auto_month:  _schedAutoMonth,
+      date_from:   _scFrom ? _dateKey(_scFrom) : null,
+      date_to:     _scTo   ? _dateKey(_scTo)   : null,
+      month_from:  _scFrom ? _scFrom.getMonth()+1 : now.getMonth()+1,
+      year_from:   _scFrom ? _scFrom.getFullYear() : now.getFullYear(),
+      month_to:    _scTo   ? _scTo.getMonth()+1 : now.getMonth()+1,
+      year_to:     _scTo   ? _scTo.getFullYear() : now.getFullYear(),
+    });
+    schedUpdateStatus(new Date().toISOString().slice(0,19), 'running');
+    showToast('success', 'Промодата запущена в фоне');
+  }
+
+  // ── Status display ────────────────────────────────────────────────────
+  function schedUpdateStatus(lastRun, lastStatus) {
+    const icon = document.getElementById('sched-status-icon');
+    const text = document.getElementById('sched-status-text');
+    const ts   = document.getElementById('sched-status-ts');
+    if (!lastRun) {
+      if(icon) icon.textContent = '⏳';
+      if(text) { text.textContent = 'Ещё не запускался'; text.style.color='var(--text2)'; }
+      if(ts)   ts.textContent = '';
+      return;
+    }
+    const dt = lastRun.replace('T',' ');
+    if (lastStatus === 'success') {
+      if(icon) icon.textContent = '✅';
+      if(text) { text.textContent='Выполнено успешно'; text.style.color='#1e8c42'; }
+    } else if (lastStatus === 'error') {
+      if(icon) icon.textContent = '❌';
+      if(text) { text.textContent='Ошибка выполнения'; text.style.color='var(--red)'; }
+    } else if (lastStatus === 'running') {
+      if(icon) icon.textContent = '⚙️';
+      if(text) { text.textContent='Выполняется…'; text.style.color='var(--orange)'; }
+    }
+    if(ts) ts.textContent = dt;
+  }
+
+  // ══════════════════════════════════════════════════════════════════════
+  // WINDOWS TASK SCHEDULER ИНТЕГРАЦИЯ
+  // ══════════════════════════════════════════════════════════════════════
+
+  function _schedGetDays() {
+    const days = [];
+    document.querySelectorAll('.sd').forEach(el => {
+      if (el.querySelector('input').checked) days.push(el.dataset.day);
+    });
+    return days;
+  }
+
+  function schedDayPreset(preset) {
+    const all = ['mon','tue','wed','thu','fri','sat','sun'];
+    const workdays = ['mon','tue','wed','thu','fri'];
+    document.querySelectorAll('.sd').forEach(el => {
+      const day = el.dataset.day;
+      if (preset === 'workdays') el.querySelector('input').checked = workdays.includes(day);
+      else if (preset === 'all')  el.querySelector('input').checked = true;
+      else                        el.querySelector('input').checked = false;
+    });
+    schedSave();
+  }
+
+  async function winTaskCreate() {
+    const btn = document.getElementById('win-task-create');
+    btn.textContent = '⏳ Создаю...';
+    btn.disabled = true;
+    try {
+      const result = await pywebview.api.create_windows_task({
+        time: document.getElementById('sched-time').value,
+        days: _schedGetDays(),
+      });
+      if (result.ok) {
+        winTaskRefresh();
+      } else {
+        showToast('error', 'Ошибка: ' + result.msg);
+      }
+    } finally {
+      btn.textContent = '✚ Создать задачу';
+      btn.disabled = false;
+    }
+  }
+
+  async function winTaskDelete() {
+    if (!confirm('Удалить задачу "EFKO PromoData Auto" из Планировщика Windows?')) return;
+    const result = await pywebview.api.delete_windows_task();
+    if (result.ok) winTaskRefresh();
+  }
+
+  async function winTaskRefresh() {
+    const icon = document.getElementById('win-task-icon');
+    const name = document.getElementById('win-task-name');
+    const next = document.getElementById('win-task-next');
+    if (!icon) return;
+
+    icon.textContent = '⏳';
+    const status = await pywebview.api.get_windows_task_status();
+
+    if (!status.exists) {
+      icon.textContent = '⬜';
+      name.textContent = 'Планировщик задач Windows';
+      next.textContent = 'Задача не зарегистрирована';
+      next.style.color = 'var(--text3)';
+      document.getElementById('win-task-card').style.borderColor = 'var(--border)';
+    } else {
+      const running = (status.status || '').toLowerCase().includes('выполн')
+                   || (status.status || '').toLowerCase().includes('running');
+      const ready   = (status.status || '').toLowerCase().includes('ожид')
+                   || (status.status || '').toLowerCase().includes('ready');
+      icon.textContent = ready ? '✅' : (running ? '⚙️' : '⚠️');
+      name.textContent = 'EFKO PromoData Auto — ' + (status.status || 'Активна');
+      next.textContent = status.next_run ? ('Следующий запуск: ' + status.next_run) : '';
+      next.style.color = ready ? '#1e8c42' : 'var(--orange)';
+      document.getElementById('win-task-card').style.borderColor = ready ? '#1e8c42' : 'var(--orange)';
+    }
+  }
+
+  async function winExportIcs() {
+    const result = await pywebview.api.export_ics({
+      time: document.getElementById('sched-time').value,
+      days: _schedGetDays(),
+    });
+    if (result.ok) {
+      showToast('success', 'Файл открыт в Календаре Windows: ' + result.path.split('\\').pop());
+    }
+  }
+
+
+  // ══════════════════════════════════════════════════════════════════════
+  // ОБЩИЙ МОДУЛЬ: DAY-LEVEL CALENDAR RANGE PICKER
+  // ══════════════════════════════════════════════════════════════════════
+
+  const MONTH_RU  = ['Январь','Февраль','Март','Апрель','Май','Июнь',
+                     'Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+  const MONTH_SHORT = ['Янв','Фев','Мар','Апр','Май','Июн','Июл','Авг','Сен','Окт','Ноя','Дек'];
+  const DOW       = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
+
+  function _dateKey(d) {
+    return d ? `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}` : null;
+  }
+
+  /** Рисует одну сетку дней в контейнер.
+   *  from/to — Date objects или null (range highlight)
+   *  onDayClick(date) — callback
+   */
+  function renderCalGrid(container, year, month, from, to, onDayClick) {
+    container.innerHTML = '';
+    // Day-of-week headers (Mon first)
+    DOW.forEach(d => {
+      const h = document.createElement('div');
+      h.className = 'cal-dow'; h.textContent = d;
+      container.appendChild(h);
+    });
+
+    const today   = new Date();
+    const firstDay = new Date(year, month, 1);
+    // Monday-based offset
+    let startDow = firstDay.getDay(); // 0=Sun
+    startDow = startDow === 0 ? 6 : startDow - 1;
+    const daysInMonth  = new Date(year, month+1, 0).getDate();
+    const daysInPrev   = new Date(year, month,   0).getDate();
+    const totalCells   = Math.ceil((startDow + daysInMonth) / 7) * 7;
+
+    const fromKey = _dateKey(from);
+    const toKey   = _dateKey(to);
+
+    for (let i = 0; i < totalCells; i++) {
+      const btn = document.createElement('button');
+      btn.className = 'cal-day';
+      let d;
+      if (i < startDow) {
+        d = new Date(year, month-1, daysInPrev - startDow + i + 1);
+        btn.classList.add('other-month');
+      } else if (i >= startDow + daysInMonth) {
+        d = new Date(year, month+1, i - startDow - daysInMonth + 1);
+        btn.classList.add('other-month');
+      } else {
+        d = new Date(year, month, i - startDow + 1);
+      }
+
+      btn.textContent = d.getDate();
+      const key = _dateKey(d);
+
+      if (key === _dateKey(today) && !btn.classList.contains('other-month')) btn.classList.add('today');
+      if (fromKey && key === fromKey) btn.classList.add('range-start');
+      if (toKey   && key === toKey)   btn.classList.add('range-end');
+      if (fromKey && toKey && key > fromKey && key < toKey) btn.classList.add('in-range');
+
+      btn.addEventListener('click', () => onDayClick(d));
+      container.appendChild(btn);
+    }
+  }
+
+  // ══════════════════════════════════════════════════════════════════════
+  // ГЛАВНЫЙ ЭКРАН — ДВУХМЕСЯЧНЫЙ КАЛЕНДАРЬ СКАЧИВАНИЯ
+  // ══════════════════════════════════════════════════════════════════════
+
+  let _dlViewYear  = new Date().getFullYear();
+  let _dlViewMonth = new Date().getMonth();   // left month
+  let _dlFrom = null;   // Date
+  let _dlTo   = null;   // Date
+  let _dlPhase = 'from'; // 'from' | 'to'
+
+  function dlCalPrev() { _dlViewMonth--; if (_dlViewMonth < 0){ _dlViewMonth=11; _dlViewYear--; } dlCalRender(); }
+  function dlCalNext() { _dlViewMonth++; if (_dlViewMonth > 11){ _dlViewMonth=0; _dlViewYear++; } dlCalRender(); }
+
+  function dlCalRender() {
+    const rightYear  = _dlViewMonth === 11 ? _dlViewYear+1 : _dlViewYear;
+    const rightMonth = (_dlViewMonth+1) % 12;
+
+    document.getElementById('dl-cal-title-l').textContent =
+      MONTH_RU[_dlViewMonth] + ' ' + _dlViewYear;
+    document.getElementById('dl-cal-title-r').textContent =
+      MONTH_RU[rightMonth] + ' ' + rightYear;
+
+    renderCalGrid(
+      document.getElementById('dl-cal-left'),
+      _dlViewYear, _dlViewMonth, _dlFrom, _dlTo, dlOnDayClick
+    );
+    renderCalGrid(
+      document.getElementById('dl-cal-right'),
+      rightYear, rightMonth, _dlFrom, _dlTo, dlOnDayClick
+    );
+    dlUpdateBadge();
+  }
+
+  function dlOnDayClick(d) {
+    if (_dlPhase === 'from') {
+      _dlFrom  = d; _dlTo = null; _dlPhase = 'to';
+    } else {
+      if (d < _dlFrom) { _dlTo = _dlFrom; _dlFrom = d; }
+      else              { _dlTo = d; }
+      _dlPhase = 'from';
+      dlSave();
+    }
+    dlCalRender();
+  }
+
+  function dlUpdateBadge() {
+    const badge = document.getElementById('dl-range-badge');
+    if (!badge) return;
+    if (_dlFrom && _dlTo) {
+      badge.textContent = _dateKey(_dlFrom) + '  —  ' + _dateKey(_dlTo);
+      badge.style.background = 'var(--green-muted)';
+      badge.style.color      = 'var(--green-dark)';
+    } else if (_dlFrom) {
+      badge.textContent = _dateKey(_dlFrom) + '  →  ?';
+      badge.style.background = 'var(--surface2)';
+      badge.style.color      = 'var(--text3)';
+    } else {
+      badge.textContent = 'выберите даты';
+      badge.style.background = 'var(--surface2)';
+      badge.style.color      = 'var(--text3)';
+    }
+  }
+
+  function dlSave() {
+    if (!_dlFrom || !_dlTo) return;
+    // Sync hidden fields for backward compat
+    document.getElementById('sel-month-from').value = _dlFrom.getMonth()+1;
+    document.getElementById('sel-year-from').value  = _dlFrom.getFullYear();
+    document.getElementById('sel-month-to').value   = _dlTo.getMonth()+1;
+    document.getElementById('sel-year-to').value    = _dlTo.getFullYear();
+    autoSave();
+  }
+
+  function dlPreset(p) {
+    const now = new Date();
+    const y = now.getFullYear(), m = now.getMonth();
+    if (p === 'today')      { _dlFrom = new Date(y,m,now.getDate()); _dlTo = new Date(y,m,now.getDate()); }
+    else if (p === 'week')  {
+      const dow = now.getDay() === 0 ? 6 : now.getDay()-1;
+      _dlFrom = new Date(y,m,now.getDate()-dow);
+      _dlTo   = new Date(y,m,now.getDate()-dow+6);
+    }
+    else if (p === 'month')      { _dlFrom = new Date(y,m,1); _dlTo = new Date(y,m+1,0); }
+    else if (p === 'prev_month') { _dlFrom = new Date(y,m-1,1); _dlTo = new Date(y,m,0); }
+    else if (p === 'quarter')    {
+      const qm = Math.floor(m/3)*3;
+      _dlFrom = new Date(y,qm,1); _dlTo = new Date(y,qm+3,0);
+    }
+    else if (p === 'year')       { _dlFrom = new Date(y,0,1); _dlTo = new Date(y,11,31); }
+    _dlPhase = 'from';
+    // Navigate to show selected range
+    if (_dlFrom) { _dlViewYear = _dlFrom.getFullYear(); _dlViewMonth = _dlFrom.getMonth(); }
+    dlCalRender();
+    dlSave();
+  }
+
+  function dlCalInit(cfg) {
+    // Restore from config if day-level dates saved
+    if (cfg.date_from && cfg.date_to) {
+      _dlFrom = new Date(cfg.date_from);
+      _dlTo   = new Date(cfg.date_to);
+      if (_dlFrom) { _dlViewYear = _dlFrom.getFullYear(); _dlViewMonth = _dlFrom.getMonth(); }
+    } else {
+      // Default to current month
+      const now = new Date();
+      _dlFrom = new Date(now.getFullYear(), now.getMonth(), 1);
+      _dlTo   = new Date(now.getFullYear(), now.getMonth()+1, 0);
+      _dlViewYear  = now.getFullYear();
+      _dlViewMonth = now.getMonth();
+    }
+    dlCalRender();
+  }
+
+  // ══════════════════════════════════════════════════════════════════════
+  // DRAWER — ОДНОМЕСЯЧНЫЙ КАЛЕНДАРЬ ДИАПАЗОНА ДАТ
+  // ══════════════════════════════════════════════════════════════════════
+
+  let _scViewYear  = new Date().getFullYear();
+  let _scViewMonth = new Date().getMonth();
+  let _scFrom = null;
+  let _scTo   = null;
+  let _scPhase = 'from';
+
+  function schedCalPrev() { _scViewMonth--; if(_scViewMonth<0){_scViewMonth=11;_scViewYear--;} schedCalRender(); }
+  function schedCalNext() { _scViewMonth++; if(_scViewMonth>11){_scViewMonth=0;_scViewYear++;} schedCalRender(); }
+
+  // Keep old name aliases for backward compat
+  function schedCalPrevYear() { schedCalPrev(); }
+  function schedCalNextYear() { schedCalNext(); }
+
+  function schedCalRender() {
+    const titleEl = document.getElementById('sched-cal-title');
+    if (titleEl) titleEl.textContent = MONTH_RU[_scViewMonth] + ' ' + _scViewYear;
+    const grid = document.getElementById('sched-cal-grid');
+    if (!grid) return;
+    renderCalGrid(grid, _scViewYear, _scViewMonth, _scFrom, _scTo, schedCalDayClick);
+
+    const disp = document.getElementById('sched-range-display');
+    if (!disp) return;
+    if (_scFrom && _scTo) {
+      disp.textContent = _dateKey(_scFrom) + '  —  ' + _dateKey(_scTo);
+      disp.style.background = 'var(--green-muted)'; disp.style.color = 'var(--green-dark)';
+    } else if (_scFrom) {
+      disp.textContent = _dateKey(_scFrom) + '  →  выберите конец';
+      disp.style.background = 'var(--surface2)'; disp.style.color = 'var(--text3)';
+    } else {
+      disp.textContent = 'Выберите начало диапазона';
+      disp.style.background = 'var(--surface2)'; disp.style.color = 'var(--text3)';
+    }
+  }
+
+  function schedCalDayClick(d) {
+    if (_scPhase === 'from') {
+      _scFrom = d; _scTo = null; _scPhase = 'to';
+    } else {
+      if (d < _scFrom) { _scTo = _scFrom; _scFrom = d; }
+      else              { _scTo = d; }
+      _scPhase = 'from';
+      schedSave();
+    }
+    schedCalRender();
+  }
+
+  // Keep old sched cal compat
+  function schedCalClick(m, y) {
+    // Not used in day mode
+  }
 </script>
 </body>
 </html>

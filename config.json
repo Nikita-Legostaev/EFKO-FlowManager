@@ -1,19 +1,9 @@
 {
-  "month_from": "3",
-  "month_to": "3",
-  "year_from": "2026",
-  "year_to": "2026",
-  "category": "Масло",
   "output_folder": "V:/ОАР/Внутренняя/старый Коммон/33_КОМИТЕТ ПО ЦЕНООБРАЗОВАНИЮ БП/Полочные цены Promodata/промо",
   "pq_file1": "V:/ОАР/Внутренняя/старый Коммон/33_КОМИТЕТ ПО ЦЕНООБРАЗОВАНИЮ БП/Полочные цены Promodata/PromoData(авто).xlsx",
   "pq_file2": "V:/ОАР/Внутренняя/старый Коммон/33_КОМИТЕТ ПО ЦЕНООБРАЗОВАНИЮ БП/Полочные цены Promodata/Отчет по полочным ценам на МНЗ (парсер)(авто)(тест макросов для полной автоматизации).xlsm",
   "macro1": "ExtendDatesAndFormulas",
   "macro2": "ExtendDatesAndFormulas_MNZ",
-  "pc_kuper_file": "C:\\Users\\n.legostaev\\Desktop\\УДАЛИТЬ ПОСЛЕ ИСПОЛЬЗОВАНИЯ.xlsx",
-  "pc_promo_file": "V:\\ОАР\\Внутренняя\\старый Коммон\\33_КОМИТЕТ ПО ЦЕНООБРАЗОВАНИЮ БП\\Полочные цены Promodata\\PromoData(авто).xlsx",
-  "pc_sprav_file": "V:\\ОАР\\Внутренняя\\старый Коммон\\33_КОМИТЕТ ПО ЦЕНООБРАЗОВАНИЮ БП\\Полочные цены Promodata\\справочник PromoData.xlsx",
-  "pc_output_file": "C:\\Users\\n.legostaev\\Desktop\\test\\kuper_vs_promo.xlsx",
-  "pc_threshold": "0.65",
   "olap_file": "",
   "competitors_file": "",
   "nielsen_input": "C:/Users/n.legostaev/Documents/Нильсен_питон/EDB_SKU_NT_Dec25.xlsx",
@@ -26,7 +16,29 @@
   "prod_tolyatti": "V:/ОАР/Внутренняя/старый Коммон/01_БАЗЫ ДАННЫХ/2_СОЮЗмаргаринПРОМ_производство по конкурентам/Тольятти/2026",
   "prod_target": "V:/ОАР/Внутренняя/старый Коммон/01_БАЗЫ ДАННЫХ/2_СОЮЗмаргаринПРОМ_производство по конкурентам/Актуальные данные по производству/2026/2026_01_Производство масла, майонеза, кетчупа и жж — копия.xlsx",
   "prod_mapping": "C:/Users/n.legostaev/Downloads/маппинг (1).xlsx",
-  "prod_month": "1 - Январь",
   "prod_year": "2026",
-  "dark_theme": true
+  "prod_month": "1 - Январь",
+  "pc_kuper_file": "C:\\Users\\n.legostaev\\Desktop\\УДАЛИТЬ ПОСЛЕ ИСПОЛЬЗОВАНИЯ.xlsx",
+  "pc_promo_file": "V:\\ОАР\\Внутренняя\\старый Коммон\\33_КОМИТЕТ ПО ЦЕНООБРАЗОВАНИЮ БП\\Полочные цены Promodata\\PromoData(авто).xlsx",
+  "pc_sprav_file": "V:\\ОАР\\Внутренняя\\старый Коммон\\33_КОМИТЕТ ПО ЦЕНООБРАЗОВАНИЮ БП\\Полочные цены Promodata\\справочник PromoData.xlsx",
+  "pc_output_file": "C:\\Users\\n.legostaev\\Desktop\\test\\kuper_vs_promo.xlsx",
+  "pc_threshold": "0.65",
+  "dark_theme": true,
+  "scheduler_enabled": true,
+  "scheduler_time": "14:33",
+  "scheduler_days": [
+    "fri"
+  ],
+  "scheduler_steps": [
+    "download"
+  ],
+  "scheduler_auto_month": false,
+  "scheduler_month_from": 2,
+  "scheduler_year_from": 2026,
+  "scheduler_month_to": 2,
+  "scheduler_year_to": 2026,
+  "scheduler_category": "Кетчуп+Майонез",
+  "scheduler_win_task": true,
+  "scheduler_last_run": "2026-03-06T14:37:13",
+  "scheduler_last_status": "success"
 }
