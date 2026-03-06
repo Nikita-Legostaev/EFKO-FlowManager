@@ -100,7 +100,6 @@ def run_pipeline(cfg: dict, steps: list[str], month: int, year: int):
         FILTER_OPTIONS,
         download_files_thread,
         process_files_thread,
-        refresh_power_query_files,
         run_stage_query1,
         run_stage_query2,
         run_stage_macros,
@@ -144,7 +143,7 @@ def run_pipeline(cfg: dict, steps: list[str], month: int, year: int):
             log,
             mb,
             stop_event,
-            _noop_refresh,      # отключаем встроенный refresh
+            _noop_refresh,  # отключаем встроенный refresh
             _SV(pq_file1),
             _SV(pq_file2),
             _SV(macro1),
@@ -174,12 +173,14 @@ def run_pipeline(cfg: dict, steps: list[str], month: int, year: int):
 
 def main():
     parser = argparse.ArgumentParser(description="Headless PromoData runner")
-    parser.add_argument("--steps", default=None,
-                        help="download,process,query1,query2,macros")
-    parser.add_argument("--config", default=str(DEFAULT_CONFIG),
-                        help="Путь к config.json")
+    parser.add_argument(
+        "--steps", default=None, help="download,process,query1,query2,macros"
+    )
+    parser.add_argument(
+        "--config", default=str(DEFAULT_CONFIG), help="Путь к config.json"
+    )
     parser.add_argument("--month", type=int, default=None)
-    parser.add_argument("--year",  type=int, default=None)
+    parser.add_argument("--year", type=int, default=None)
     args = parser.parse_args()
 
     cfg = load_config(Path(args.config))
@@ -189,14 +190,13 @@ def main():
         steps = [s.strip() for s in args.steps.split(",") if s.strip()]
     else:
         steps = cfg.get(
-            "scheduler_steps",
-            ["download", "process", "query1", "query2", "macros"]
+            "scheduler_steps", ["download", "process", "query1", "query2", "macros"]
         )
 
     # Месяц/год: CLI > текущий
     now = datetime.now()
     month = args.month or now.month
-    year  = args.year  or now.year
+    year = args.year or now.year
 
     os.chdir(BASE_DIR)  # чтобы папка «Скаченное» создалась рядом со скриптом
 
