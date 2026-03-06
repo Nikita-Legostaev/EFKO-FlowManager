@@ -6,7 +6,6 @@ pip install pywebview
 
 # ═══════════════════════════════════════════════════════════════════════════
 # СПЛЭШ — САМЫЕ ПЕРВЫЕ СТРОКИ, до любых импортов
-# tkinter встроен в Python, поэтому грузится мгновенно
 # ═══════════════════════════════════════════════════════════════════════════
 import tkinter as tk
 
@@ -23,7 +22,6 @@ def _make_splash():
     c = tk.Canvas(root, width=W, height=H, bg="#1e8c42", highlightthickness=0)
     c.pack(fill="both", expand=True)
 
-    # Градиент
     for i in range(48):
         t = i / 48
         r = int(0x18 + (0x30 - 0x18) * t)
@@ -32,7 +30,6 @@ def _make_splash():
         y0, y1 = int(H * i / 48), int(H * (i + 1) / 48) + 1
         c.create_rectangle(0, y0, W, y1, fill=f"#{r:02x}{g:02x}{b:02x}", outline="")
 
-    # Иконка
     cx, cy = W // 2, 72
     c.create_oval(
         cx - 28, cy - 28, cx + 28, cy + 28, fill="#2aaa52", outline="#aaffbb", width=1
@@ -50,7 +47,6 @@ def _make_splash():
         joinstyle="round",
     )
 
-    # Название
     c.create_text(
         W // 2 - 1,
         124,
@@ -71,7 +67,6 @@ def _make_splash():
         W // 2, 150, text="EFKO  ·  v3.0", font=("Segoe UI", 9), fill="#88ccaa"
     )
 
-    # Прогресс
     bx1, by1, bx2, by2 = 50, 178, W - 50, 183
     c.create_rectangle(bx1, by1, bx2, by2, fill="#2aaa52", outline="")
     bar = c.create_rectangle(bx1, by1, bx1, by2, fill="white", outline="")
@@ -105,7 +100,7 @@ def _make_splash():
 _splash_set, _splash_close = _make_splash()
 _splash_set(8, "Загрузка модулей…")
 
-# ── Теперь грузим всё тяжёлое ─────────────────────────────────────────────
+# ── Тяжёлые импорты ───────────────────────────────────────────────────────
 import webview
 import threading
 import json
@@ -115,7 +110,6 @@ from pathlib import Path
 from datetime import datetime
 
 _splash_set(18, "Базовые модули…")
-
 
 from promodate_functions import (
     FILTER_OPTIONS,
@@ -145,12 +139,16 @@ _splash_set(74, "Nielsen…")
 
 from production_functions import run_production, MONTH_LABELS
 
-_splash_set(85, "Модуль производства…")
+_splash_set(82, "Модуль производства…")
+
+from price_comparison_functions import run_comparison as run_price_comparison
+
+_splash_set(90, "Модуль сравнения цен…")
 
 CONFIG_FILE = "config.json"
 
 
-# ── Logger ────────────────────────────────────────────────────────────────────
+# ── Logger ────────────────────────────────────────────────────────────────
 
 
 def setup_logger():
@@ -164,7 +162,7 @@ def setup_logger():
     )
 
 
-# ── Config ────────────────────────────────────────────────────────────────────
+# ── Config ────────────────────────────────────────────────────────────────
 
 
 def load_config() -> dict:
@@ -188,6 +186,13 @@ def load_config() -> dict:
         "prod_mapping": "",
         "prod_year": str(datetime.now().year),
         "prod_month": MONTH_LABELS[datetime.now().month - 1],
+        # ── Сравнение цен ──
+        "pc_kuper_file": "",
+        "pc_promo_file": "",
+        "pc_sprav_file": "",
+        "pc_output_file": "",
+        "pc_threshold": 0.5,
+        # ──────────────────
         "dark_theme": False,
     }
     if not os.path.exists(CONFIG_FILE):
@@ -211,12 +216,10 @@ def save_config_data(data: dict):
         logging.error(f"Config save error: {e}")
 
 
-# ── Mock helpers ──────────────────────────────────────────────────────────────
+# ── Mock helpers ──────────────────────────────────────────────────────────
 
 
 class _SV:
-    """Mock StringVar for legacy function compatibility."""
-
     def __init__(self, v):
         self._v = v
 
@@ -225,8 +228,6 @@ class _SV:
 
 
 class _MB:
-    """Mock tkinter.messagebox → push JS toasts."""
-
     def __init__(self, api):
         self._api = api
 
@@ -263,7 +264,7 @@ class Api:
         self._mb = _MB(self)
         self._last_competitors_file = None
 
-    # ── Push events to JS ─────────────────────────────────────────────────────
+    # ── Push events ───────────────────────────────────────────────────────────
 
     def _emit(self, event_type, data=None):
         if self._window:
@@ -302,13 +303,21 @@ class Api:
 
     def browse_file(self):
         result = self._window.create_file_dialog(
-            webview.OPEN_DIALOG,
+            webview.FileDialog.OPEN,
             file_types=("Excel Files (*.xlsx;*.xlsm)", "All Files (*.*)"),
         )
         return result[0] if result else None
 
+    def browse_save_file(self):
+        result = self._window.create_file_dialog(
+            webview.FileDialog.SAVE,
+            save_filename="kuper_vs_promo.xlsx",
+            file_types=("Excel Files (*.xlsx)",),
+        )
+        return result if result else None
+
     def browse_folder(self):
-        result = self._window.create_file_dialog(webview.FOLDER_DIALOG)
+        result = self._window.create_file_dialog(webview.FileDialog.FOLDER)
         return result[0] if result else None
 
     # ── Utilities ─────────────────────────────────────────────────────────────
@@ -385,7 +394,7 @@ class Api:
         threading.Thread(target=_w, daemon=True).start()
         return True
 
-    # ── Process (full pipeline) ───────────────────────────────────────────────
+    # ── Process ───────────────────────────────────────────────────────────────
 
     def start_process(self, p):
         self._stop_event.clear()
@@ -575,11 +584,60 @@ class Api:
         except Exception as e:
             return {"success": False, "error": str(e)}
 
+    # ── Сравнение цен ─────────────────────────────────────────────────────────
+
+    def run_price_comparison(self, p):
+        """
+        p: {kuper_file, promo_file, sprav_file, output_file, threshold}
+        """
+        self._stop_event.clear()
+
+        def _w():
+            self._emit("set_title", "⏳ Сравнение цен…")
+            self._emit("pc_started", None)
+            try:
+                n = run_price_comparison(
+                    path_kuper=p["kuper_file"],
+                    path_promodata=p["promo_file"],
+                    path_sprav=p["sprav_file"],
+                    output_file=p["output_file"],
+                    threshold=float(p.get("threshold", 0.5)),
+                    log=self._pc_log,
+                    stop_event=self._stop_event,
+                )
+                self._emit("pc_done", {"rows": n, "output": p["output_file"]})
+                self._emit(
+                    "toast",
+                    {
+                        "type": "success",
+                        "message": f"Готово: {n} строк → {os.path.basename(p['output_file'])}",
+                    },
+                )
+            except Exception as e:
+                logging.error(f"price_comparison error: {e}")
+                self._emit("pc_error", str(e))
+                self._emit("toast", {"type": "error", "message": str(e)})
+            finally:
+                self._emit("set_title", "")
+                self._emit("hide_progress")
+
+        threading.Thread(target=_w, daemon=True).start()
+        return True
+
+    def _pc_log(self, msg: str):
+        logging.info(msg)
+        self._emit("log", str(msg))
+        self._emit("pc_log", str(msg))
+
+    def open_pc_result(self, path):
+        self.open_file(path)
+        return True
+
 
 # ── Entry point ───────────────────────────────────────────────────────────────
 
 setup_logger()
-_splash_set(92, "Запуск интерфейса…")
+_splash_set(96, "Запуск интерфейса…")
 api = Api()
 
 html_path = os.path.join(
@@ -599,15 +657,13 @@ window = webview.create_window(
 api._window = window
 
 
-# Выносим окно на передний план через 1 сек после старта (из фонового потока)
 def _bring_to_front():
     import ctypes
 
     try:
-        # Находим окно по заголовку и выносим вперёд
         hwnd = ctypes.windll.user32.FindWindowW(None, "EFKO FlowManager")
         if hwnd:
-            ctypes.windll.user32.ShowWindow(hwnd, 9)  # SW_RESTORE
+            ctypes.windll.user32.ShowWindow(hwnd, 9)
             ctypes.windll.user32.SetForegroundWindow(hwnd)
     except Exception:
         pass
@@ -615,7 +671,6 @@ def _bring_to_front():
 
 threading.Thread(target=_bring_to_front, daemon=True).start()
 
-# Закрываем сплэш ДО webview.start() — иначе конфликт главного потока
 _splash_set(100, "Готово!")
 _splash_close()
 
