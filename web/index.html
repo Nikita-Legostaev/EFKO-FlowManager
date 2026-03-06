@@ -23,6 +23,7 @@
   --blue:         #007AFF;
   --red:          #FF3B30;
   --orange:       #FF9500;
+  --purple:       #AF52DE;
   --shadow-sm:    0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
   --shadow:       0 2px 8px rgba(0,0,0,.06), 0 4px 20px rgba(0,0,0,.04);
   --radius:       14px;
@@ -30,7 +31,6 @@
   --bar-h:        64px;
   --hdr-h:        58px;
 }
-
 /* ── Variables — Dark ───────────────────────────────────────────────────── */
 body.dark {
   --green:        #32D75A;
@@ -49,6 +49,7 @@ body.dark {
   --blue:         #0A84FF;
   --red:          #FF453A;
   --orange:       #FF9F0A;
+  --purple:       #BF5AF2;
   --shadow-sm:    0 1px 3px rgba(0,0,0,.4);
   --shadow:       0 4px 20px rgba(0,0,0,.4);
 }
@@ -65,20 +66,17 @@ body.dark .conf-low  { background: rgba(255,69,58,.15);  color: #FF6961; }
 body.dark .seg-btn.active { box-shadow: 0 1px 6px rgba(50,215,90,.25); }
 body.dark .toast { box-shadow: 0 8px 24px rgba(0,0,0,.6); }
 body.dark #sku-overlay { background: rgba(0,0,0,.6); }
+body.dark .pc-stat-card { background: var(--surface2); }
+body.dark .pc-log-box { background: #0d0d14; }
 
 /* ── Reset ──────────────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; overflow: hidden; }
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  font-size: 13px;
-  -webkit-font-smoothing: antialiased;
+  background: var(--bg); color: var(--text);
+  font-size: 13px; -webkit-font-smoothing: antialiased;
   transition: background .25s, color .25s;
-}
-body.theme-transition * {
-  transition: background .25s, color .25s, border-color .25s, box-shadow .25s !important;
 }
 button { cursor: pointer; font-family: inherit; }
 input, select { font-family: inherit; }
@@ -93,19 +91,16 @@ input, select { font-family: inherit; }
 /* ── Sidebar ─────────────────────────────────────────────────────────────── */
 #sidebar {
   width: var(--sidebar-w); flex-shrink: 0;
-  background: var(--surface);
-  border-right: 1px solid var(--border);
-  display: flex; flex-direction: column;
-  overflow: hidden;
+  background: var(--surface); border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; overflow: hidden;
 }
 .sb-header {
-  background: var(--green);
-  padding: 0 20px;
+  background: var(--green); padding: 0 20px;
   height: 78px; flex-shrink: 0;
   display: flex; flex-direction: column; justify-content: center;
 }
-.sb-logo { display: flex; align-items: baseline; gap: 0; }
-.sb-logo-bold { font-size: 22px; font-weight: 700; color: #fff; letter-spacing: -.3px; }
+.sb-logo { display: flex; align-items: baseline; }
+.sb-logo-bold  { font-size: 22px; font-weight: 700; color: #fff; letter-spacing: -.3px; }
 .sb-logo-light { font-size: 22px; font-weight: 300; color: rgba(255,255,255,0.60); letter-spacing: -.3px; }
 .sb-sub { font-size: 10px; color: rgba(255,255,255,.55); margin-top: 3px; letter-spacing: .4px; text-transform: uppercase; }
 .sb-divider { height: 1px; background: var(--border); margin: 8px 0; flex-shrink: 0; }
@@ -114,8 +109,7 @@ input, select { font-family: inherit; }
   display: flex; align-items: center; gap: 10px;
   padding: 0 12px; height: 42px; border-radius: 10px;
   font-size: 13px; color: var(--text2);
-  border: 1.5px solid transparent;
-  background: transparent;
+  border: 1.5px solid transparent; background: transparent;
   transition: background .12s, color .12s, border-color .12s;
   width: 100%; text-align: left; margin-bottom: 2px;
 }
@@ -124,51 +118,50 @@ input, select { font-family: inherit; }
   background: var(--green-muted); color: var(--green-dark);
   border-color: rgba(52,199,89,.35); font-weight: 600;
 }
+/* Специальный стиль для "в разработке" */
+.nav-item.wip {
+  opacity: .75;
+  position: relative;
+}
+.nav-item.wip:hover { background: #f0eaff; color: var(--purple); }
+.nav-item.wip.active {
+  background: #f0eaff; color: var(--purple);
+  border-color: rgba(175,82,222,.35);
+}
+.nav-wip-badge {
+  font-size: 9px; font-weight: 600; padding: 1px 5px;
+  background: var(--purple); color: #fff;
+  border-radius: 20px; margin-left: auto; white-space: nowrap;
+  letter-spacing: .2px;
+}
 .nav-icon { font-size: 16px; flex-shrink: 0; }
 .sb-footer { padding: 10px 12px 14px; flex-shrink: 0; }
 .sb-footer .nav-item { color: var(--text3); font-size: 12px; }
 
 /* ── Content area ────────────────────────────────────────────────────────── */
-#content {
-  flex: 1; display: flex; flex-direction: column;
-  overflow: hidden; background: var(--bg);
-}
+#content { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: var(--bg); }
 #page-header {
   height: var(--hdr-h); flex-shrink: 0;
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  display: flex; align-items: center; padding: 0 24px;
-  gap: 12px;
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; padding: 0 24px; gap: 12px;
 }
-#page-title {
-  font-size: 19px; font-weight: 700; color: var(--text); letter-spacing: -.3px;
-}
+#page-title { font-size: 19px; font-weight: 700; color: var(--text); letter-spacing: -.3px; }
 #page-status {
   font-size: 12px; color: var(--text3);
   background: var(--surface2); padding: 3px 10px; border-radius: 20px;
-  border: 1px solid var(--border);
-  display: none;
+  border: 1px solid var(--border); display: none;
 }
 #page-status.visible { display: block; }
-
-/* Scroll area */
-#scroll-area {
-  flex: 1; overflow-y: auto; overflow-x: hidden;
-  padding: 20px 20px 0;
-}
+#scroll-area { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 20px 20px 0; }
 
 /* ── Cards ───────────────────────────────────────────────────────────────── */
 .card {
-  background: var(--surface);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  margin-bottom: 12px;
-  overflow: hidden;
+  background: var(--surface); border-radius: var(--radius);
+  box-shadow: var(--shadow); margin-bottom: 12px; overflow: hidden;
 }
 .card-section {
   display: flex; align-items: center; gap: 8px;
-  padding: 13px 18px 8px;
-  border-bottom: 1px solid var(--border);
+  padding: 13px 18px 8px; border-bottom: 1px solid var(--border);
 }
 .card-section-icon { font-size: 13px; }
 .card-section-title {
@@ -179,62 +172,37 @@ input, select { font-family: inherit; }
 
 /* ── Form rows ───────────────────────────────────────────────────────────── */
 .form-row {
-  display: grid;
-  grid-template-columns: 230px 1fr auto;
-  align-items: center;
-  padding: 5px 18px;
-  gap: 12px;
-  min-height: 44px;
+  display: grid; grid-template-columns: 230px 1fr auto;
+  align-items: center; padding: 5px 18px; gap: 12px; min-height: 44px;
 }
-.form-label {
-  font-size: 12px; color: var(--text2); text-align: right;
-  user-select: none;
-}
+.form-label { font-size: 12px; color: var(--text2); text-align: right; user-select: none; }
 .form-input {
   width: 100%; height: 34px;
-  background: var(--surface2);
-  border: 1px solid var(--border2);
-  border-radius: 8px;
-  padding: 0 12px;
-  font-size: 12.5px; color: var(--text);
-  outline: none;
+  background: var(--surface2); border: 1px solid var(--border2);
+  border-radius: 8px; padding: 0 12px;
+  font-size: 12.5px; color: var(--text); outline: none;
   transition: border-color .15s, box-shadow .15s;
 }
-.form-input:focus {
-  border-color: var(--green);
-  box-shadow: 0 0 0 3px rgba(52,199,89,.12);
-}
+.form-input:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(52,199,89,.12); }
 .form-input::placeholder { color: var(--text3); }
 .form-input[readonly] { cursor: default; }
 .form-btn-pick {
-  height: 30px; padding: 0 14px; border-radius: 8px;
-  border: none;
+  height: 30px; padding: 0 14px; border-radius: 8px; border: none;
   background: var(--green-muted); color: var(--green-dark);
-  font-size: 11px; font-weight: 500;
-  white-space: nowrap;
+  font-size: 11px; font-weight: 500; white-space: nowrap;
   transition: background .12s;
 }
 .form-btn-pick:hover { background: #d1f0dc; }
 .form-row.no-btn { grid-template-columns: 230px 1fr; }
-
-/* Inline option row (selects / dates) */
-.opts-row {
-  display: flex; align-items: center; gap: 8px;
-  padding: 8px 18px;
-}
+.opts-row { display: flex; align-items: center; gap: 8px; padding: 8px 18px; }
 .opts-label { font-size: 12px; color: var(--text2); min-width: 90px; }
 .form-select {
   height: 32px; padding: 0 10px;
-  background: var(--surface2);
-  border: 1px solid var(--border2);
-  border-radius: 8px;
-  font-size: 12.5px; color: var(--text);
-  outline: none;
-  appearance: none;
+  background: var(--surface2); border: 1px solid var(--border2);
+  border-radius: 8px; font-size: 12.5px; color: var(--text);
+  outline: none; appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23AEAEB2' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 10px center;
-  padding-right: 28px;
+  background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px;
   transition: border-color .15s;
 }
 .form-select:focus { border-color: var(--green); outline: none; }
@@ -245,59 +213,44 @@ input, select { font-family: inherit; }
 .pane.active { display: block; }
 
 /* ── Log card ────────────────────────────────────────────────────────────── */
-#log-card {
-  margin-bottom: 0;
-  border-radius: var(--radius) var(--radius) 0 0;
-}
+#log-card { margin-bottom: 0; border-radius: var(--radius) var(--radius) 0 0; }
 .log-header {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 11px 18px 8px;
-  border-bottom: 1px solid var(--border);
+  padding: 11px 18px 8px; border-bottom: 1px solid var(--border);
 }
 .log-title { font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: .5px; }
 .log-clear {
   font-size: 11px; color: var(--text3); background: none; border: none;
-  padding: 2px 8px; border-radius: 6px;
-  transition: background .12s;
+  padding: 2px 8px; border-radius: 6px; transition: background .12s;
 }
 .log-clear:hover { background: var(--surface2); color: var(--text2); }
 #log-content {
-  height: 190px; overflow-y: auto;
-  padding: 10px 16px;
+  height: 190px; overflow-y: auto; padding: 10px 16px;
   font-family: "SF Mono", "Cascadia Code", Consolas, "Courier New", monospace;
   font-size: 11.5px; line-height: 1.75;
 }
 .log-line { display: flex; gap: 10px; }
 .log-ts { color: var(--green); opacity: .65; white-space: nowrap; flex-shrink: 0; }
 .log-msg { color: var(--text2); word-break: break-all; }
-.log-msg.ok  { color: #1D7A3A; }
-.log-msg.err { color: var(--red); }
+.log-msg.ok   { color: #1D7A3A; }
+.log-msg.err  { color: var(--red); }
 .log-msg.warn { color: var(--orange); }
 
 /* ── Progress bar ────────────────────────────────────────────────────────── */
 #progress-wrap {
   flex-shrink: 0; background: var(--surface);
-  border-top: 1px solid var(--border);
-  padding: 8px 20px;
+  border-top: 1px solid var(--border); padding: 8px 20px;
   display: none; align-items: center; gap: 12px;
 }
 #progress-wrap.visible { display: flex; }
-#progress-track {
-  flex: 1; height: 5px; background: var(--border);
-  border-radius: 3px; overflow: hidden;
-}
-#progress-fill {
-  height: 100%; width: 0%; background: var(--green);
-  border-radius: 3px;
-  transition: width .2s ease;
-}
+#progress-track { flex: 1; height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; }
+#progress-fill { height: 100%; width: 0%; background: var(--green); border-radius: 3px; transition: width .2s ease; }
 #progress-text { font-size: 11px; color: var(--text3); min-width: 64px; text-align: right; }
 
 /* ── Action bar ──────────────────────────────────────────────────────────── */
 #action-bar {
   height: var(--bar-h); flex-shrink: 0;
-  background: var(--surface);
-  border-top: 1px solid var(--border);
+  background: var(--surface); border-top: 1px solid var(--border);
   display: flex; align-items: center; padding: 0 16px; gap: 8px;
 }
 .action-spacer { flex: 1; }
@@ -311,102 +264,119 @@ input, select { font-family: inherit; }
 }
 .btn-primary { background: var(--green); color: #fff; font-size: 13px; font-weight: 600; height: 38px; }
 .btn-primary:hover { background: var(--green-hover); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(52,199,89,.3); }
+.btn-primary:disabled { opacity: .45; pointer-events: none; }
 .btn-danger  { background: var(--red); color: #fff; }
-.btn-danger:hover { background: #e0302a; transform: translateY(-1px); }
+.btn-danger:hover  { background: #e0302a; transform: translateY(-1px); }
 .btn-blue    { background: var(--blue); color: #fff; }
-.btn-blue:hover { background: #006ee6; transform: translateY(-1px); }
+.btn-blue:hover    { background: #006ee6; transform: translateY(-1px); }
+.btn-purple  { background: var(--purple); color: #fff; }
+.btn-purple:hover  { opacity: .88; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(175,82,222,.35); }
 .btn-ghost {
-  background: var(--surface2); color: var(--text2);
-  border: 1px solid var(--border2);
+  background: var(--surface2); color: var(--text2); border: 1px solid var(--border2);
 }
 .btn-ghost:hover { background: var(--border); color: var(--text); }
 .btn-ghost.active { background: var(--green-muted); color: var(--green-dark); border-color: rgba(52,199,89,.3); }
 
-/* Segmented control */
 .segment-ctrl {
-  display: flex; background: var(--surface2);
-  border: 1px solid var(--border2);
+  display: flex; background: var(--surface2); border: 1px solid var(--border2);
   border-radius: 10px; padding: 3px; gap: 2px;
 }
 .seg-btn {
   padding: 5px 14px; border: none; background: none;
-  border-radius: 8px; font-size: 12px; color: var(--text2);
-  transition: all .12s;
+  border-radius: 8px; font-size: 12px; color: var(--text2); transition: all .12s;
 }
 .seg-btn:hover { color: var(--text); }
-.seg-btn.active {
-  background: var(--green); color: #fff; font-weight: 600;
-  box-shadow: 0 1px 4px rgba(52,199,89,.3);
+.seg-btn.active { background: var(--green); color: #fff; font-weight: 600; box-shadow: 0 1px 4px rgba(52,199,89,.3); }
+
+/* ═══════════════════════════════════════════════════════════════
+   СРАВНЕНИЕ ЦЕН — специфичные стили
+═══════════════════════════════════════════════════════════════ */
+.pc-stats-row {
+  display: flex; gap: 10px; padding: 12px 18px 6px;
 }
+.pc-stat-card {
+  flex: 1; background: var(--surface2);
+  border-radius: 10px; padding: 12px 16px;
+  border: 1px solid var(--border); text-align: center;
+}
+.pc-stat-val { font-size: 28px; font-weight: 700; color: var(--purple); line-height: 1; }
+.pc-stat-lbl { font-size: 11px; color: var(--text3); margin-top: 4px; }
+
+.pc-log-box {
+  height: 100px; overflow-y: auto;
+  background: #0d0d14; border-radius: 0 0 var(--radius) var(--radius);
+  padding: 8px 14px;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 11px; color: #7aee9e; line-height: 1.7;
+}
+
+.pc-thresh-row {
+  display: flex; align-items: center; gap: 10px; padding: 8px 18px;
+}
+.pc-thresh-lbl { font-size: 12px; color: var(--text2); min-width: 160px; }
+.pc-thresh-slider { flex: 1; cursor: pointer; accent-color: var(--purple); }
+.pc-thresh-val {
+  font-size: 15px; font-weight: 700; color: var(--purple);
+  min-width: 42px; text-align: right;
+}
+
+/* wip banner */
+.pc-wip-banner {
+  display: flex; align-items: center; gap: 12px;
+  background: linear-gradient(135deg, #f0e8ff 0%, #e8f0ff 100%);
+  border: 1px solid rgba(175,82,222,.25);
+  border-radius: 10px; padding: 10px 16px; margin: 0 18px 10px;
+  font-size: 12px; color: #6b3fa0;
+}
+body.dark .pc-wip-banner {
+  background: linear-gradient(135deg, #1e1028 0%, #12102a 100%);
+  border-color: rgba(191,90,242,.25); color: #bf8df5;
+}
+.pc-wip-icon { font-size: 18px; }
 
 /* ── SKU overlay ─────────────────────────────────────────────────────────── */
 #sku-overlay {
   position: fixed; inset: 0; z-index: 100;
-  background: rgba(0,0,0,.3);
-  backdrop-filter: blur(4px);
+  background: rgba(0,0,0,.3); backdrop-filter: blur(4px);
   display: none; align-items: center; justify-content: center;
 }
 #sku-overlay.open { display: flex; }
 #sku-panel {
   width: 1260px; max-width: 96vw; height: 860px; max-height: 92vh;
-  background: var(--bg);
-  border-radius: 18px;
+  background: var(--bg); border-radius: 18px;
   box-shadow: 0 24px 80px rgba(0,0,0,.22);
-  display: flex; overflow: hidden;
-  animation: slideUp .2s ease;
+  display: flex; overflow: hidden; animation: slideUp .2s ease;
 }
-@keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-
-/* SKU sidebar */
+@keyframes slideUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
 #sku-sb {
-  width: 288px; flex-shrink: 0;
-  background: var(--surface);
-  border-right: 1px solid var(--border);
-  display: flex; flex-direction: column;
+  width: 288px; flex-shrink: 0; background: var(--surface);
+  border-right: 1px solid var(--border); display: flex; flex-direction: column;
 }
 .sku-sb-hdr {
-  background: var(--blue); color: #fff;
-  padding: 0 20px; height: 68px;
-  display: flex; align-items: center;
-  font-size: 16px; font-weight: 700; gap: 8px; flex-shrink: 0;
+  background: var(--blue); color: #fff; padding: 0 20px; height: 68px;
+  display: flex; align-items: center; font-size: 16px; font-weight: 700; gap: 8px; flex-shrink: 0;
 }
-.sku-sb-body {
-  flex: 1; overflow-y: auto;
-  padding: 6px 16px 16px;
-}
+.sku-sb-body { flex: 1; overflow-y: auto; padding: 6px 16px 16px; }
 .sku-sb-sec {
   font-size: 10px; font-weight: 600; color: var(--text3);
-  letter-spacing: .5px; text-transform: uppercase;
-  padding: 14px 0 6px;
+  letter-spacing: .5px; text-transform: uppercase; padding: 14px 0 6px;
 }
 .sku-input {
   width: 100%; height: 32px; border: 1px solid var(--border2);
   border-radius: 8px; padding: 0 10px;
-  font-size: 11px; color: var(--text);
-  background: var(--surface2); outline: none; margin-bottom: 6px;
+  font-size: 11px; color: var(--text); background: var(--surface2); outline: none; margin-bottom: 6px;
 }
 .sku-input:focus { border-color: var(--blue); }
 .sku-csv-count { font-size: 11px; color: var(--green); margin-bottom: 8px; min-height: 16px; }
-.thresh-val {
-  font-size: 36px; font-weight: 700; color: var(--blue);
-  text-align: center; line-height: 1; padding: 8px 0 4px;
-}
-.thresh-slider {
-  width: 100%; height: 20px; cursor: pointer; accent-color: var(--blue);
-  margin-bottom: 6px;
-}
+.thresh-val { font-size: 36px; font-weight: 700; color: var(--blue); text-align: center; line-height: 1; padding: 8px 0 4px; }
+.thresh-slider { width: 100%; height: 20px; cursor: pointer; accent-color: var(--blue); margin-bottom: 6px; }
 .thresh-hint { font-size: 10.5px; color: var(--text3); line-height: 1.6; }
 .sku-divider { height: 1px; background: var(--border); margin: 12px 0; }
 #sku-stat { font-size: 11px; color: var(--text3); line-height: 1.7; }
 #sku-sel-stat { font-size: 12px; font-weight: 600; color: var(--blue); margin-top: 4px; }
-
-/* SKU right panel */
-#sku-right {
-  flex: 1; display: flex; flex-direction: column; overflow: hidden;
-}
+#sku-right { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
 .sku-toolbar {
-  height: 48px; background: var(--surface);
-  border-bottom: 1px solid var(--border);
+  height: 48px; background: var(--surface); border-bottom: 1px solid var(--border);
   display: flex; align-items: center; padding: 0 12px; gap: 8px; flex-shrink: 0;
 }
 .sku-search {
@@ -415,48 +385,26 @@ input, select { font-family: inherit; }
   font-size: 12px; color: var(--text); background: var(--surface2); outline: none;
 }
 .sku-search:focus { border-color: var(--blue); }
-
-/* SKU table */
 #sku-table-wrap { flex: 1; overflow: auto; }
-.sku-table {
-  width: 100%; border-collapse: collapse;
-  font-size: 12px;
-}
+.sku-table { width: 100%; border-collapse: collapse; font-size: 12px; }
 .sku-table th {
-  position: sticky; top: 0; z-index: 2;
-  background: var(--surface2);
-  border-bottom: 1px solid var(--border);
-  padding: 8px 12px;
-  text-align: left; font-size: 11px; font-weight: 600;
-  color: var(--text2); white-space: nowrap;
+  position: sticky; top: 0; z-index: 2; background: var(--surface2);
+  border-bottom: 1px solid var(--border); padding: 8px 12px;
+  text-align: left; font-size: 11px; font-weight: 600; color: var(--text2); white-space: nowrap;
 }
-.sku-table td {
-  padding: 7px 12px;
-  border-bottom: 1px solid var(--border);
-  color: var(--text2); vertical-align: middle;
-}
+.sku-table td { padding: 7px 12px; border-bottom: 1px solid var(--border); color: var(--text2); vertical-align: middle; }
 .sku-table tr:hover td { background: var(--surface2); }
 .sku-table tr.selected td { background: #e8f4ff; }
-.sku-table tr.selected td { color: var(--text); }
 .sku-chk { cursor: pointer; font-size: 16px; color: var(--text3); user-select: none; }
 .sku-chk.on { color: var(--blue); }
-.conf-badge {
-  display: inline-block; padding: 2px 8px; border-radius: 20px;
-  font-size: 10.5px; font-weight: 600;
-}
+.conf-badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 10.5px; font-weight: 600; }
 .conf-high { background: #dcfce7; color: #15803d; }
 .conf-mid  { background: #fef9c3; color: #854d0e; }
 .conf-low  { background: #fee2e2; color: #991b1b; }
-
-/* SKU log */
 #sku-log-box {
-  height: 80px; overflow-y: auto;
-  background: var(--surface2);
-  border-top: 1px solid var(--border);
-  padding: 8px 14px;
-  font-family: Consolas, "Courier New", monospace;
-  font-size: 11px; color: var(--text2); line-height: 1.7;
-  flex-shrink: 0;
+  height: 80px; overflow-y: auto; background: var(--surface2); border-top: 1px solid var(--border);
+  padding: 8px 14px; font-family: Consolas, "Courier New", monospace;
+  font-size: 11px; color: var(--text2); line-height: 1.7; flex-shrink: 0;
 }
 
 /* ── Splash ──────────────────────────────────────────────────────────────── */
@@ -467,73 +415,34 @@ input, select { font-family: inherit; }
   transition: opacity .4s ease, visibility .4s;
 }
 #splash.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
-
-#splash-card {
-  display: flex; flex-direction: column; align-items: center;
-  gap: 0;
-  animation: splashIn .4s ease;
-}
-@keyframes splashIn {
-  from { opacity: 0; transform: translateY(16px) scale(.97); }
-  to   { opacity: 1; transform: none; }
-}
-
+#splash-card { display: flex; flex-direction: column; align-items: center; gap: 0; animation: splashIn .4s ease; }
+@keyframes splashIn { from { opacity:0; transform:translateY(16px) scale(.97); } to { opacity:1; transform:none; } }
 #splash-icon-wrap {
-  width: 80px; height: 80px;
-  background: rgba(255,255,255,.18);
-  border-radius: 22px;
-  display: flex; align-items: center; justify-content: center;
-  margin-bottom: 24px;
-  box-shadow: 0 8px 32px rgba(0,0,0,.18);
-  backdrop-filter: blur(4px);
+  width: 80px; height: 80px; background: rgba(255,255,255,.18); border-radius: 22px;
+  display: flex; align-items: center; justify-content: center; margin-bottom: 24px;
+  box-shadow: 0 8px 32px rgba(0,0,0,.18); backdrop-filter: blur(4px);
 }
-
-#splash-brand {
-  font-size: 38px; letter-spacing: -.5px; line-height: 1;
-  margin-bottom: 8px;
-}
+#splash-brand { font-size: 38px; letter-spacing: -.5px; line-height: 1; margin-bottom: 8px; }
 #splash-flow { font-weight: 700; color: #fff; }
 #splash-mgr  { font-weight: 300; color: rgba(255,255,255,.65); }
+#splash-sub  { font-size: 12px; color: rgba(255,255,255,.55); letter-spacing: .6px; text-transform: uppercase; margin-bottom: 40px; }
+#splash-progress { width: 220px; height: 3px; background: rgba(255,255,255,.25); border-radius: 2px; overflow: hidden; margin-bottom: 14px; }
+#splash-fill { height: 100%; width: 0%; background: #fff; border-radius: 2px; transition: width .35s ease; }
+#splash-hint { font-size: 12px; color: rgba(255,255,255,.55); letter-spacing: .2px; min-height: 18px; }
 
-#splash-sub {
-  font-size: 12px; color: rgba(255,255,255,.55);
-  letter-spacing: .6px; text-transform: uppercase;
-  margin-bottom: 40px;
-}
-
-#splash-progress {
-  width: 220px; height: 3px;
-  background: rgba(255,255,255,.25);
-  border-radius: 2px; overflow: hidden;
-  margin-bottom: 14px;
-}
-#splash-fill {
-  height: 100%; width: 0%;
-  background: #fff;
-  border-radius: 2px;
-  transition: width .35s ease;
-}
-
-#splash-hint {
-  font-size: 12px; color: rgba(255,255,255,.55);
-  letter-spacing: .2px;
-  min-height: 18px;
-}
+/* ── Toast ───────────────────────────────────────────────────────────────── */
 #toast-wrap {
   position: fixed; bottom: 80px; right: 20px; z-index: 200;
-  display: flex; flex-direction: column; gap: 8px;
-  pointer-events: none;
+  display: flex; flex-direction: column; gap: 8px; pointer-events: none;
 }
 .toast {
   display: flex; align-items: center; gap: 10px;
   padding: 12px 18px; border-radius: 12px;
   background: var(--text); color: #fff;
   font-size: 12.5px; max-width: 380px;
-  box-shadow: 0 8px 24px rgba(0,0,0,.18);
-  animation: toastIn .2s ease;
-  pointer-events: auto;
+  box-shadow: 0 8px 24px rgba(0,0,0,.18); animation: toastIn .2s ease; pointer-events: auto;
 }
-@keyframes toastIn { from { opacity: 0; transform: translateY(10px) scale(.96); } to { opacity: 1; transform: none; } }
+@keyframes toastIn { from { opacity:0; transform:translateY(10px) scale(.96); } to { opacity:1; transform:none; } }
 .toast.success { background: #1D7A3A; }
 .toast.warning { background: #B35300; }
 .toast.error   { background: #C0392B; }
@@ -569,9 +478,10 @@ input, select { font-family: inherit; }
       <button class="nav-item" data-page="production">
         <span class="nav-icon">🏭</span> Производство
       </button>
+
     </div>
     <div class="sb-footer">
-      <div class="sb-divider" style="margin: 0 0 8px"></div>
+      <div class="sb-divider" style="margin:0 0 8px"></div>
       <button class="nav-item" id="theme-btn" style="font-size:12px" onclick="toggleTheme()">
         <span class="nav-icon" id="theme-icon">🌙</span>
         <span id="theme-label">Тёмная тема</span>
@@ -582,18 +492,15 @@ input, select { font-family: inherit; }
   <!-- ══════════ CONTENT ══════════ -->
   <main id="content">
 
-    <!-- Header -->
     <div id="page-header">
       <span id="page-title">Промодата</span>
       <span id="page-status"></span>
     </div>
 
-    <!-- Scroll area -->
     <div id="scroll-area">
 
       <!-- ── ПРОМОДАТА ── -->
       <div class="pane active" id="pane-promodate">
-
         <div class="card">
           <div class="card-section"><span class="card-section-icon">📅</span><span class="card-section-title">Диапазон дат</span></div>
           <div class="card-body">
@@ -610,7 +517,6 @@ input, select { font-family: inherit; }
             </div>
           </div>
         </div>
-
         <div class="card">
           <div class="card-section"><span class="card-section-icon">⚙️</span><span class="card-section-title">Параметры обработки</span></div>
           <div class="card-body">
@@ -625,7 +531,6 @@ input, select { font-family: inherit; }
             </div>
           </div>
         </div>
-
         <div class="card">
           <div class="card-section"><span class="card-section-icon">🔄</span><span class="card-section-title">Power Query / Макросы</span></div>
           <div class="card-body">
@@ -649,6 +554,62 @@ input, select { font-family: inherit; }
             </div>
           </div>
         </div>
+
+        <!-- ═══ СРАВНЕНИЕ ЦЕН (встроено в Промодату) ══════════════════════ -->
+        <div class="card" style="border-top: 2px solid var(--purple);">
+          <div class="card-section">
+            <span class="card-section-icon">⚖️</span>
+            <span class="card-section-title" style="color:var(--purple)">Сравнение цен: Купер vs PromoData</span>
+            <span style="margin-left:auto;font-size:10px;font-weight:600;padding:1px 7px;background:var(--purple);color:#fff;border-radius:20px">β</span>
+          </div>
+          <div class="card-body">
+            <div class="form-row">
+              <label class="form-label">Файл Купера (.xlsx):</label>
+              <input class="form-input" type="text" data-field="pc_kuper_file" placeholder="Путь к файлу…" readonly>
+              <button class="form-btn-pick" onclick="pickFile('pc_kuper_file')">Выбрать</button>
+            </div>
+            <div class="form-row">
+              <label class="form-label">PromoData (.xlsx):</label>
+              <input class="form-input" type="text" data-field="pc_promo_file" placeholder="Путь к файлу…" readonly>
+              <button class="form-btn-pick" onclick="pickFile('pc_promo_file')">Выбрать</button>
+            </div>
+            <div class="form-row">
+              <label class="form-label">Справочник SKU (.xlsx):</label>
+              <input class="form-input" type="text" data-field="pc_sprav_file" placeholder="Путь к файлу…" readonly>
+              <button class="form-btn-pick" onclick="pickFile('pc_sprav_file')">Выбрать</button>
+            </div>
+            <div class="form-row">
+              <label class="form-label">Сохранить результат (.xlsx):</label>
+              <input class="form-input" type="text" data-field="pc_output_file" placeholder="Путь к файлу…" readonly>
+              <button class="form-btn-pick" onclick="pcPickOutput()">Выбрать</button>
+            </div>
+            <div class="pc-thresh-row">
+              <span class="pc-thresh-lbl">Порог Жаккара:</span>
+              <input class="pc-thresh-slider" type="range" min="0.30" max="0.95" step="0.05" value="0.50"
+                     data-field="pc_threshold"
+                     oninput="document.getElementById('pc-thresh-val').textContent=parseFloat(this.value).toFixed(2);autoSave()">
+              <span class="pc-thresh-val" id="pc-thresh-val">0.50</span>
+              <span style="font-size:11px;color:var(--text3);margin-left:8px">0.5 — рекомендуется</span>
+            </div>
+          </div>
+          <!-- Статы + лог -->
+          <div class="pc-stats-row" style="padding:4px 18px 6px">
+            <div class="pc-stat-card">
+              <div class="pc-stat-val" id="pc-stat-total">—</div>
+              <div class="pc-stat-lbl">Строк</div>
+            </div>
+            <div class="pc-stat-card">
+              <div class="pc-stat-val" id="pc-stat-ketch" style="color:var(--orange)">—</div>
+              <div class="pc-stat-lbl">Кетчуп</div>
+            </div>
+            <div class="pc-stat-card">
+              <div class="pc-stat-val" id="pc-stat-mayo" style="color:var(--blue)">—</div>
+              <div class="pc-stat-lbl">Майонез</div>
+            </div>
+          </div>
+          <div class="pc-log-box" id="pc-log-box">Готов к запуску…</div>
+        </div>
+        <!-- ════════════════════════════════════════════════════════════════ -->
 
       </div><!-- /pane-promodate -->
 
@@ -769,6 +730,9 @@ input, select { font-family: inherit; }
         </div>
       </div>
 
+      <!-- ═══════════════════════════════════════════════════════
+           СРАВНЕНИЕ ЦЕН
+      ═══════════════════════════════════════════════════════ -->
       <!-- ── LOG ── -->
       <div class="card" id="log-card">
         <div class="log-header">
@@ -788,13 +752,15 @@ input, select { font-family: inherit; }
 
     <!-- Action bar -->
     <div id="action-bar">
-      <!-- Promodate buttons -->
       <div id="bar-promodate" class="bar-group" style="display:flex;align-items:center;gap:8px;width:100%">
         <button class="btn btn-ghost" onclick="doDownload()">⬇ Скачать</button>
         <button class="btn btn-ghost" onclick="confirmClearDownloads()">🗑 Скаченное</button>
         <button class="btn btn-ghost" onclick="openOutputFolder()">📁 Папка</button>
         <button class="btn btn-ghost" onclick="confirmClearOutput()">🗑 CSV</button>
         <div class="action-spacer"></div>
+        <button class="btn btn-ghost" id="pc-open-btn" onclick="pcOpenResult()" style="display:none">📂 Открыть результат</button>
+        <button class="btn btn-purple" id="pc-run-btn" onclick="pcRun()">⚖️ Сравнение цен</button>
+        <div style="width:1px;height:28px;background:var(--border);margin:0 4px"></div>
         <button class="btn btn-blue" onclick="openSkuMatcher()">🔍 Проверка справочника</button>
         <div class="segment-ctrl" id="stage-ctrl">
           <button class="seg-btn active" data-stage="all"    onclick="setStage(this)">Запустить всё</button>
@@ -805,14 +771,12 @@ input, select { font-family: inherit; }
         <button class="btn btn-primary" onclick="runAction()">▶ Запустить</button>
         <button class="btn btn-danger"  onclick="stopAction()">■ Стоп</button>
       </div>
-      <!-- Competitors buttons -->
       <div id="bar-competitors" class="bar-group" style="display:none;align-items:center;gap:8px;width:100%">
         <div class="action-spacer"></div>
         <button class="btn btn-ghost" onclick="pywebview.api.open_last_competitors_file()">📂 Последний файл</button>
         <button class="btn btn-primary" onclick="runAction()">▶ Запустить</button>
         <button class="btn btn-danger"  onclick="stopAction()">■ Стоп</button>
       </div>
-      <!-- Default buttons (nielsen, query_refresh, production) -->
       <div id="bar-default" class="bar-group" style="display:none;align-items:center;gap:8px;width:100%">
         <div class="action-spacer"></div>
         <button class="btn btn-primary" onclick="runAction()">▶ Запустить</button>
@@ -820,44 +784,36 @@ input, select { font-family: inherit; }
       </div>
     </div>
 
-  </main><!-- /content -->
+  </main>
 </div><!-- /app -->
 
 <!-- ══════════ SKU MATCHER OVERLAY ══════════ -->
 <div id="sku-overlay" onclick="closeSkuIfBg(event)">
   <div id="sku-panel">
-
     <div id="sku-sb">
       <div class="sku-sb-hdr">🔍 SKU Matcher</div>
       <div class="sku-sb-body">
-
         <div class="sku-sb-sec">Справочник</div>
         <input class="sku-input" id="sku-ref-path" placeholder="Путь к .xlsx…" readonly>
         <button class="btn btn-blue" style="width:100%;margin-bottom:12px;border-radius:8px" onclick="skuPickRef()">📂 Выбрать справочник</button>
-
         <div class="sku-sb-sec">Папка с CSV</div>
         <input class="sku-input" id="sku-csv-folder" placeholder="Путь к папке…" readonly>
         <div class="sku-csv-count" id="sku-csv-count"></div>
         <button class="btn btn-blue" style="width:100%;margin-bottom:4px;border-radius:8px" onclick="skuPickFolder()">📁 Выбрать папку</button>
-
         <div class="sku-sb-sec">Порог уверенности</div>
         <div class="thresh-val" id="thresh-val">0.50</div>
         <input class="thresh-slider" type="range" min="0.30" max="0.95" step="0.05" value="0.50"
                oninput="document.getElementById('thresh-val').textContent=parseFloat(this.value).toFixed(2)">
         <div class="thresh-hint">≥ 0.9 — высокая<br>0.7 – 0.9 — средняя<br>&lt; 0.7 — требует проверки</div>
-
         <div class="sku-divider"></div>
-
         <button class="btn btn-blue" id="sku-run-btn" style="width:100%;height:42px;border-radius:10px;font-size:14px" onclick="skuRun()">▶ Запустить матчинг</button>
         <div style="height:8px"></div>
         <button class="btn btn-ghost" id="sku-save-btn" style="width:100%;border-radius:10px" onclick="skuSave()" disabled>⬇ Сохранить в справочник</button>
-
         <div style="height:12px"></div>
         <div id="sku-stat"></div>
         <div id="sku-sel-stat"></div>
       </div>
     </div>
-
     <div id="sku-right">
       <div class="sku-toolbar">
         <input class="sku-search" id="sku-search" placeholder="Поиск: SKU, бренд, совпало…" oninput="skuFilter()">
@@ -867,7 +823,6 @@ input, select { font-family: inherit; }
         <div class="action-spacer"></div>
         <button class="btn btn-ghost" style="height:28px;padding:0 12px;font-size:12px;border-radius:6px" onclick="closeSkuMatcher()">✕ Закрыть</button>
       </div>
-
       <div id="sku-table-wrap">
         <table class="sku-table" id="sku-table">
           <thead>
@@ -884,122 +839,93 @@ input, select { font-family: inherit; }
           <tbody id="sku-tbody"></tbody>
         </table>
       </div>
-
       <div id="sku-log-box"></div>
     </div>
   </div>
 </div>
 
-<!-- Toast container -->
 <div id="toast-wrap"></div>
 
 <!-- ══════════ SPLASH ══════════ -->
 <div id="splash">
   <div id="splash-card">
-
     <div id="splash-icon-wrap">
       <svg width="52" height="52" viewBox="0 0 52 52" fill="none">
         <rect width="52" height="52" rx="14" fill="rgba(255,255,255,0.18)"/>
-        <path d="M15 26 L22 33 L37 17"
-              stroke="white" stroke-width="3.5"
+        <path d="M15 26 L22 33 L37 17" stroke="white" stroke-width="3.5"
               stroke-linecap="round" stroke-linejoin="round"
               stroke-dasharray="32" stroke-dashoffset="32">
-          <animate attributeName="stroke-dashoffset"
-                   from="32" to="0"
-                   dur="0.55s" begin="0.25s"
-                   fill="freeze" calcMode="spline"
+          <animate attributeName="stroke-dashoffset" from="32" to="0"
+                   dur="0.55s" begin="0.25s" fill="freeze" calcMode="spline"
                    keySplines="0.4 0 0.2 1"/>
         </path>
       </svg>
     </div>
-
-    <div id="splash-brand">
-      <span id="splash-flow">Flow</span><span id="splash-mgr">Manager</span>
-    </div>
+    <div id="splash-brand"><span id="splash-flow">Flow</span><span id="splash-mgr">Manager</span></div>
     <div id="splash-sub">EFKO · v3.0</div>
-
-    <div id="splash-progress">
-      <div id="splash-fill"></div>
-    </div>
+    <div id="splash-progress"><div id="splash-fill"></div></div>
     <div id="splash-hint">Инициализация…</div>
-
   </div>
 </div>
 
 <script>
-// ═══════════════════════════════════════════════════════════════════════════
-// Splash screen
-// ═══════════════════════════════════════════════════════════════════════════
+// ── Splash ────────────────────────────────────────────────────────────────
 const _splashSteps = [
-  [10,  'Загрузка интерфейса…'],
-  [30,  'Подключение компонентов…'],
-  [55,  'Загрузка конфигурации…'],
-  [75,  'Инициализация модулей…'],
-  [90,  'Почти готово…'],
+  [10,'Загрузка интерфейса…'],[30,'Подключение компонентов…'],
+  [55,'Загрузка конфигурации…'],[75,'Инициализация модулей…'],[90,'Почти готово…'],
 ];
 let _splashTimer = null;
-
 function _splashProgress(pct, hint) {
   const fill = document.getElementById('splash-fill');
   const hintEl = document.getElementById('splash-hint');
-  if (fill)  fill.style.width = pct + '%';
+  if (fill) fill.style.width = pct + '%';
   if (hintEl && hint) hintEl.textContent = hint;
 }
-
 function _startSplashAnim() {
   let i = 0;
   _splashTimer = setInterval(() => {
-    if (i < _splashSteps.length) {
-      _splashProgress(_splashSteps[i][0], _splashSteps[i][1]);
-      i++;
-    } else {
-      clearInterval(_splashTimer);
-    }
+    if (i < _splashSteps.length) { _splashProgress(_splashSteps[i][0], _splashSteps[i][1]); i++; }
+    else clearInterval(_splashTimer);
   }, 320);
 }
-
 function _hideSplash() {
-  clearInterval(_splashTimer);
-  _splashProgress(100, 'Готово!');
+  clearInterval(_splashTimer); _splashProgress(100, 'Готово!');
   setTimeout(() => {
     const s = document.getElementById('splash');
     if (s) s.classList.add('hidden');
     setTimeout(() => { if (s) s.remove(); }, 450);
   }, 350);
 }
-
-// Запускаем анимацию сразу
 _startSplashAnim();
 
-
+// ── State ─────────────────────────────────────────────────────────────────
 const S = {
-  page:  'promodate',
-  stage: 'all',
-  skuAllResults: [],
-  skuSelected: new Set(),
-  skuRefPath: '',
+  page: 'promodate', stage: 'all',
+  skuAllResults: [], skuSelected: new Set(), skuRefPath: '',
+  pcLastOutput: '',
 };
 
-// ═══════════════════════════════════════════════════════════════════════════
-// Python event handler
-// ═══════════════════════════════════════════════════════════════════════════
+// ── Python event handler ──────────────────────────────────────────────────
 window.__pyEvent = function(payload) {
   const { type, data } = payload;
   switch (type) {
-    case 'log':        addLog(data);            break;
-    case 'progress':   updateProgress(data.done, data.total); break;
-    case 'hide_progress': hideProgress();       break;
-    case 'set_title':  setStatus(data);         break;
-    case 'toast':      showToast(data.type, data.message); break;
-    case 'sku_log':    skuLog(data);            break;
-    case 'sku_results': skuRenderResults(data); break;
-    case 'sku_error':  skuLog('✗ Ошибка: ' + data); skuUnlock(); break;
+    case 'log':           addLog(data); break;
+    case 'progress':      updateProgress(data.done, data.total); break;
+    case 'hide_progress': hideProgress(); break;
+    case 'set_title':     setStatus(data); break;
+    case 'toast':         showToast(data.type, data.message); break;
+    case 'sku_log':       skuLog(data); break;
+    case 'sku_results':   skuRenderResults(data); break;
+    case 'sku_error':     skuLog('✗ Ошибка: ' + data); skuUnlock(); break;
+    // ── Price comparison events ──
+    case 'pc_started':    pcOnStarted(); break;
+    case 'pc_log':        pcAddLog(data); break;
+    case 'pc_done':       pcOnDone(data); break;
+    case 'pc_error':      pcOnError(data); break;
   }
 };
 
-// ═══════════════════════════════════════════════════════════════════════════
-// Init
-// ═══════════════════════════════════════════════════════════════════════════
+// ── Init ──────────────────────────────────────────────────────────────────
 window.addEventListener('pywebviewready', async () => {
   buildSelects();
   const cfg = await pywebview.api.get_config();
@@ -1013,7 +939,14 @@ window.addEventListener('pywebviewready', async () => {
   const ms = document.getElementById('sel-prod-month');
   ms.innerHTML = months.map(m => `<option>${m}</option>`).join('');
   if (cfg.prod_month) ms.value = cfg.prod_month;
+  // restore threshold display
+  if (cfg.pc_threshold) {
+    const sl = document.querySelector('[data-field="pc_threshold"]');
+    if (sl) { sl.value = cfg.pc_threshold; document.getElementById('pc-thresh-val').textContent = parseFloat(cfg.pc_threshold).toFixed(2); }
+  }
+  const DATE_FIELDS = new Set(['month_from','month_to','year_from','year_to']);
   document.querySelectorAll('[data-field]').forEach(el => {
+    if (DATE_FIELDS.has(el.dataset.field)) return; // управляются из buildSelects
     el.addEventListener('change', autoSave);
     el.addEventListener('input',  autoSave);
   });
@@ -1023,400 +956,388 @@ window.addEventListener('pywebviewready', async () => {
 
 function buildSelects() {
   const now = new Date();
-  const months = Array.from({length:12}, (_,i) => i+1);
-  const years  = Array.from({length:11}, (_,i) => 2020+i);
+  const months = Array.from({length:12},(_,i)=>i+1);
+  const years  = Array.from({length:11},(_,i)=>2020+i);
   ['sel-month-from','sel-month-to'].forEach(id => {
     const s = document.getElementById(id);
-    s.innerHTML = months.map(m => `<option value="${m}">${m}</option>`).join('');
-    s.value = now.getMonth() + 1;
+    s.innerHTML = months.map(m=>`<option value="${m}">${m}</option>`).join('');
+    s.value = now.getMonth()+1;
   });
   ['sel-year-from','sel-year-to'].forEach(id => {
     const s = document.getElementById(id);
-    s.innerHTML = years.map(y => `<option value="${y}">${y}</option>`).join('');
+    s.innerHTML = years.map(y=>`<option value="${y}">${y}</option>`).join('');
     s.value = now.getFullYear();
+  });
+
+  // Автосдвиг: FROM не может быть позже TO и наоборот
+  function clampDates() {
+    const mf = parseInt(document.getElementById('sel-month-from').value);
+    const mt = parseInt(document.getElementById('sel-month-to').value);
+    const yf = parseInt(document.getElementById('sel-year-from').value);
+    const yt = parseInt(document.getElementById('sel-year-to').value);
+    const from = yf * 12 + mf;
+    const to   = yt * 12 + mt;
+    return { mf, mt, yf, yt, from, to };
+  }
+
+  document.getElementById('sel-month-from').addEventListener('change', function() {
+    const { mf, mt, yf, yt, from, to } = clampDates();
+    if (from > to) {
+      document.getElementById('sel-month-to').value = mf;
+      document.getElementById('sel-year-to').value  = yf;
+    }
+    autoSave();
+  });
+  document.getElementById('sel-year-from').addEventListener('change', function() {
+    const { mf, mt, yf, yt, from, to } = clampDates();
+    if (from > to) {
+      document.getElementById('sel-month-to').value = mf;
+      document.getElementById('sel-year-to').value  = yf;
+    }
+    autoSave();
+  });
+  document.getElementById('sel-month-to').addEventListener('change', function() {
+    const { mf, mt, yf, yt, from, to } = clampDates();
+    if (to < from) {
+      document.getElementById('sel-month-from').value = mt;
+      document.getElementById('sel-year-from').value  = yt;
+    }
+    autoSave();
+  });
+  document.getElementById('sel-year-to').addEventListener('change', function() {
+    const { mf, mt, yf, yt, from, to } = clampDates();
+    if (to < from) {
+      document.getElementById('sel-month-from').value = mt;
+      document.getElementById('sel-year-from').value  = yt;
+    }
+    autoSave();
   });
 }
 
 function applyConfig(cfg) {
   document.querySelectorAll('[data-field]').forEach(el => {
     const key = el.dataset.field;
-    if (cfg[key] !== undefined && cfg[key] !== null) {
-      el.value = cfg[key];
-    }
+    if (cfg[key] !== undefined && cfg[key] !== null) el.value = cfg[key];
   });
 }
 
 function autoSave() {
-  const cfg = collectFormConfig();
-  pywebview.api.save_config(cfg);
+  pywebview.api.save_config(collectFormConfig());
 }
 
 function collectFormConfig() {
   const cfg = {};
-  document.querySelectorAll('[data-field]').forEach(el => {
-    cfg[el.dataset.field] = el.value;
-  });
-  // preserve dark_theme across form saves
+  document.querySelectorAll('[data-field]').forEach(el => { cfg[el.dataset.field] = el.value; });
   cfg.dark_theme = document.body.classList.contains('dark');
   return cfg;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// Navigation
-// ═══════════════════════════════════════════════════════════════════════════
+// ── Navigation ────────────────────────────────────────────────────────────
 const PAGE_TITLES = {
-  promodate:     'Промодата',
-  competitors:   'Конкуренты',
-  nielsen:       'Nielsen',
-  query_refresh: 'Обновить квери',
-  production:    'Производство',
+  promodate:'Промодата', competitors:'Конкуренты', nielsen:'Nielsen',
+  query_refresh:'Обновить квери', production:'Производство',
 };
-
 function navigate(page) {
   S.page = page;
-  document.querySelectorAll('.nav-item[data-page]').forEach(b => {
-    b.classList.toggle('active', b.dataset.page === page);
-  });
-  document.querySelectorAll('.pane').forEach(p => {
-    p.classList.toggle('active', p.id === `pane-${page}`);
-  });
+  document.querySelectorAll('.nav-item[data-page]').forEach(b => b.classList.toggle('active', b.dataset.page===page));
+  document.querySelectorAll('.pane').forEach(p => p.classList.toggle('active', p.id===`pane-${page}`));
   document.getElementById('page-title').textContent = PAGE_TITLES[page] || page;
-  document.querySelectorAll('.bar-group').forEach(g => g.style.display = 'none');
-  const barId = page === 'promodate' ? 'bar-promodate'
-              : page === 'competitors' ? 'bar-competitors'
+  document.querySelectorAll('.bar-group').forEach(g => g.style.display='none');
+  const barId = page==='promodate' ? 'bar-promodate'
+              : page==='competitors' ? 'bar-competitors'
               : 'bar-default';
   const bar = document.getElementById(barId);
   if (bar) bar.style.display = 'flex';
 }
+document.querySelectorAll('.nav-item[data-page]').forEach(b => b.addEventListener('click', ()=>navigate(b.dataset.page)));
 
-document.querySelectorAll('.nav-item[data-page]').forEach(b => {
-  b.addEventListener('click', () => navigate(b.dataset.page));
-});
-
-// ═══════════════════════════════════════════════════════════════════════════
-// Stage selector
-// ═══════════════════════════════════════════════════════════════════════════
+// ── Stage selector ────────────────────────────────────────────────────────
 function setStage(btn) {
   S.stage = btn.dataset.stage;
-  document.querySelectorAll('.seg-btn').forEach(b => b.classList.toggle('active', b === btn));
+  document.querySelectorAll('.seg-btn').forEach(b => b.classList.toggle('active', b===btn));
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// File pickers
-// ═══════════════════════════════════════════════════════════════════════════
+// ── File pickers ──────────────────────────────────────────────────────────
 async function pickFile(field) {
   const path = await pywebview.api.browse_file();
-  if (path) {
-    const el = document.querySelector(`[data-field="${field}"]`);
-    if (el) { el.value = path; autoSave(); }
-  }
+  if (path) { const el = document.querySelector(`[data-field="${field}"]`); if(el){el.value=path;autoSave();} }
 }
-
 async function pickFolder(field) {
   const path = await pywebview.api.browse_folder();
-  if (path) {
-    const el = document.querySelector(`[data-field="${field}"]`);
-    if (el) { el.value = path; autoSave(); }
-  }
+  if (path) { const el = document.querySelector(`[data-field="${field}"]`); if(el){el.value=path;autoSave();} }
 }
-
+async function pcPickOutput() {
+  const path = await pywebview.api.browse_save_file();
+  if (path) { const el=document.querySelector('[data-field="pc_output_file"]'); if(el){el.value=path;autoSave();} }
+}
 function getField(field) {
   const el = document.querySelector(`[data-field="${field}"]`);
   return el ? el.value : '';
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// Run action
-// ═══════════════════════════════════════════════════════════════════════════
+// ── Run action ────────────────────────────────────────────────────────────
 async function runAction() {
   showProgress();
   if (S.page === 'promodate') {
     const p = {
-      month_from: getField('month_from'), year_from: getField('year_from'),
-      month_to:   getField('month_to'),   year_to:   getField('year_to'),
-      output_folder: getField('output_folder'), category: getField('category'),
-      pq_file1: getField('pq_file1'), pq_file2: getField('pq_file2'),
-      macro1: getField('macro1'), macro2: getField('macro2'),
+      month_from:getField('month_from'), year_from:getField('year_from'),
+      month_to:getField('month_to'),     year_to:getField('year_to'),
+      output_folder:getField('output_folder'), category:getField('category'),
+      pq_file1:getField('pq_file1'), pq_file2:getField('pq_file2'),
+      macro1:getField('macro1'), macro2:getField('macro2'),
     };
-    if (S.stage === 'all')    await pywebview.api.start_process(p);
-    else if (S.stage === 'query1')  await pywebview.api.run_stage_q1(p);
-    else if (S.stage === 'query2')  await pywebview.api.run_stage_q2(p);
-    else if (S.stage === 'macros')  await pywebview.api.run_stage_macros(p);
-  } else if (S.page === 'competitors') {
-    await pywebview.api.run_competitors({
-      olap_file: getField('olap_file'),
-      competitors_file: getField('competitors_file'),
-    });
-  } else if (S.page === 'nielsen') {
-    await pywebview.api.run_nielsen({
-      input_file: getField('nielsen_input'),
-      output_dir: getField('nielsen_output'),
-      format: getField('nielsen_format'),
-      category: getField('nielsen_category'),
-    });
-  } else if (S.page === 'query_refresh') {
-    await pywebview.api.run_query_refresh({ file: getField('query_refresh_file') });
-  } else if (S.page === 'production') {
+    if (S.stage==='all')    await pywebview.api.start_process(p);
+    else if (S.stage==='query1') await pywebview.api.run_stage_q1(p);
+    else if (S.stage==='query2') await pywebview.api.run_stage_q2(p);
+    else if (S.stage==='macros') await pywebview.api.run_stage_macros(p);
+  } else if (S.page==='competitors') {
+    await pywebview.api.run_competitors({olap_file:getField('olap_file'),competitors_file:getField('competitors_file')});
+  } else if (S.page==='nielsen') {
+    await pywebview.api.run_nielsen({input_file:getField('nielsen_input'),output_dir:getField('nielsen_output'),format:getField('nielsen_format'),category:getField('nielsen_category')});
+  } else if (S.page==='query_refresh') {
+    await pywebview.api.run_query_refresh({file:getField('query_refresh_file')});
+  } else if (S.page==='production') {
     const monthLabel = getField('prod_month');
     await pywebview.api.run_production({
-      svod_folder: getField('prod_svod_folder'),
-      npk_file: getField('prod_npk_file'),
-      tolyatti_folder: getField('prod_tolyatti'),
-      target_file: getField('prod_target'),
-      mapping_file: getField('prod_mapping'),
-      month_str: monthLabel.split(' - ')[0],
-      year: getField('prod_year'),
+      svod_folder:getField('prod_svod_folder'), npk_file:getField('prod_npk_file'),
+      tolyatti_folder:getField('prod_tolyatti'), target_file:getField('prod_target'),
+      mapping_file:getField('prod_mapping'), month_str:monthLabel.split(' - ')[0],
+      year:getField('prod_year'),
     });
   }
 }
-
 function stopAction() { pywebview.api.stop(); hideProgress(); }
 
 async function doDownload() {
   showProgress();
   await pywebview.api.start_download({
-    month_from: getField('month_from'), year_from: getField('year_from'),
-    month_to:   getField('month_to'),   year_to:   getField('year_to'),
+    month_from:getField('month_from'),year_from:getField('year_from'),
+    month_to:getField('month_to'),year_to:getField('year_to'),
+  });
+}
+function confirmClearDownloads() { if(confirm('Удалить все файлы из папки «Скаченное»?')) pywebview.api.clear_downloads(); }
+function confirmClearOutput() {
+  const p=getField('output_folder');
+  if(!p){showToast('warning','Папка сохранения не задана');return;}
+  if(confirm('Удалить все CSV из папки сохранения?')) pywebview.api.clear_output(p);
+}
+function openOutputFolder() {
+  const p=getField('output_folder');
+  if(p) pywebview.api.open_folder(p); else showToast('warning','Папка сохранения не задана');
+}
+
+// ── Price comparison logic ────────────────────────────────────────────────
+async function pcRun() {
+  const kuper  = getField('pc_kuper_file');
+  const promo  = getField('pc_promo_file');
+  const sprav  = getField('pc_sprav_file');
+  const output = getField('pc_output_file');
+
+  if (!kuper)  { showToast('warning','Укажите файл Купера');     return; }
+  if (!promo)  { showToast('warning','Укажите файл PromoData');   return; }
+  if (!sprav)  { showToast('warning','Укажите справочник SKU');   return; }
+  if (!output) { showToast('warning','Укажите путь для сохранения'); return; }
+
+  const thresh = parseFloat(getField('pc_threshold') || '0.5');
+
+  showProgress();
+  document.getElementById('pc-run-btn').disabled = true;
+  document.getElementById('pc-open-btn').style.display = 'none';
+  document.getElementById('pc-log-box').textContent = '';
+
+  await pywebview.api.run_price_comparison({
+    kuper_file: kuper, promo_file: promo, sprav_file: sprav,
+    output_file: output, threshold: thresh,
   });
 }
 
-function confirmClearDownloads() {
-  if (confirm('Удалить все файлы из папки «Скаченное»?'))
-    pywebview.api.clear_downloads();
+function pcOnStarted() {
+  pcAddLog('▶ Запуск сравнения цен…');
+  document.getElementById('pc-stat-total').textContent = '…';
+  document.getElementById('pc-stat-ketch').textContent = '…';
+  document.getElementById('pc-stat-mayo').textContent  = '…';
 }
 
-function confirmClearOutput() {
-  const p = getField('output_folder');
-  if (!p) { showToast('warning', 'Папка сохранения не задана'); return; }
-  if (confirm('Удалить все CSV из папки сохранения?'))
-    pywebview.api.clear_output(p);
-}
-
-function openOutputFolder() {
-  const p = getField('output_folder');
-  if (p) pywebview.api.open_folder(p);
-  else showToast('warning', 'Папка сохранения не задана');
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// Progress
-// ═══════════════════════════════════════════════════════════════════════════
-function showProgress() {
-  document.getElementById('progress-wrap').classList.add('visible');
-}
-function hideProgress() {
-  document.getElementById('progress-fill').style.width = '0%';
-  document.getElementById('progress-text').textContent = '';
-  document.getElementById('progress-wrap').classList.remove('visible');
-}
-function updateProgress(done, total) {
-  showProgress();
-  const pct = total ? (done / total * 100) : 0;
-  document.getElementById('progress-fill').style.width = pct + '%';
-  document.getElementById('progress-text').textContent = `${done} / ${total}`;
-}
-function setStatus(text) {
-  const el = document.getElementById('page-status');
-  if (text) { el.textContent = text; el.classList.add('visible'); }
-  else { el.textContent = ''; el.classList.remove('visible'); }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// Log
-// ═══════════════════════════════════════════════════════════════════════════
-function addLog(msg) {
-  const box = document.getElementById('log-content');
-  const line = document.createElement('div');
-  line.className = 'log-line';
-  const m = String(msg).match(/^\[(\d{2}:\d{2}:\d{2})\]\s+(.*)/s);
-  if (m) {
-    const msgClass = /ошибка|error|✗/i.test(m[2]) ? 'err'
-                   : /✅|завершён|готово|🎉/i.test(m[2]) ? 'ok'
-                   : /⚠|warning/i.test(m[2]) ? 'warn' : '';
-    line.innerHTML = `<span class="log-ts">[${m[1]}]</span><span class="log-msg ${msgClass}">${esc(m[2])}</span>`;
-  } else {
-    line.innerHTML = `<span class="log-msg">${esc(String(msg))}</span>`;
-  }
-  box.appendChild(line);
-  if (box.children.length > 500) box.firstChild.remove();
+function pcAddLog(msg) {
+  const box = document.getElementById('pc-log-box');
+  box.textContent += msg + '\n';
   box.scrollTop = box.scrollHeight;
 }
-function clearLog() { document.getElementById('log-content').innerHTML = ''; }
-function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// Toast
-// ═══════════════════════════════════════════════════════════════════════════
-function showToast(type, message) {
-  const icons = { success:'✅', warning:'⚠️', error:'❌', info:'ℹ️' };
-  const wrap = document.getElementById('toast-wrap');
-  const t = document.createElement('div');
-  t.className = `toast ${type}`;
-  t.innerHTML = `<span class="toast-icon">${icons[type]||'ℹ️'}</span><span>${esc(String(message))}</span>`;
-  wrap.appendChild(t);
-  setTimeout(() => { t.style.opacity='0'; t.style.transition='opacity .3s'; setTimeout(()=>t.remove(), 300); }, 3500);
+function pcOnDone(data) {
+  hideProgress();
+  document.getElementById('pc-run-btn').disabled = false;
+  document.getElementById('pc-stat-total').textContent = data.rows ?? '—';
+  S.pcLastOutput = data.output || '';
+  if (S.pcLastOutput) {
+    document.getElementById('pc-open-btn').style.display = '';
+  }
+  // Кетчуп/Майонез из лога не парсим — показываем только total
+  // (точные числа возвращаются в toast)
+  pcAddLog(`✅ Готово! Строк: ${data.rows}`);
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// SKU Matcher
-// ═══════════════════════════════════════════════════════════════════════════
+function pcOnError(msg) {
+  hideProgress();
+  document.getElementById('pc-run-btn').disabled = false;
+  pcAddLog(`❌ Ошибка: ${msg}`);
+}
+
+function pcOpenResult() {
+  if (S.pcLastOutput) pywebview.api.open_pc_result(S.pcLastOutput);
+}
+
+// ── Progress ──────────────────────────────────────────────────────────────
+function showProgress() { document.getElementById('progress-wrap').classList.add('visible'); }
+function hideProgress() {
+  document.getElementById('progress-fill').style.width='0%';
+  document.getElementById('progress-text').textContent='';
+  document.getElementById('progress-wrap').classList.remove('visible');
+}
+function updateProgress(done,total) {
+  showProgress();
+  const pct=total?(done/total*100):0;
+  document.getElementById('progress-fill').style.width=pct+'%';
+  document.getElementById('progress-text').textContent=`${done} / ${total}`;
+}
+function setStatus(text) {
+  const el=document.getElementById('page-status');
+  if(text){el.textContent=text;el.classList.add('visible');}
+  else{el.textContent='';el.classList.remove('visible');}
+}
+
+// ── Log ───────────────────────────────────────────────────────────────────
+function addLog(msg) {
+  const box=document.getElementById('log-content');
+  const line=document.createElement('div'); line.className='log-line';
+  const m=String(msg).match(/^\[(\d{2}:\d{2}:\d{2})\]\s+(.*)/s);
+  if(m){
+    const mc=/ошибка|error|✗/i.test(m[2])?'err':/✅|завершён|готово|🎉/i.test(m[2])?'ok':/⚠|warning/i.test(m[2])?'warn':'';
+    line.innerHTML=`<span class="log-ts">[${m[1]}]</span><span class="log-msg ${mc}">${esc(m[2])}</span>`;
+  } else { line.innerHTML=`<span class="log-msg">${esc(String(msg))}</span>`; }
+  box.appendChild(line);
+  if(box.children.length>500) box.firstChild.remove();
+  box.scrollTop=box.scrollHeight;
+}
+function clearLog() { document.getElementById('log-content').innerHTML=''; }
+function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ── Toast ─────────────────────────────────────────────────────────────────
+function showToast(type,message){
+  const icons={success:'✅',warning:'⚠️',error:'❌',info:'ℹ️'};
+  const wrap=document.getElementById('toast-wrap');
+  const t=document.createElement('div');
+  t.className=`toast ${type}`;
+  t.innerHTML=`<span class="toast-icon">${icons[type]||'ℹ️'}</span><span>${esc(String(message))}</span>`;
+  wrap.appendChild(t);
+  setTimeout(()=>{t.style.opacity='0';t.style.transition='opacity .3s';setTimeout(()=>t.remove(),300);},3500);
+}
+
+// ── SKU Matcher ───────────────────────────────────────────────────────────
 function openSkuMatcher()  { document.getElementById('sku-overlay').classList.add('open'); }
 function closeSkuMatcher() { document.getElementById('sku-overlay').classList.remove('open'); }
-function closeSkuIfBg(e)   { if (e.target === document.getElementById('sku-overlay')) closeSkuMatcher(); }
-
+function closeSkuIfBg(e)   { if(e.target===document.getElementById('sku-overlay')) closeSkuMatcher(); }
 async function skuPickRef() {
-  const p = await pywebview.api.browse_file();
-  if (p) { document.getElementById('sku-ref-path').value = p; S.skuRefPath = p; }
+  const p=await pywebview.api.browse_file();
+  if(p){document.getElementById('sku-ref-path').value=p;S.skuRefPath=p;}
 }
-async function skuPickFolder() {
-  const p = await pywebview.api.browse_folder();
-  if (p) {
-    document.getElementById('sku-csv-folder').value = p;
-    const cnt = await pywebview.api.get_csv_count(p);
-    document.getElementById('sku-csv-count').textContent = cnt ? `${cnt} файлов CSV` : '';
+async function skuPickFolder(){
+  const p=await pywebview.api.browse_folder();
+  if(p){
+    document.getElementById('sku-csv-folder').value=p;
+    const cnt=await pywebview.api.get_csv_count(p);
+    document.getElementById('sku-csv-count').textContent=cnt?`${cnt} файлов CSV`:'';
   }
 }
-
-async function skuRun() {
-  const ref = document.getElementById('sku-ref-path').value;
-  const folder = document.getElementById('sku-csv-folder').value;
-  if (!ref)    { showToast('warning', 'Выбери файл справочника'); return; }
-  if (!folder) { showToast('warning', 'Выбери папку с CSV'); return; }
-  const thresh = parseFloat(document.querySelector('.thresh-slider').value);
-
-  document.getElementById('sku-run-btn').textContent = '⏳ Анализирую…';
-  document.getElementById('sku-run-btn').disabled = true;
-  document.getElementById('sku-tbody').innerHTML = '';
-  S.skuAllResults = []; S.skuSelected.clear();
-  skuUpdateSel();
-
-  await pywebview.api.run_sku_matching({ ref_path: ref, csv_folder: folder, threshold: thresh });
+async function skuRun(){
+  const ref=document.getElementById('sku-ref-path').value;
+  const folder=document.getElementById('sku-csv-folder').value;
+  if(!ref){showToast('warning','Выбери файл справочника');return;}
+  if(!folder){showToast('warning','Выбери папку с CSV');return;}
+  const thresh=parseFloat(document.querySelector('.thresh-slider').value);
+  document.getElementById('sku-run-btn').textContent='⏳ Анализирую…';
+  document.getElementById('sku-run-btn').disabled=true;
+  document.getElementById('sku-tbody').innerHTML='';
+  S.skuAllResults=[];S.skuSelected.clear();skuUpdateSel();
+  await pywebview.api.run_sku_matching({ref_path:ref,csv_folder:folder,threshold:thresh});
 }
-
-function skuUnlock() {
-  document.getElementById('sku-run-btn').textContent = '▶ Запустить матчинг';
-  document.getElementById('sku-run-btn').disabled = false;
-}
-
-function skuRenderResults(results) {
-  skuUnlock();
-  S.skuAllResults = results;
-  S.skuSelected = new Set(results.map((_,i) => i));
+function skuUnlock(){document.getElementById('sku-run-btn').textContent='▶ Запустить матчинг';document.getElementById('sku-run-btn').disabled=false;}
+function skuRenderResults(results){
+  skuUnlock();S.skuAllResults=results;S.skuSelected=new Set(results.map((_,i)=>i));
   skuDisplayRows(results);
-  const high = results.filter(r => r['Уверенность'] >= 0.9).length;
-  const mid  = results.filter(r => r['Уверенность'] >= 0.7 && r['Уверенность'] < 0.9).length;
-  const low  = results.filter(r => r['Уверенность'] < 0.7).length;
-  document.getElementById('sku-stat').innerHTML =
-    `Всего: ${results.length}<br>≥0.9: ${high} &nbsp; 0.7–0.9: ${mid} &nbsp; &lt;0.7: ${low}`;
-  skuUpdateSel();
-  skuLog(`✓ ${results.length} совпадений  (▲${high} ◆${mid} ▼${low})`);
+  const high=results.filter(r=>r['Уверенность']>=0.9).length;
+  const mid=results.filter(r=>r['Уверенность']>=0.7&&r['Уверенность']<0.9).length;
+  const low=results.filter(r=>r['Уверенность']<0.7).length;
+  document.getElementById('sku-stat').innerHTML=`Всего: ${results.length}<br>≥0.9: ${high} &nbsp; 0.7–0.9: ${mid} &nbsp; &lt;0.7: ${low}`;
+  skuUpdateSel();skuLog(`✓ ${results.length} совпадений`);
 }
-
-function skuDisplayRows(rows) {
-  const tbody = document.getElementById('sku-tbody');
-  tbody.innerHTML = '';
-  rows.forEach((r, idx) => {
-    const globalIdx = S.skuAllResults.indexOf(r);
-    const conf = r['Уверенность'];
-    const confClass = conf >= 0.9 ? 'high' : conf >= 0.7 ? 'mid' : 'low';
-    const sel = S.skuSelected.has(globalIdx);
-    const tr = document.createElement('tr');
-    tr.dataset.idx = globalIdx;
-    if (sel) tr.classList.add('selected');
-    tr.innerHTML = `
-      <td><span class="sku-chk ${sel?'on':''}">${sel?'●':'○'}</span></td>
-      <td>${esc(r['Категория']||'')}</td>
-      <td>${esc(r['Бренд']||'')}</td>
-      <td>${esc(r['Наименование SKU']||'')}</td>
-      <td>${esc(r['Совпало с']||'')}</td>
+function skuDisplayRows(rows){
+  const tbody=document.getElementById('sku-tbody');tbody.innerHTML='';
+  rows.forEach((r,idx)=>{
+    const gi=S.skuAllResults.indexOf(r);
+    const conf=r['Уверенность'];
+    const cc=conf>=0.9?'high':conf>=0.7?'mid':'low';
+    const sel=S.skuSelected.has(gi);
+    const tr=document.createElement('tr');tr.dataset.idx=gi;
+    if(sel)tr.classList.add('selected');
+    tr.innerHTML=`<td><span class="sku-chk ${sel?'on':''}">${sel?'●':'○'}</span></td>
+      <td>${esc(r['Категория']||'')}</td><td>${esc(r['Бренд']||'')}</td>
+      <td>${esc(r['Наименование SKU']||'')}</td><td>${esc(r['Совпало с']||'')}</td>
       <td>${esc(r['SKU скорр']||'')}</td>
-      <td style="text-align:center"><span class="conf-badge conf-${confClass}">${Math.round(conf*100)}%</span></td>
-    `;
-    tr.addEventListener('click', () => skuToggleRow(tr, globalIdx));
-    tbody.appendChild(tr);
+      <td style="text-align:center"><span class="conf-badge conf-${cc}">${Math.round(conf*100)}%</span></td>`;
+    tr.addEventListener('click',()=>skuToggleRow(tr,gi));tbody.appendChild(tr);
   });
 }
-
-function skuToggleRow(tr, idx) {
-  if (S.skuSelected.has(idx)) S.skuSelected.delete(idx); else S.skuSelected.add(idx);
-  tr.classList.toggle('selected', S.skuSelected.has(idx));
-  tr.querySelector('.sku-chk').className = `sku-chk ${S.skuSelected.has(idx)?'on':''}`;
-  tr.querySelector('.sku-chk').textContent = S.skuSelected.has(idx) ? '●' : '○';
+function skuToggleRow(tr,idx){
+  if(S.skuSelected.has(idx))S.skuSelected.delete(idx);else S.skuSelected.add(idx);
+  tr.classList.toggle('selected',S.skuSelected.has(idx));
+  tr.querySelector('.sku-chk').className=`sku-chk ${S.skuSelected.has(idx)?'on':''}`;
+  tr.querySelector('.sku-chk').textContent=S.skuSelected.has(idx)?'●':'○';
   skuUpdateSel();
 }
-
-function skuSelectAll() {
-  S.skuAllResults.forEach((_,i) => S.skuSelected.add(i));
-  skuRefreshVisible(); skuUpdateSel();
-}
-function skuDeselectAll() {
-  S.skuSelected.clear(); skuRefreshVisible(); skuUpdateSel();
-}
-function skuInvert() {
-  S.skuAllResults.forEach((_,i) => {
-    if (S.skuSelected.has(i)) S.skuSelected.delete(i); else S.skuSelected.add(i);
-  });
-  skuRefreshVisible(); skuUpdateSel();
-}
-function skuRefreshVisible() {
-  document.querySelectorAll('#sku-tbody tr').forEach(tr => {
-    const idx = parseInt(tr.dataset.idx);
-    const sel = S.skuSelected.has(idx);
-    tr.classList.toggle('selected', sel);
-    tr.querySelector('.sku-chk').className = `sku-chk ${sel?'on':''}`;
-    tr.querySelector('.sku-chk').textContent = sel ? '●' : '○';
+function skuSelectAll(){S.skuAllResults.forEach((_,i)=>S.skuSelected.add(i));skuRefreshVisible();skuUpdateSel();}
+function skuDeselectAll(){S.skuSelected.clear();skuRefreshVisible();skuUpdateSel();}
+function skuInvert(){S.skuAllResults.forEach((_,i)=>{if(S.skuSelected.has(i))S.skuSelected.delete(i);else S.skuSelected.add(i);});skuRefreshVisible();skuUpdateSel();}
+function skuRefreshVisible(){
+  document.querySelectorAll('#sku-tbody tr').forEach(tr=>{
+    const idx=parseInt(tr.dataset.idx);const sel=S.skuSelected.has(idx);
+    tr.classList.toggle('selected',sel);
+    tr.querySelector('.sku-chk').className=`sku-chk ${sel?'on':''}`;
+    tr.querySelector('.sku-chk').textContent=sel?'●':'○';
   });
 }
-function skuUpdateSel() {
-  const n = S.skuSelected.size;
-  document.getElementById('sku-sel-stat').textContent = `Выбрано: ${n}`;
-  document.getElementById('sku-save-btn').disabled = n === 0;
+function skuUpdateSel(){
+  const n=S.skuSelected.size;
+  document.getElementById('sku-sel-stat').textContent=`Выбрано: ${n}`;
+  document.getElementById('sku-save-btn').disabled=n===0;
 }
-
-function skuFilter() {
-  const q = document.getElementById('sku-search').value.toLowerCase();
-  const filtered = q
-    ? S.skuAllResults.filter(r =>
-        (r['Наименование SKU']||'').toLowerCase().includes(q) ||
-        (r['Бренд']||'').toLowerCase().includes(q) ||
-        (r['SKU скорр']||'').toLowerCase().includes(q))
-    : S.skuAllResults;
+function skuFilter(){
+  const q=document.getElementById('sku-search').value.toLowerCase();
+  const filtered=q?S.skuAllResults.filter(r=>(r['Наименование SKU']||'').toLowerCase().includes(q)||(r['Бренд']||'').toLowerCase().includes(q)||(r['SKU скорр']||'').toLowerCase().includes(q)):S.skuAllResults;
   skuDisplayRows(filtered);
 }
-
-async function skuSave() {
-  const selected = [...S.skuSelected].map(i => S.skuAllResults[i]).filter(Boolean);
-  if (!selected.length) return;
-  if (!confirm(`Добавить ${selected.length} строк в справочник?`)) return;
-  const result = await pywebview.api.save_sku_results({ results: selected, ref_path: S.skuRefPath });
-  if (result.success) {
-    showToast('success', `Сохранено ${result.count} строк`);
-    skuLog(`✓ Сохранено ${result.count} строк`);
-  } else {
-    showToast('error', result.error || 'Ошибка сохранения');
-  }
+async function skuSave(){
+  const selected=[...S.skuSelected].map(i=>S.skuAllResults[i]).filter(Boolean);
+  if(!selected.length)return;
+  if(!confirm(`Добавить ${selected.length} строк в справочник?`))return;
+  const result=await pywebview.api.save_sku_results({results:selected,ref_path:S.skuRefPath});
+  if(result.success){showToast('success',`Сохранено ${result.count} строк`);skuLog(`✓ Сохранено ${result.count} строк`);}
+  else{showToast('error',result.error||'Ошибка сохранения');}
 }
+function skuLog(msg){const b=document.getElementById('sku-log-box');b.textContent+=msg+'\n';b.scrollTop=b.scrollHeight;}
 
-// ═══════════════════════════════════════════════════════════════════════════
-// Theme
-// ═══════════════════════════════════════════════════════════════════════════
-function toggleTheme() {
-  const isDark = document.body.classList.toggle('dark');
+// ── Theme ─────────────────────────────────────────────────────────────────
+function toggleTheme(){
+  const isDark=document.body.classList.toggle('dark');
   applyThemeUI(isDark);
-  const cfg = collectFormConfig(); // includes dark_theme = isDark
-  pywebview.api.save_config(cfg);
+  pywebview.api.save_config(collectFormConfig());
 }
-
-function applyThemeUI(isDark) {
-  document.getElementById('theme-icon').textContent  = isDark ? '☀️' : '🌙';
-  document.getElementById('theme-label').textContent = isDark ? 'Светлая тема' : 'Тёмная тема';
+function applyThemeUI(isDark){
+  document.getElementById('theme-icon').textContent=isDark?'☀️':'🌙';
+  document.getElementById('theme-label').textContent=isDark?'Светлая тема':'Тёмная тема';
 }
-
-function applyThemeFromConfig(cfg) {
-  if (cfg.dark_theme) {
-    document.body.classList.add('dark');
-    applyThemeUI(true);
-  }
+function applyThemeFromConfig(cfg){
+  if(cfg.dark_theme){document.body.classList.add('dark');applyThemeUI(true);}
 }
 </script>
 </body>
