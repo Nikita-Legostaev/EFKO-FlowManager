@@ -23,22 +23,30 @@
   "pc_sprav_file": "V:\\ОАР\\Внутренняя\\старый Коммон\\33_КОМИТЕТ ПО ЦЕНООБРАЗОВАНИЮ БП\\Полочные цены Promodata\\справочник PromoData.xlsx",
   "pc_output_file": "C:\\Users\\n.legostaev\\Desktop\\test\\kuper_vs_promo.xlsx",
   "pc_threshold": "0.65",
+  "oos_category": "Майонез",
+  "oos_kub_file": "",
+  "oos_elt_file": "",
+  "oos_report_sloboda": "",
+  "oos_report_provansale": "",
+  "oos_report_olive": "",
   "dark_theme": true,
-  "scheduler_enabled": true,
-  "scheduler_time": "14:33",
-  "scheduler_days": [
-    "fri"
-  ],
+  "scheduler_enabled": false,
+  "scheduler_time": "08:00",
+  "scheduler_days": [],
   "scheduler_steps": [
-    "download"
+    "download",
+    "process",
+    "query1",
+    "query2",
+    "macros"
   ],
-  "scheduler_auto_month": false,
-  "scheduler_month_from": 2,
+  "scheduler_auto_month": true,
+  "scheduler_month_from": 3,
   "scheduler_year_from": 2026,
-  "scheduler_month_to": 2,
+  "scheduler_month_to": 3,
   "scheduler_year_to": 2026,
-  "scheduler_category": "Кетчуп+Майонез",
-  "scheduler_win_task": true,
-  "scheduler_last_run": "2026-03-06T14:37:13",
-  "scheduler_last_status": "success"
+  "scheduler_category": "Масло",
+  "scheduler_win_task": false,
+  "scheduler_last_run": "",
+  "scheduler_last_status": ""
 }
