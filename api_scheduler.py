@@ -176,9 +176,9 @@ class ApiSchedulerMixin:
 
     def _get_python_exe(self) -> str:
         """Возвращает путь к исполняемому файлу для запуска headless скрипта."""
-        if getattr(_sys, "frozen", False):
+        if getattr(_sys, "frozen", False): # type: ignore
             # В EXE режиме headless_exe запускается напрямую
-            base = os.path.dirname(_sys.executable)
+            base = os.path.dirname(_sys.executable) # pyright: ignore[reportUndefinedVariable]
             headless = os.path.join(base, "promodate_headless.exe")
             if os.path.exists(headless):
                 return headless
@@ -189,9 +189,9 @@ class ApiSchedulerMixin:
         return pythonw if os.path.exists(pythonw) else _s.executable
 
     def _get_script_path(self) -> str:
-        if getattr(_sys, "frozen", False):
+        if getattr(_sys, "frozen", False): # pyright: ignore[reportUndefinedVariable]
             # EXE mode — headless тоже должен быть собран как EXE
-            base = os.path.dirname(_sys.executable)
+            base = os.path.dirname(_sys.executable) # pyright: ignore[reportUndefinedVariable]
             headless_exe = os.path.join(base, "promodate_headless.exe")
             if os.path.exists(headless_exe):
                 return headless_exe

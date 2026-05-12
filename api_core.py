@@ -6,7 +6,7 @@ import os
 import json
 import logging
 import threading
-import webview
+import webview # pyright: ignore[reportMissingImports]
 from pathlib import Path
 
 from app_config import load_config, save_config_data, _SV, _MB
