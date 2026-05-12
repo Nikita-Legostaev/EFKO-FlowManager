@@ -8,6 +8,49 @@ from pathlib import Path
 import pandas as pd
 import openpyxl
 
+# ─── Соусные бренды (автодобавление при наличии слова «соус») ─────────────────
+
+SAUCE_BRANDS = {
+    # Хайнц
+    "хайнц":             "Хайнц",
+    "heinz":             "Хайнц",
+    # Кальве
+    "кальве":            "Кальве",
+    "calve":             "Кальве",
+    # Астория
+    "астория":           "Астория",
+    "astoria":           "Астория",
+    # Махеев
+    "махеев":            "Махеев",
+    "makheev":           "Махеев",
+    "maheev":            "Махеев",
+    # Слобода
+    "слобода":           "Слобода",
+    "sloboda":           "Слобода",
+    # Я люблю готовить
+    "я люблю готовить":  "Я люблю готовить",
+    # Рикко
+    "рикко":             "Рикко",
+    "mr ricco":          "Рикко",
+    "ricco":             "Рикко",
+    # Пикадор
+    "пикадор":           "Пикадор",
+    "pikador":           "Пикадор",
+}
+
+
+def _match_sauce_brand(csv_brand: str) -> str | None:
+    """
+    Возвращает нормализованное название бренда из SAUCE_BRANDS,
+    если csv_brand содержит хотя бы один ключ словаря. Иначе None.
+    """
+    bl = csv_brand.lower()
+    for key, canonical in SAUCE_BRANDS.items():
+        if key in bl:
+            return canonical
+    return None
+
+
 # ─── Дескрипторы ──────────────────────────────────────────────────────────────
 
 DESCRIPTORS = [
@@ -160,11 +203,35 @@ def run_matching(
         on_progress(f"Новых SKU для матчинга: {len(new_skus)}")
 
         results = []
+        sauce_auto = 0
         total = len(new_skus)
+
         for idx, (_, row) in enumerate(new_skus.iterrows()):
             csv_sku = row["pd_sku"]
             csv_brand = str(row.get("brand", "")).lower()
 
+            # ── Авто-добавление соусов ────────────────────────────────────────
+            # Условие: слово «соус» есть в названии SKU И бренд входит в список
+            if "соус" in csv_sku.lower():
+                canonical_brand = _match_sauce_brand(csv_brand)
+                if canonical_brand:
+                    results.append(
+                        {
+                            "Категория":        "Соус",
+                            "Бренд":            canonical_brand,
+                            "Наименование SKU": csv_sku,
+                            "Совпало с":        "",        # пропускаем
+                            "SKU скорр":        "",        # пропускаем
+                            "Статус SKU":       "индикативное",
+                            "Уверенность":      1.0,
+                        }
+                    )
+                    sauce_auto += 1
+                    if idx % 20 == 0:
+                        on_progress(f"Обработано: {idx + 1}/{total}...")
+                    continue  # не гоним через similarity-матчинг
+
+            # ── Обычный матчинг по similarity ─────────────────────────────────
             best_score, best_ind = 0.0, None
             for ind in indicative:
                 if csv_brand and csv_brand != "nan":
@@ -178,19 +245,20 @@ def run_matching(
             if best_score >= threshold and best_ind:
                 results.append(
                     {
-                        "Категория": best_ind[0],
-                        "Бренд": best_ind[1],
+                        "Категория":        best_ind[0],
+                        "Бренд":            best_ind[1],
                         "Наименование SKU": csv_sku,
-                        "Совпало с": best_ind[2],
-                        "SKU скорр": best_ind[3],
-                        "Статус SKU": "индикативное",
-                        "Уверенность": round(best_score, 2),
+                        "Совпало с":        best_ind[2],
+                        "SKU скорр":        best_ind[3],
+                        "Статус SKU":       "индикативное",
+                        "Уверенность":      round(best_score, 2),
                     }
                 )
 
             if idx % 20 == 0:
                 on_progress(f"Обработано: {idx + 1}/{total}...")
 
+        on_progress(f"Соусов добавлено автоматически: {sauce_auto}")
         results.sort(key=lambda x: -x["Уверенность"])
         on_done(results)
 
