@@ -1,6 +1,5 @@
 # production_functions.py
 import os
-import re
 
 # Тяжёлые библиотеки — ленивый импорт
 
@@ -37,16 +36,6 @@ MONTH_LABELS = [
 # ─────────────────────────────────────────────────────────────
 # 1. СВОД
 # ─────────────────────────────────────────────────────────────
-
-
-def find_svod_file(folder, month_num):
-    month_str = f"{int(month_num):02d}"
-    for fname in os.listdir(folder):
-        if re.match(rf"^{month_str}[_\s]СВОД", fname, re.IGNORECASE) and fname.endswith(
-            ".xlsx"
-        ):
-            return os.path.join(folder, fname)
-    return None
 
 
 def extract_month_data(filepath, sheet_index=0):
@@ -400,7 +389,7 @@ def write_to_target(target_path, results, mapping, month_num, year, log):
 
 
 def run_production(
-    svod_folder,
+    svod_file,  # путь к файлу СВОД (раньше была папка)
     npk_file,
     tolyatti_folder,
     target_file,
@@ -411,8 +400,8 @@ def run_production(
     messagebox,
     stop_event,
 ):
-    if not svod_folder:
-        messagebox.showerror("Ошибка", "Укажите папку с файлами СВОД")
+    if not svod_file or not os.path.isfile(svod_file):
+        messagebox.showerror("Ошибка", "Укажите файл СВОД (.xlsx)")
         return
     if not target_file or not os.path.isfile(target_file):
         messagebox.showerror("Ошибка", "Укажите файл тестовые_данные.xlsx")
@@ -421,16 +410,9 @@ def run_production(
         messagebox.showerror("Ошибка", "Укажите файл маппинга")
         return
 
-    filepath = find_svod_file(svod_folder, month_str)
-    if not filepath:
-        messagebox.showerror(
-            "Ошибка", f"Файл СВОД для месяца {month_str} не найден в:\n{svod_folder}"
-        )
-        return
-
-    log(f"Читаем СВОД: {os.path.basename(filepath)}")
-    results, sheet_name = extract_month_data(filepath)
-    log(f"Извлечено {len(results)} строк из СВОД")
+    log(f"Читаем СВОД: {os.path.basename(svod_file)}")
+    results, sheet_name = extract_month_data(svod_file)
+    log(f"Извлечено {len(results)} строк из СВОД (лист: {sheet_name})")
 
     if stop_event.is_set():
         return
