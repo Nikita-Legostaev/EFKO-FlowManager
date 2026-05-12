@@ -2,6 +2,7 @@
 app_config.py — конфиг, логирование и вспомогательные классы.
 Импортируется всеми api_*.py и app.py.
 """
+
 import os
 import json
 import logging
@@ -10,8 +11,8 @@ from datetime import datetime
 from production_functions import MONTH_LABELS
 from scheduler_functions import SCHEDULER_DEFAULTS
 
-
 # ── Пути ─────────────────────────────────────────────────────────────────────
+
 
 def _resource(rel_path: str) -> str:
     """Абсолютный путь к ресурсу — корректно и в EXE, и из исходников."""
@@ -26,6 +27,7 @@ CONFIG_FILE = _resource("config.json")
 
 
 # ── Логирование ───────────────────────────────────────────────────────────────
+
 
 def setup_logger():
     if getattr(_sys, "frozen", False):
@@ -49,6 +51,7 @@ def setup_logger():
 
 
 # ── Конфиг ────────────────────────────────────────────────────────────────────
+
 
 def load_config() -> dict:
     defaults = {
@@ -111,8 +114,10 @@ def save_config_data(data: dict):
 
 # ── Вспомогательные классы ────────────────────────────────────────────────────
 
+
 class _SV:
     """Обёртка строкового значения с методом .get() — для совместимости."""
+
     def __init__(self, v):
         self._v = v
 
@@ -122,6 +127,7 @@ class _SV:
 
 class _MB:
     """Заглушка messagebox — транслирует в JS-тосты."""
+
     def __init__(self, api):
         self._api = api
 
@@ -137,6 +143,7 @@ class _MB:
     def askyesno(self, title, msg):
         try:
             import json as _json
+
             return bool(
                 self._api._window.evaluate_js(f"confirm({_json.dumps(str(msg))})")
             )

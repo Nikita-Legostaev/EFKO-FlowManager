@@ -1,6 +1,7 @@
 """
 api_promodate.py — миксин промодаты: скачивание, обработка, стадии.
 """
+
 import threading
 from app_config import _SV
 from promodate_functions import (
@@ -83,7 +84,9 @@ class ApiPromodateMixin:
         self._stop_event.clear()
         threading.Thread(
             target=lambda: (
-                run_stage_query1(_SV(p["pq_file1"]), self._log, self._stop_event, self._mb),
+                run_stage_query1(
+                    _SV(p["pq_file1"]), self._log, self._stop_event, self._mb
+                ),
                 self._emit("set_title", ""),
             ),
             daemon=True,
@@ -94,7 +97,9 @@ class ApiPromodateMixin:
         self._stop_event.clear()
         threading.Thread(
             target=lambda: (
-                run_stage_query2(_SV(p["pq_file2"]), self._log, self._stop_event, self._mb),
+                run_stage_query2(
+                    _SV(p["pq_file2"]), self._log, self._stop_event, self._mb
+                ),
                 self._emit("set_title", ""),
             ),
             daemon=True,

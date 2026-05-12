@@ -90,7 +90,7 @@ def file_log(message: str):
 
 
 def extract_date(filename: str) -> datetime | None:
-    name = os.path.splitext(filename)[0]  
+    name = os.path.splitext(filename)[0]
     for part in name.split("_"):
         try:
             return datetime.strptime(part, "%Y-%m-%d")

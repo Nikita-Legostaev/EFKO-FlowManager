@@ -105,21 +105,20 @@ _splash_set(8, "Загрузка модулей…")
 import webview
 import threading
 import os
-import sys as _sys
 
 _splash_set(18, "Базовые модули…")
 
-from app_config import setup_logger, load_config, save_config_data, _resource
+from app_config import setup_logger, _resource
 
 _splash_set(30, "Конфиг…")
 
-from api_core        import ApiCoreMixin
-from api_promodate   import ApiPromodateMixin
+from api_core import ApiCoreMixin
+from api_promodate import ApiPromodateMixin
 from api_competitors import ApiCompetitorsMixin
-from api_production  import ApiProductionMixin
-from api_price       import ApiPriceMixin
-from api_scheduler   import ApiSchedulerMixin
-from api_oos         import ApiOosMixin
+from api_production import ApiProductionMixin
+from api_price import ApiPriceMixin
+from api_scheduler import ApiSchedulerMixin
+from api_oos import ApiOosMixin
 
 _splash_set(90, "Сборка API…")
 
@@ -127,6 +126,7 @@ _splash_set(90, "Сборка API…")
 # ═══════════════════════════════════════════════════════════════════════════
 # API — собирается из миксинов
 # ═══════════════════════════════════════════════════════════════════════════
+
 
 class Api(
     ApiCoreMixin,
@@ -138,6 +138,7 @@ class Api(
     ApiOosMixin,
 ):
     """Единая точка входа для JS. Логика разнесена по api_*.py."""
+
     pass
 
 

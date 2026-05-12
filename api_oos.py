@@ -1,6 +1,7 @@
 """
 api_oos.py — миксин: отчёт без OOS (Слобода / Провансаль / Оливковый).
 """
+
 import logging
 import threading
 from pathlib import Path
@@ -37,7 +38,9 @@ class ApiOosMixin:
                         stop_event=self._stop_event,
                     )
                     last_file = rf
-                    self._emit("toast", {"type": "success", "message": f"✅ {rt} готов"})
+                    self._emit(
+                        "toast", {"type": "success", "message": f"✅ {rt} готов"}
+                    )
                 except Exception as e:
                     logging.error(f"OOS [{rt}] error: {e}")
                     self._emit("toast", {"type": "error", "message": f"❌ {rt}: {e}"})

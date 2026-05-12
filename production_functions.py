@@ -1,6 +1,5 @@
 # production_functions.py
 import os
-import re
 
 # Тяжёлые библиотеки — ленивый импорт
 
@@ -76,15 +75,33 @@ def extract_month_data(filepath, sheet_index=0):
         if maslo_total != 0 or maslo_soy != 0 or maslo_rape != 0:
             if maslo_other != 0:
                 results.append(
-                    [group, company, "Производство фасованного масла", "Масло", maslo_other]
+                    [
+                        group,
+                        company,
+                        "Производство фасованного масла",
+                        "Масло",
+                        maslo_other,
+                    ]
                 )
             if maslo_soy != 0:
                 results.append(
-                    [group, company, "Производство фасованного масла", "Соевое", maslo_soy]
+                    [
+                        group,
+                        company,
+                        "Производство фасованного масла",
+                        "Соевое",
+                        maslo_soy,
+                    ]
                 )
             if maslo_rape != 0:
                 results.append(
-                    [group, company, "Производство фасованного масла", "Рапсовое", maslo_rape]
+                    [
+                        group,
+                        company,
+                        "Производство фасованного масла",
+                        "Рапсовое",
+                        maslo_rape,
+                    ]
                 )
 
         marg_total = val(ROW_MARG)
@@ -94,19 +111,43 @@ def extract_month_data(filepath, sheet_index=0):
 
         if marg_total != 0:
             results.append(
-                [group, company, "Производство маргариновой продукции", "Всего", marg_total]
+                [
+                    group,
+                    company,
+                    "Производство маргариновой продукции",
+                    "Всего",
+                    marg_total,
+                ]
             )
         if marg_mono != 0:
             results.append(
-                [group, company, "Производство маргариновой продукции", "Монолит", marg_mono]
+                [
+                    group,
+                    company,
+                    "Производство маргариновой продукции",
+                    "Монолит",
+                    marg_mono,
+                ]
             )
         if marg_fas != 0:
             results.append(
-                [group, company, "Производство маргариновой продукции", "Фасовка без спредов", marg_fas]
+                [
+                    group,
+                    company,
+                    "Производство маргариновой продукции",
+                    "Фасовка без спредов",
+                    marg_fas,
+                ]
             )
         if marg_spread != 0:
             results.append(
-                [group, company, "Производство маргариновой продукции", "Спреды/крем", marg_spread]
+                [
+                    group,
+                    company,
+                    "Производство маргариновой продукции",
+                    "Спреды/крем",
+                    marg_spread,
+                ]
             )
 
         ketch = val(ROW_KETCH)
@@ -118,11 +159,23 @@ def extract_month_data(filepath, sheet_index=0):
         mayo = mayo_total - sauce
         if mayo != 0:
             results.append(
-                [group, company, "Производство майонезов и майонезных соусов", "Майонез", mayo]
+                [
+                    group,
+                    company,
+                    "Производство майонезов и майонезных соусов",
+                    "Майонез",
+                    mayo,
+                ]
             )
         if sauce != 0:
             results.append(
-                [group, company, "Производство майонезов и майонезных соусов", "Соус", sauce]
+                [
+                    group,
+                    company,
+                    "Производство майонезов и майонезных соусов",
+                    "Соус",
+                    sauce,
+                ]
             )
 
     return results, sheet_name
@@ -336,7 +389,7 @@ def write_to_target(target_path, results, mapping, month_num, year, log):
 
 
 def run_production(
-    svod_file,          # путь к файлу СВОД (раньше была папка)
+    svod_file,  # путь к файлу СВОД (раньше была папка)
     npk_file,
     tolyatti_folder,
     target_file,
