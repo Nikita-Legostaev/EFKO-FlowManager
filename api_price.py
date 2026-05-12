@@ -1,6 +1,7 @@
 """
 api_price.py — миксин: сравнение цен Купер vs PromoData.
 """
+
 import logging
 import os
 import threading
@@ -26,10 +27,13 @@ class ApiPriceMixin:
                     stop_event=self._stop_event,
                 )
                 self._emit("pc_done", {"rows": n, "output": p["output_file"]})
-                self._emit("toast", {
-                    "type": "success",
-                    "message": f"Готово: {n} строк → {os.path.basename(p['output_file'])}",
-                })
+                self._emit(
+                    "toast",
+                    {
+                        "type": "success",
+                        "message": f"Готово: {n} строк → {os.path.basename(p['output_file'])}",
+                    },
+                )
             except Exception as e:
                 logging.error(f"price_comparison error: {e}")
                 self._emit("pc_error", str(e))

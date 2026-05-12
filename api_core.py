@@ -2,17 +2,18 @@
 api_core.py — базовый миксин API:
   __init__, push-события, конфиг, файловые диалоги, утилиты, стоп/очистка.
 """
+
 import os
 import json
 import logging
 import threading
-import webview # pyright: ignore[reportMissingImports]
+import webview  # pyright: ignore[reportMissingImports]
 from pathlib import Path
 
 from app_config import load_config, save_config_data, _SV, _MB
 from promodate_functions import FILTER_OPTIONS
 from production_functions import MONTH_LABELS
-from scheduler_functions import PromodateScheduler, SCHEDULER_DEFAULTS
+from scheduler_functions import PromodateScheduler
 from promodate_functions import clear_download_folder, clear_output_folder
 
 
@@ -129,7 +130,9 @@ class ApiCoreMixin:
         if self._last_competitors_file:
             self.open_file(self._last_competitors_file)
         else:
-            self._emit("toast", {"type": "warning", "message": "Последний файл не найден"})
+            self._emit(
+                "toast", {"type": "warning", "message": "Последний файл не найден"}
+            )
         return True
 
     def get_csv_count(self, folder):

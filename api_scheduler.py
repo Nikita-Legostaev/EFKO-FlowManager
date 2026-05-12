@@ -1,6 +1,7 @@
 """
 api_scheduler.py — миксин: планировщик промодаты и Windows Task Scheduler.
 """
+
 import os
 import logging
 import threading
@@ -31,14 +32,6 @@ class ApiSchedulerMixin:
         date_to=None,
     ):
         """Выполняется в фоновом потоке планировщика."""
-        from promodate_functions import (
-            FILTER_OPTIONS,
-            download_files_thread,
-            process_files_thread,
-            run_stage_query1,
-            run_stage_query2,
-            run_stage_macros,
-        )
 
         stop_event = threading.Event()
         mb = self._mb
@@ -176,9 +169,11 @@ class ApiSchedulerMixin:
 
     def _get_python_exe(self) -> str:
         """Возвращает путь к исполняемому файлу для запуска headless скрипта."""
-        if getattr(_sys, "frozen", False): # type: ignore
+        if getattr(_sys, "frozen", False):  # noqa: F821
             # В EXE режиме headless_exe запускается напрямую
-            base = os.path.dirname(_sys.executable) # pyright: ignore[reportUndefinedVariable]
+            base = os.path.dirname(
+                _sys.executable  # noqa: F821
+            )  # pyright: ignore[reportUndefinedVariable]
             headless = os.path.join(base, "promodate_headless.exe")
             if os.path.exists(headless):
                 return headless
@@ -189,9 +184,11 @@ class ApiSchedulerMixin:
         return pythonw if os.path.exists(pythonw) else _s.executable
 
     def _get_script_path(self) -> str:
-        if getattr(_sys, "frozen", False): # pyright: ignore[reportUndefinedVariable]
+        if getattr(_sys, "frozen", False):  # noqa: F821
             # EXE mode — headless тоже должен быть собран как EXE
-            base = os.path.dirname(_sys.executable) # pyright: ignore[reportUndefinedVariable]
+            base = os.path.dirname(
+                _sys.executable  # noqa: F821
+            )  # pyright: ignore[reportUndefinedVariable]
             headless_exe = os.path.join(base, "promodate_headless.exe")
             if os.path.exists(headless_exe):
                 return headless_exe
