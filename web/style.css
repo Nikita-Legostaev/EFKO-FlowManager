@@ -378,7 +378,28 @@ body.dark .pc-wip-banner {
   font-size: 12px; color: var(--text); background: var(--surface2); outline: none;
 }
 .sku-search:focus { border-color: var(--blue); }
+/* ── SKU вкладки ── */
+.sku-tabs {
+  display: flex; gap: 0; background: var(--surface2);
+  border-bottom: 1px solid var(--border); flex-shrink: 0; padding: 0 12px;
+}
+.sku-tab {
+  height: 36px; padding: 0 16px; font-size: 12px; font-weight: 500;
+  color: var(--text2); background: transparent; border: none; cursor: pointer;
+  border-bottom: 2px solid transparent; margin-bottom: -1px;
+  transition: color .15s, border-color .15s;
+}
+.sku-tab:hover { color: var(--text); }
+.sku-tab.active { color: var(--blue); border-bottom-color: var(--blue); }
+.sku-tab-cnt {
+  display: inline-block; min-width: 18px; padding: 0 5px; height: 16px;
+  line-height: 16px; border-radius: 8px; background: var(--border2);
+  color: var(--text3); font-size: 10px; font-weight: 700; text-align: center;
+  margin-left: 5px; vertical-align: middle;
+}
+.sku-tab.active .sku-tab-cnt { background: rgba(0,122,255,.15); color: var(--blue); }
 #sku-table-wrap { flex: 1; overflow: auto; }
+#new-sku-wrap { flex: 1; overflow: auto; }
 .sku-table { width: 100%; border-collapse: collapse; font-size: 12px; }
 .sku-table th {
   position: sticky; top: 0; z-index: 2; background: var(--surface2);
@@ -503,6 +524,11 @@ body.dark .pc-wip-banner {
     .cal-day.range-start.range-end { border-radius:6px !important }
     .cal-day:disabled { color:var(--text3);cursor:default;opacity:.4 }
     .cal-day.other-month { color:var(--text3);opacity:.5 }
+    .cal-day.day-picked {
+      background:#1e8c42 !important;color:#fff !important;
+      border-radius:6px !important;font-weight:700;
+    }
+    .cal-day.day-picked.today { color:#fff !important; }
     .cal-preset {
       padding:4px 10px;border-radius:20px;border:1px solid var(--border);
       background:var(--surface2);color:var(--text2);font-size:11px;font-weight:500;

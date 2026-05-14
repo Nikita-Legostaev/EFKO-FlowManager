@@ -1,16 +1,24 @@
 # nielsen_functions.py
+"""
+Обработчик выгрузок Nielsen.
+Полностью открыт для расширения: никаких хардкодов имён листов,
+id-колонок или маппингов. Всё определяется автоматически из данных,
+маппинги задаются в CATEGORY_MAPPINGS.
+"""
+
 import os
+import re
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-# Тяжёлые библиотеки — ленивый импорт (polars грузится только при вызове process_nielsen)
+# ── Паттерн даты в заголовках Nielsen ("MAR 21", "APR 22" и т.п.) ─────────────
+_DATE_COL_RE = re.compile(r"^[A-Z]{3}\s+\d{2}$", re.IGNORECASE)
 
-small_sheets = ["MAN", "BRAND"]
-large_sheets = ["SKU1", "SKU2"]
-
+# ── Допустимые значения FACT ───────────────────────────────────────────────────
 valid_FACT = [
     "Units (in 1000 PACKS)",
     "Volume (in 1000 LTR)",
+    "Volume (in 1000 KG)",
     "Value (in 1000 RUR)",
     "Price (Unit)",
     "Price (Volume)",
@@ -19,9 +27,174 @@ valid_FACT = [
     "Volume (in 1000 )",
 ]
 
+# ── Маппинги по категории ──────────────────────────────────────────────────────
+# Добавить новую категорию — добавить ключ в этот словарь.
+# Каждый словарь верхнего уровня — это набор колонок с маппингами значений.
+# Если для категории маппинг не нужен — просто не включай ключ.
+CATEGORY_MAPPINGS: dict[str, dict[str, dict[str, str]]] = {
+    "Масло": {
+        "IF REFINED": {
+            "NOT APPLICABLE":                          "рафинированное",
+            "NOT REFINED":                             "нерафинированное",
+            "REFINED":                                 "рафинированное",
+            "REFINED & NOT REFINED (MIXED PACK)":      "рафинированное",
+        },
+        "PRODUCT BASE": {
+            "ALMOND":                                  "прочие",
+            "ALMOND & SUNFLOWER":                      "микс",
+            "AMARANTH":                                "прочие",
+            "AMARANTH & LINSEED":                      "прочие",
+            "APRICOT KERNEL":                          "прочие",
+            "ARGAN":                                   "прочие",
+            "AVOCADO":                                 "прочие",
+            "AVOCADO & COCONUT":                       "прочие",
+            "AVOCADO & OLIVE":                         "прочие",
+            "AVOCADO & SUNFLOWER":                     "микс",
+            "BLACK CUMIN SEED":                        "прочие",
+            "BLACK SESAME":                            "прочие",
+            "CAMELINA (RYZHIK)":                       "прочие",
+            "CANOLA SEED":                             "прочие",
+            "CEDAR NUT":                               "прочие",
+            "CEDAR NUT & LINSEED":                     "прочие",
+            "CEDAR NUT & LINSEED & SESAME & SUNFLOWER":"прочие",
+            "CEDAR NUT & PEANUT & WALNUT":             "прочие",
+            "CEDAR NUT & SUNFLOWER":                   "микс",
+            "CEREAL & FRUIT":                          "прочие",
+            "CHIA SEED":                               "прочие",
+            "CHIA SEED & SUNFLOWER":                   "прочие",
+            "COCOA":                                   "прочие",
+            "COCONUT":                                 "прочие",
+            "COCONUT & PALM":                          "прочие",
+            "COLESEED":                                "прочие",
+            "CORN":                                    "кукурузное",
+            "CORN & SUNFLOWER":                        "микс",
+            "CORN GERM":                               "кукурузное",
+            "CORN SEEDS & GRAPE SEEDS & RAPE SEEDS & RICE BRAN & SESAME": "прочие",
+            "COTTON":                                  "прочие",
+            "CUMIN SEED":                              "прочие",
+            "GRAPE SEEDS":                             "прочие",
+            "GRAPE SEEDS & SUNFLOWER":                 "микс",
+            "HAZELNUT":                                "прочие",
+            "HEMP":                                    "прочие",
+            "HEMP & LINSEED":                          "прочие",
+            "HEMP & SUNFLOWER":                        "прочие",
+            "LINSEED":                                 "прочие",
+            "LINSEED & MUSTARD & SUNFLOWER":           "прочие",
+            "LINSEED & OLIVE":                         "прочие",
+            "LINSEED & PUMPKIN SEEDS":                 "прочие",
+            "LINSEED & SESAME":                        "прочие",
+            "LINSEED & SUNFLOWER":                     "микс",
+            "LINSEED & WALNUT":                        "прочие",
+            "MACADAMIA NUT":                           "прочие",
+            "MIX OIL":                                 "прочие",
+            "MUSTARD":                                 "прочие",
+            "MUSTARD & SUNFLOWER":                     "прочие",
+            "MUSTARD & SUNFLOWER & WALNUT":            "прочие",
+            "NUT":                                     "прочие",
+            "OLIVE":                                   "оливковое",
+            "OLIVE & PUMPKIN":                         "прочие",
+            "OLIVE & RAPE SEED":                       "прочие",
+            "OLIVE & SESAME":                          "прочие",
+            "OLIVE OIL & SUNFLOWER":                   "микс",
+            "PALM":                                    "прочие",
+            "PEANUT":                                  "прочие",
+            "PISTACHIO":                               "прочие",
+            "POPPY SEED":                              "прочие",
+            "PUMPKIN SEEDS":                           "прочие",
+            "RAPE SEED & SUNFLOWER":                   "микс",
+            "RAPE SEEDS":                              "прочие",
+            "RAPE SEEDS & SAFFLOWER & SUNFLOWER":      "прочие",
+            "RICE":                                    "прочие",
+            "ROSEHIP":                                 "прочие",
+            "RUCCOLA SEED":                            "прочие",
+            "SAFFLOWER":                               "прочие",
+            "SEA BUCKTHORN & SUNFLOWER":               "микс",
+            "SEABERRY / SEA BUCKTHORN":                "прочие",
+            "SESAME":                                  "прочие",
+            "SOYA":                                    "прочие",
+            "SUNFLOWER":                               "подсолнечное",
+            "SUNFLOWER & SESAME":                      "микс",
+            "SUNFLOWER & SOYA":                        "микс",
+            "SUNFLOWER & WALNUT":                      "микс",
+            "THISTLE SEEDS (RASTOROPSHA)":             "прочие",
+            "TRIGONELLA":                              "прочие",
+            "WALNUT (GRETSKIY OREKH)":                 "прочие",
+            "WATERMELON SEEDS":                        "прочие",
+            "WHEAT GERM":                              "прочие",
+            "WHITE SESAME":                            "прочие",
+        },
+    },
+    # ── Кетчуп ────────────────────────────────────────────────────────────────
+    # Пока маппинги не нужны — значения передаются как есть.
+    # Чтобы добавить маппинг, просто добавь ключ с именем колонки:
+    # "Кетчуп": {
+    #     "PRODUCT BASE": {"TOMATO": "томат", ...},
+    # },
+    "Кетчуп": {},
+}
+
+
+# ── Вспомогательные функции ────────────────────────────────────────────────────
 
 def _max_workers() -> int:
     return min(4, os.cpu_count() or 2)
+
+
+def _is_date_col(name: str) -> bool:
+    """True если колонка — период Nielsen («MAR 21», «APR 22»)."""
+    return bool(_DATE_COL_RE.match(str(name).strip()))
+
+
+def _detect_sheets(wb_sheet_names: list[str]) -> dict[str, list[str]]:
+    """
+    Автоматически раскладывает листы книги по ролям:
+      sku      — листы с данными SKU (все листы, начинающиеся с «SKU»)
+      brand    — листы с данными BRAND
+      man      — листы с данными MANUFACTURER / MAN
+    Регистронезависимо.
+    """
+    result: dict[str, list[str]] = {"sku": [], "brand": [], "man": []}
+    for name in wb_sheet_names:
+        nl = name.strip().upper()
+        if nl.startswith("SKU"):
+            result["sku"].append(name)
+        elif nl.startswith("BRAND"):
+            result["brand"].append(name)
+        elif nl.startswith("MAN"):
+            result["man"].append(name)
+    return result
+
+
+def _cache_dir_for(input_file: str, base_cache_dir: Path) -> Path:
+    """
+    Возвращает уникальную подпапку кэша для конкретного файла.
+    Ключ = хэш от абсолютного пути + времени изменения файла.
+    При изменении файла или смене категории кэш не смешивается.
+    """
+    import hashlib
+    mtime = os.path.getmtime(input_file)
+    key = f"{os.path.abspath(input_file)}|{mtime}"
+    digest = hashlib.md5(key.encode()).hexdigest()[:12]
+    cache_path = base_cache_dir / digest
+    cache_path.mkdir(parents=True, exist_ok=True)
+    return cache_path
+
+
+def _cleanup_old_caches(base_cache_dir: Path, keep: str, log):
+    """
+    Удаляет все кэш-папки кроме текущей (keep).
+    Вызывается после успешного запуска.
+    """
+    if not base_cache_dir.exists():
+        return
+    for entry in base_cache_dir.iterdir():
+        if entry.is_dir() and entry.name != keep:
+            import shutil
+            try:
+                shutil.rmtree(entry)
+                log(f"🗑 Старый кэш удалён: {entry.name}")
+            except Exception as e:
+                log(f"⚠ Не удалось удалить кэш {entry.name}: {e}")
 
 
 def make_unique_columns(columns):
@@ -39,7 +212,7 @@ def make_unique_columns(columns):
 
 
 def load_sheet(sheet_name: str, input_file: str, cache_dir: Path, log):
-    import polars as pl  # ленивый импорт
+    import polars as pl
 
     cache_file = cache_dir / f"{sheet_name}.parquet"
     if cache_file.exists():
@@ -58,6 +231,16 @@ def load_sheet(sheet_name: str, input_file: str, cache_dir: Path, log):
     df = df.filter(~pl.all_horizontal(pl.all().is_null()))
     df.write_parquet(cache_file, compression="zstd")
     return sheet_name, df
+
+
+def _split_id_date(df) -> tuple[list[str], list[str]]:
+    """
+    Делит колонки датафрейма на id-колонки (измерения) и date-колонки (периоды).
+    Date-колонки определяются по паттерну «MMM YY».
+    """
+    id_cols  = [c for c in df.columns if not _is_date_col(c)]
+    date_cols = [c for c in df.columns if _is_date_col(c)]
+    return id_cols, date_cols
 
 
 def melt_polars(df, id_cols: list[str]):
@@ -96,24 +279,14 @@ def melt_polars(df, id_cols: list[str]):
 
 
 def optimize_for_size(df):
+    """
+    Оптимизирует датафрейм для сжатия: все строковые колонки → Categorical,
+    VALUE → Float32. Работает для любого набора колонок, не зависит от категории.
+    """
     import polars as pl
 
-    cat_cols = [
-        "MARKET",
-        "FACT",
-        "Long Description",
-        "MANUFACTURER",
-        "BRAND",
-        "PRODUCT BASE",
-        "QUALITY",
-        "IF REFINED",
-        "PACKAGE TYPE",
-        "PACKAGING MATERIAL",
-        "WEIGHT",
-        "ITEM",
-    ]
-    for col in cat_cols:
-        if col in df.columns:
+    for col in df.columns:
+        if df[col].dtype == pl.Utf8 or df[col].dtype == pl.String:
             df = df.with_columns(pl.col(col).cast(pl.Categorical("lexical")))
     if "VALUE" in df.columns:
         df = df.with_columns(pl.col("VALUE").round(4).cast(pl.Float32))
@@ -163,6 +336,41 @@ def save_optimized(df, name: str, output_dir: Path, fmt: str, log, stop_event):
             log(f"✓ {name}.xlsx сохранён ({len(df)} строк)")
 
 
+def _apply_mappings(df, category: str, log):
+    """
+    Применяет маппинги из CATEGORY_MAPPINGS для заданной категории.
+    Колонки, которых нет в датафрейме — пропускаются без ошибок.
+    Категории без маппинга — возвращают df без изменений.
+    """
+    import polars as pl
+
+    mappings = CATEGORY_MAPPINGS.get(category, {})
+    if not mappings:
+        return df
+
+    transforms = []
+    for col, mapping in mappings.items():
+        if col not in df.columns:
+            log(f"  ⚠ Колонка «{col}» не найдена в данных — маппинг пропущен")
+            continue
+        default = mapping.get("__default__", None)
+        clean_map = {k: v for k, v in mapping.items() if k != "__default__"}
+        transforms.append(
+            pl.col(col)
+            .cast(pl.Utf8)
+            .str.strip_chars()
+            .str.to_uppercase()
+            .replace_strict(clean_map, default=default)
+            .alias(col)
+        )
+
+    if transforms:
+        df = df.with_columns(transforms)
+    return df
+
+
+# ── Основная функция ───────────────────────────────────────────────────────────
+
 def process_nielsen(
     input_file: str,
     output_dir_str: str,
@@ -173,6 +381,7 @@ def process_nielsen(
     category: str,
 ):
     import polars as pl
+    import openpyxl
 
     if not input_file or not os.path.isfile(input_file):
         log("Входной файл Nielsen не выбран!")
@@ -184,24 +393,39 @@ def process_nielsen(
         return
 
     output_dir = Path(output_dir_str)
-    cache_dir = output_dir / "cache"
-    cache_dir.mkdir(exist_ok=True)
+    base_cache_dir = output_dir / "cache"
+    base_cache_dir.mkdir(exist_ok=True)
+
+    # Кэш привязан к конкретному файлу (путь + mtime) — смена файла = новый кэш
+    cache_dir = _cache_dir_for(input_file, base_cache_dir)
+    log(f"Кэш: {cache_dir.name}")
+
+    # ── Автоопределение листов ─────────────────────────────────────────────────
+    wb_meta = openpyxl.load_workbook(input_file, read_only=True, data_only=True)
+    sheet_roles = _detect_sheets(wb_meta.sheetnames)
+    wb_meta.close()
+
+    if not sheet_roles["sku"]:
+        log("❌ Не найдено ни одного листа SKU в файле")
+        messagebox.showwarning("Ошибка", "В файле не найдено листов SKU*")
+        return
+
+    log(f"Листы SKU: {sheet_roles['sku']}")
+    log(f"Листы BRAND: {sheet_roles['brand']}")
+    log(f"Листы MAN: {sheet_roles['man']}")
+    log(f"Категория: {category}")
+    if category not in CATEGORY_MAPPINGS:
+        log(f"  ℹ Категория «{category}» не в CATEGORY_MAPPINGS — значения передаются без маппинга")
 
     data = {}
 
-    # Загрузка малых листов последовательно
-    for sheet in small_sheets:
-        if stop_event.is_set():
-            log("Обработка Nielsen остановлена")
-            return
-        name, df = load_sheet(sheet, input_file, cache_dir, log)
-        data[name] = df
-
-    # Загрузка больших листов параллельно
+    # ── Загружаем ВСЕ листы параллельно (SKU + BRAND + MAN) ──────────────────
+    all_sheets = sheet_roles["sku"] + sheet_roles["brand"] + sheet_roles["man"]
+    log(f"Загрузка {len(all_sheets)} листов параллельно...")
     with ThreadPoolExecutor(max_workers=_max_workers()) as executor:
         futures = {
             executor.submit(load_sheet, sheet, input_file, cache_dir, log): sheet
-            for sheet in large_sheets
+            for sheet in all_sheets
         }
         for future in as_completed(futures):
             if stop_event.is_set():
@@ -213,184 +437,68 @@ def process_nielsen(
     if stop_event.is_set():
         return
 
-    df_sku = pl.concat([data["SKU1"], data["SKU2"]], how="vertical")
+    # ── Объединение SKU-листов ─────────────────────────────────────────────────
+    sku_frames = [data[s] for s in sheet_roles["sku"] if s in data]
+    df_sku = pl.concat(sku_frames, how="diagonal") if len(sku_frames) > 1 else sku_frames[0]
 
-    log("Обработка MAN...")
-    id_cols_man = ["MARKET", "FACT", "Long Description", "MANUFACTURER"]
-    data["MAN_long"] = melt_polars(data["MAN"], id_cols_man)
+    # Собираем задачи на melt: (output_key, dataframe, role_label)
+    melt_tasks: list[tuple[str, object, str]] = []
 
-    if stop_event.is_set():
-        return
+    for role, label in [("man", "MAN"), ("brand", "BRAND")]:
+        sheets = sheet_roles[role]
+        if not sheets:
+            log(f"⚠ Листов {label} не найдено — пропуск")
+            continue
+        frames = [data[s] for s in sheets if s in data]
+        df_role = pl.concat(frames, how="diagonal") if len(frames) > 1 else frames[0]
+        melt_tasks.append((f"{label}_long", df_role, label))
 
-    log("Обработка BRAND...")
-    id_cols_brand = ["MARKET", "FACT", "Long Description", "MANUFACTURER", "BRAND"]
-    data["BRAND_long"] = melt_polars(data["BRAND"], id_cols_brand)
+    id_cols_sku, _ = _split_id_date(df_sku)
+    log(f"SKU id-колонок: {len(id_cols_sku)}: {id_cols_sku}")
+    melt_tasks.append(("SKU_long", df_sku, "SKU"))
 
-    if stop_event.is_set():
-        return
+    # ── Melt всех ролей параллельно ────────────────────────────────────────────
+    def _melt_task(key: str, df, label: str):
+        id_cols, _ = _split_id_date(df)
+        log(f"Обработка {label} (melt {len(df)} строк × {len(id_cols)} id-колонок)...")
+        melted = melt_polars(df, id_cols)
+        log(f"  ✓ {label}: {len(melted)} строк после melt")
+        return key, melted, id_cols
 
-    log("Обработка SKU...")
-    id_cols_sku = [
-        "MARKET",
-        "FACT",
-        "Long Description",
-        "MANUFACTURER",
-        "BRAND",
-        "PRODUCT BASE",
-        "QUALITY",
-        "IF REFINED",
-        "PACKAGE TYPE",
-        "PACKAGING MATERIAL",
-        "WEIGHT",
-        "ITEM",
-    ]
-    data["SKU_long"] = melt_polars(df_sku, id_cols_sku)
-
-    if stop_event.is_set():
-        return
-
-    # Маппинги по категории
-    if category == "Масло":
-        refine_map = {
-            "NOT APPLICABLE": "рафинированное",
-            "NOT REFINED": "нерафинированное",
-            "REFINED": "рафинированное",
-            "REFINED & NOT REFINED (MIXED PACK)": "рафинированное",
+    results = {}
+    with ThreadPoolExecutor(max_workers=_max_workers()) as executor:
+        futures = {
+            executor.submit(_melt_task, key, df, label): key
+            for key, df, label in melt_tasks
         }
-        product_base_map = {
-            "ALMOND": "прочие",
-            "ALMOND & SUNFLOWER": "микс",
-            "AMARANTH": "прочие",
-            "AMARANTH & LINSEED": "прочие",
-            "APRICOT KERNEL": "прочие",
-            "ARGAN": "прочие",
-            "AVOCADO": "прочие",
-            "AVOCADO & COCONUT": "прочие",
-            "AVOCADO & OLIVE": "прочие",
-            "AVOCADO & SUNFLOWER": "микс",
-            "BLACK CUMIN SEED": "прочие",
-            "BLACK SESAME": "прочие",
-            "CAMELINA (RYZHIK)": "прочие",
-            "CANOLA SEED": "прочие",
-            "CEDAR NUT": "прочие",
-            "CEDAR NUT & LINSEED": "прочие",
-            "CEDAR NUT & LINSEED & SESAME & SUNFLOWER": "прочие",
-            "CEDAR NUT & PEANUT & WALNUT": "прочие",
-            "CEDAR NUT & SUNFLOWER": "микс",
-            "CEREAL & FRUIT": "прочие",
-            "CHIA SEED": "прочие",
-            "CHIA SEED & SUNFLOWER": "прочие",
-            "COCOA": "прочие",
-            "COCONUT": "прочие",
-            "COCONUT & PALM": "прочие",
-            "COLESEED": "прочие",
-            "CORN": "кукурузное",
-            "CORN & SUNFLOWER": "микс",
-            "CORN GERM": "кукурузное",
-            "CORN SEEDS & GRAPE SEEDS & RAPE SEEDS & RICE BRAN & SESAME": "прочие",
-            "COTTON": "прочие",
-            "CUMIN SEED": "прочие",
-            "GRAPE SEEDS": "прочие",
-            "GRAPE SEEDS & SUNFLOWER": "микс",
-            "HAZELNUT": "прочие",
-            "HEMP": "прочие",
-            "HEMP & LINSEED": "прочие",
-            "HEMP & SUNFLOWER": "прочие",
-            "LINSEED": "прочие",
-            "LINSEED & MUSTARD & SUNFLOWER": "прочие",
-            "LINSEED & OLIVE": "прочие",
-            "LINSEED & PUMPKIN SEEDS": "прочие",
-            "LINSEED & SESAME": "прочие",
-            "LINSEED & SUNFLOWER": "микс",
-            "LINSEED & WALNUT": "прочие",
-            "MACADAMIA NUT": "прочие",
-            "MIX OIL": "прочие",
-            "MUSTARD": "прочие",
-            "MUSTARD & SUNFLOWER": "прочие",
-            "MUSTARD & SUNFLOWER & WALNUT": "прочие",
-            "NUT": "прочие",
-            "OLIVE": "оливковое",
-            "OLIVE & PUMPKIN": "прочие",
-            "OLIVE & RAPE SEED": "прочие",
-            "OLIVE & SESAME": "прочие",
-            "OLIVE OIL & SUNFLOWER": "микс",
-            "PALM": "прочие",
-            "PEANUT": "прочие",
-            "PISTACHIO": "прочие",
-            "POPPY SEED": "прочие",
-            "PUMPKIN SEEDS": "прочие",
-            "RAPE SEED & SUNFLOWER": "микс",
-            "RAPE SEEDS": "прочие",
-            "RAPE SEEDS & SAFFLOWER & SUNFLOWER": "прочие",
-            "RICE": "прочие",
-            "ROSEHIP": "прочие",
-            "RUCCOLA SEED": "прочие",
-            "SAFFLOWER": "прочие",
-            "SEA BUCKTHORN & SUNFLOWER": "микс",
-            "SEABERRY / SEA BUCKTHORN": "прочие",
-            "SESAME": "прочие",
-            "SOYA": "прочие",
-            "SUNFLOWER": "подсолнечное",
-            "SUNFLOWER & SESAME": "микс",
-            "SUNFLOWER & SOYA": "микс",
-            "SUNFLOWER & WALNUT": "микс",
-            "THISTLE SEEDS (RASTOROPSHA)": "прочие",
-            "TRIGONELLA": "прочие",
-            "WALNUT (GRETSKIY OREKH)": "прочие",
-            "WATERMELON SEEDS": "прочие",
-            "WHEAT GERM": "прочие",
-            "WHITE SESAME": "прочие",
-        }
-    else:
-        refine_map = {}
-        product_base_map = {}
-        log(
-            f"Для категории '{category}' маппинги не заданы — используются значения по умолчанию."
-        )
-
-    data["SKU_long_filtered"] = (
-        data["SKU_long"]
-        .filter(pl.col("FACT").is_in(valid_FACT))
-        .with_columns(
-            [
-                pl.col("IF REFINED")
-                .cast(pl.Utf8)
-                .str.strip_chars()
-                .str.to_uppercase()
-                .replace_strict(refine_map, default=None)
-                .alias("IF REFINED"),
-                pl.col("PRODUCT BASE")
-                .cast(pl.Utf8)
-                .str.strip_chars()
-                .str.to_uppercase()
-                .replace_strict(product_base_map, default="прочие")
-                .alias("PRODUCT BASE"),
-            ]
-        )
-    )
+        for future in as_completed(futures):
+            if stop_event.is_set():
+                log("⛔ Остановлено во время melt")
+                return
+            key, melted, id_cols = future.result()
+            results[key] = (melted, id_cols)
 
     if stop_event.is_set():
         return
 
-    data["SKU_long_unique"] = data["SKU_long_filtered"].unique(
-        subset=id_cols_sku + ["ATTRIBUTE"]
-    )
+    # ── Фильтр по FACT + маппинги + unique — только для SKU ──────────────────
+    df_sku_long, id_cols_sku = results.pop("SKU_long")
+    df_sku_filtered = df_sku_long.filter(pl.col("FACT").is_in(valid_FACT))
+    df_sku_filtered = _apply_mappings(df_sku_filtered, category, log)
+    df_sku_unique   = df_sku_filtered.unique(subset=id_cols_sku + ["ATTRIBUTE"])
 
-    # Оптимизация
-    data["MAN_long"] = optimize_for_size(data["MAN_long"])
-    data["BRAND_long"] = optimize_for_size(data["BRAND_long"])
-    data["SKU_long_unique"] = optimize_for_size(data["SKU_long_unique"])
+    # ── Оптимизация и сохранение ───────────────────────────────────────────────
+    to_save = {"SKU_long_unique": optimize_for_size(df_sku_unique)}
+    for key, (df_role, _) in results.items():
+        label = key.replace("_long", "")
+        to_save[f"{label}_long"] = optimize_for_size(df_role)
 
-    # Сохранение — с проверкой stop_event между файлами
-    for name, key in [
-        ("SKU_long_unique", "SKU_long_unique"),
-        ("MAN_long", "MAN_long"),
-        ("BRAND_long", "BRAND_long"),
-    ]:
+    for name, df in to_save.items():
         if stop_event.is_set():
             log("⛔ Сохранение остановлено пользователем")
             return
-        save_optimized(data[key], name, output_dir, fmt, log, stop_event)
+        save_optimized(df, name, output_dir, fmt, log, stop_event)
 
     log(f"Готово! Файлы сохранены в формате {fmt.upper()}")
+    _cleanup_old_caches(base_cache_dir, keep=cache_dir.name, log=log)
     messagebox.showinfo("Готово", "Обработка Nielsen завершена!")

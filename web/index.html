@@ -81,6 +81,7 @@
           <div class="card-section">
             <span class="card-section-icon">📅</span>
             <span class="card-section-title">Диапазон дат скачивания</span>
+            <button id="dl-mode-btn" class="cal-preset" onclick="dlToggleMode()" style="margin-left:8px;font-size:11px">↔ Диапазон</button>
             <span id="dl-range-badge" style="margin-left:auto;font-size:11px;font-weight:600;
               padding:2px 10px;border-radius:20px;background:var(--green-muted);
               color:var(--green-dark)">выберите даты</span>
@@ -757,6 +758,12 @@
         <div class="action-spacer"></div>
         <button class="btn btn-ghost" style="height:28px;padding:0 12px;font-size:12px;border-radius:6px" onclick="closeSkuMatcher()">✕ Закрыть</button>
       </div>
+      <!-- ── Вкладки ── -->
+      <div class="sku-tabs">
+        <button class="sku-tab active" id="sku-tab-match" onclick="skuSwitchTab('match')">🎯 Матчинг <span id="sku-tab-match-cnt" class="sku-tab-cnt"></span></button>
+        <button class="sku-tab" id="sku-tab-allnew" onclick="skuSwitchTab('allnew')">🆕 Все новые SKU <span id="sku-tab-allnew-cnt" class="sku-tab-cnt"></span></button>
+      </div>
+      <!-- ── Таблица матчинга ── -->
       <div id="sku-table-wrap">
         <table class="sku-table" id="sku-table">
           <thead>
@@ -771,6 +778,20 @@
             </tr>
           </thead>
           <tbody id="sku-tbody"></tbody>
+        </table>
+      </div>
+      <!-- ── Таблица всех новых SKU ── -->
+      <div id="new-sku-wrap" style="display:none;flex:1;overflow:auto;">
+        <table class="sku-table" id="new-sku-table">
+          <thead>
+            <tr>
+              <th style="width:36px">●</th>
+              <th style="min-width:300px">Наименование SKU</th>
+              <th style="width:160px">Бренд</th>
+              <th style="width:140px">Категория</th>
+            </tr>
+          </thead>
+          <tbody id="new-sku-tbody"></tbody>
         </table>
       </div>
       <div id="sku-log-box"></div>

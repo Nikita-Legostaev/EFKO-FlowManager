@@ -163,7 +163,7 @@ def run_matching(
     """
     Запускается в отдельном потоке.
     on_progress(msg: str)
-    on_done(results: list[dict], error: str | None)
+    on_done(results: list[dict], error: str | None, all_new_skus: list[dict] | None)
     """
     try:
         wb = openpyxl.load_workbook(ref_path)
@@ -201,6 +201,13 @@ def run_matching(
         all_skus = pd.concat(frames).drop_duplicates("pd_sku")
         new_skus = all_skus[~all_skus["pd_sku"].isin(existing)]
         on_progress(f"Новых SKU для матчинга: {len(new_skus)}")
+
+        # Сохраняем полный список новых SKU (все, которых нет в справочнике)
+        all_new_skus = (
+            new_skus.rename(columns={"pd_sku": "SKU", "brand": "Бренд", "category": "Категория"})
+            .fillna("")
+            .to_dict("records")
+        )
 
         results = []
         sauce_auto = 0
@@ -260,7 +267,7 @@ def run_matching(
 
         on_progress(f"Соусов добавлено автоматически: {sauce_auto}")
         results.sort(key=lambda x: -x["Уверенность"])
-        on_done(results)
+        on_done(results, all_new_skus=all_new_skus)
 
     except Exception as e:
         on_done([], error=str(e))

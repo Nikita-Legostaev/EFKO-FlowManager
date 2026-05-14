@@ -32,6 +32,7 @@ class ApiPromodateMixin:
                 set_title=self._set_title,
                 date_from_str=p.get("date_from") or None,
                 date_to_str=p.get("date_to") or None,
+                dates_list=p.get("dates_list") or None,
             )
             self._emit("set_title", "")
             self._emit("hide_progress")

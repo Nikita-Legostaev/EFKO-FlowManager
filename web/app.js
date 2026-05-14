@@ -31,6 +31,7 @@ _startSplashAnim();
 const S = {
   page: 'promodate', stage: 'all',
   skuAllResults: [], skuSelected: new Set(), skuRefPath: '',
+  skuAllNew: [], skuActiveTab: 'match', skuNewSelected: new Set(),
   pcLastOutput: '',
 };
 
@@ -45,6 +46,7 @@ window.__pyEvent = function(payload) {
     case 'toast':         showToast(data.type, data.message); break;
     case 'sku_log':       skuLog(data); break;
     case 'sku_results':   skuRenderResults(data); break;
+    case 'sku_all_new':   skuRenderAllNew(data); break;
     case 'sku_error':     skuLog('✗ Ошибка: ' + data); skuUnlock(); break;
     // ── Price comparison events ──
     case 'pc_started':    pcOnStarted(); break;
@@ -138,6 +140,17 @@ function applyConfig(cfg) {
     const key = el.dataset.field;
     if (cfg[key] !== undefined && cfg[key] !== null) el.value = cfg[key];
   });
+  // Восстанавливаем пути SKU Matcher
+  if (cfg.sku_ref_path) {
+    document.getElementById('sku-ref-path').value = cfg.sku_ref_path;
+    S.skuRefPath = cfg.sku_ref_path;
+  }
+  if (cfg.sku_csv_folder) {
+    document.getElementById('sku-csv-folder').value = cfg.sku_csv_folder;
+    pywebview.api.get_csv_count(cfg.sku_csv_folder).then(cnt => {
+      if (cnt) document.getElementById('sku-csv-count').textContent = `${cnt} файлов CSV`;
+    });
+  }
 }
 
 function autoSave() {
@@ -254,8 +267,9 @@ async function runAction() {
     const p = {
       month_from:getField('month_from'), year_from:getField('year_from'),
       month_to:getField('month_to'),     year_to:getField('year_to'),
-      date_from: _dlFrom ? _dateKey(_dlFrom) : null,
-      date_to:   _dlTo   ? _dateKey(_dlTo)   : null,
+      date_from:   _dlMode==='multi' ? null : (_dlFrom ? _dateKey(_dlFrom) : null),
+      date_to:     _dlMode==='multi' ? null : (_dlTo   ? _dateKey(_dlTo)   : null),
+      dates_list:  _dlMode==='multi' ? [..._dlDates].sort() : null,
       output_folder:getField('output_folder'), category:getField('category'),
       pq_file1:getField('pq_file1'), pq_file2:getField('pq_file2'),
       macro1:getField('macro1'), macro2:getField('macro2'),
@@ -413,7 +427,7 @@ function closeSkuMatcher() { document.getElementById('sku-overlay').classList.re
 function closeSkuIfBg(e)   { if(e.target===document.getElementById('sku-overlay')) closeSkuMatcher(); }
 async function skuPickRef() {
   const p=await pywebview.api.browse_file();
-  if(p){document.getElementById('sku-ref-path').value=p;S.skuRefPath=p;}
+  if(p){document.getElementById('sku-ref-path').value=p;S.skuRefPath=p;skuPersistPaths();}
 }
 async function skuPickFolder(){
   const p=await pywebview.api.browse_folder();
@@ -421,7 +435,14 @@ async function skuPickFolder(){
     document.getElementById('sku-csv-folder').value=p;
     const cnt=await pywebview.api.get_csv_count(p);
     document.getElementById('sku-csv-count').textContent=cnt?`${cnt} файлов CSV`:'';
+    skuPersistPaths();
   }
+}
+function skuPersistPaths(){
+  const cfg=collectFormConfig();
+  cfg.sku_ref_path=document.getElementById('sku-ref-path').value;
+  cfg.sku_csv_folder=document.getElementById('sku-csv-folder').value;
+  pywebview.api.save_config(cfg);
 }
 async function skuRun(){
   const ref=document.getElementById('sku-ref-path').value;
@@ -432,7 +453,10 @@ async function skuRun(){
   document.getElementById('sku-run-btn').textContent='⏳ Анализирую…';
   document.getElementById('sku-run-btn').disabled=true;
   document.getElementById('sku-tbody').innerHTML='';
-  S.skuAllResults=[];S.skuSelected.clear();skuUpdateSel();
+  document.getElementById('new-sku-tbody').innerHTML='';
+  S.skuAllResults=[];S.skuSelected.clear();S.skuAllNew=[];S.skuNewSelected.clear();skuUpdateSel();
+  skuUpdateTabCounts(0,0);
+  skuSwitchTab('match');
   await pywebview.api.run_sku_matching({ref_path:ref,csv_folder:folder,threshold:thresh});
 }
 function skuUnlock(){document.getElementById('sku-run-btn').textContent='▶ Запустить матчинг';document.getElementById('sku-run-btn').disabled=false;}
@@ -444,10 +468,56 @@ function skuRenderResults(results){
   const low=results.filter(r=>r['Уверенность']<0.7).length;
   document.getElementById('sku-stat').innerHTML=`Всего: ${results.length}<br>≥0.9: ${high} &nbsp; 0.7–0.9: ${mid} &nbsp; &lt;0.7: ${low}`;
   skuUpdateSel();skuLog(`✓ ${results.length} совпадений`);
+  skuUpdateTabCounts(results.length, S.skuAllNew.length);
+}
+function skuRenderAllNew(all){
+  S.skuAllNew=all;
+  S.skuNewSelected=new Set(all.map((_,i)=>i)); // все выбраны по умолчанию
+  skuFillAllNewTable(all);
+  skuLog(`★ Все новые SKU: ${all.length}`);
+  skuUpdateTabCounts(S.skuAllResults.length, all.length);
+  if(S.skuActiveTab==='allnew') skuUpdateSel();
+}
+function skuFillAllNewTable(rows){
+  const tbody=document.getElementById('new-sku-tbody');tbody.innerHTML='';
+  rows.forEach(r=>{
+    const gi=S.skuAllNew.indexOf(r);
+    const sel=S.skuNewSelected.has(gi);
+    const tr=document.createElement('tr');tr.dataset.idx=gi;
+    if(sel)tr.classList.add('selected');
+    tr.innerHTML=`<td><span class="sku-chk ${sel?'on':''}">${sel?'●':'○'}</span></td>
+      <td>${esc(r['SKU']||'')}</td><td>${esc(r['Бренд']||'')}</td><td>${esc(r['Категория']||'')}</td>`;
+    tr.addEventListener('click',()=>skuNewToggleRow(tr,gi));
+    tbody.appendChild(tr);
+  });
+}
+function skuNewToggleRow(tr,idx){
+  if(S.skuNewSelected.has(idx))S.skuNewSelected.delete(idx);else S.skuNewSelected.add(idx);
+  const sel=S.skuNewSelected.has(idx);
+  tr.classList.toggle('selected',sel);
+  tr.querySelector('.sku-chk').className=`sku-chk ${sel?'on':''}`;
+  tr.querySelector('.sku-chk').textContent=sel?'●':'○';
+  skuUpdateSel();
+}
+function skuUpdateTabCounts(matchN, allNewN){
+  const mc=document.getElementById('sku-tab-match-cnt');
+  const ac=document.getElementById('sku-tab-allnew-cnt');
+  if(mc) mc.textContent=matchN||'';
+  if(ac) ac.textContent=allNewN||'';
+}
+function skuSwitchTab(tab){
+  S.skuActiveTab=tab;
+  document.getElementById('sku-tab-match').classList.toggle('active', tab==='match');
+  document.getElementById('sku-tab-allnew').classList.toggle('active', tab==='allnew');
+  document.getElementById('sku-table-wrap').style.display= tab==='match'?'':'none';
+  document.getElementById('new-sku-wrap').style.display  = tab==='allnew'?'flex':'none';
+  document.getElementById('sku-search').placeholder=
+    tab==='match'?'Поиск: SKU, бренд, совпало…':'Поиск по наименованию или бренду…';
+  skuUpdateSel();
 }
 function skuDisplayRows(rows){
   const tbody=document.getElementById('sku-tbody');tbody.innerHTML='';
-  rows.forEach((r,idx)=>{
+  rows.forEach((r)=>{
     const gi=S.skuAllResults.indexOf(r);
     const conf=r['Уверенность'];
     const cc=conf>=0.9?'high':conf>=0.7?'mid':'low';
@@ -469,9 +539,26 @@ function skuToggleRow(tr,idx){
   tr.querySelector('.sku-chk').textContent=S.skuSelected.has(idx)?'●':'○';
   skuUpdateSel();
 }
-function skuSelectAll(){S.skuAllResults.forEach((_,i)=>S.skuSelected.add(i));skuRefreshVisible();skuUpdateSel();}
-function skuDeselectAll(){S.skuSelected.clear();skuRefreshVisible();skuUpdateSel();}
-function skuInvert(){S.skuAllResults.forEach((_,i)=>{if(S.skuSelected.has(i))S.skuSelected.delete(i);else S.skuSelected.add(i);});skuRefreshVisible();skuUpdateSel();}
+function skuSelectAll(){
+  if(S.skuActiveTab==='allnew'){S.skuAllNew.forEach((_,i)=>S.skuNewSelected.add(i));skuNewRefreshVisible();}
+  else{S.skuAllResults.forEach((_,i)=>S.skuSelected.add(i));skuRefreshVisible();}
+  skuUpdateSel();
+}
+function skuDeselectAll(){
+  if(S.skuActiveTab==='allnew'){S.skuNewSelected.clear();skuNewRefreshVisible();}
+  else{S.skuSelected.clear();skuRefreshVisible();}
+  skuUpdateSel();
+}
+function skuInvert(){
+  if(S.skuActiveTab==='allnew'){
+    S.skuAllNew.forEach((_,i)=>{if(S.skuNewSelected.has(i))S.skuNewSelected.delete(i);else S.skuNewSelected.add(i);});
+    skuNewRefreshVisible();
+  } else {
+    S.skuAllResults.forEach((_,i)=>{if(S.skuSelected.has(i))S.skuSelected.delete(i);else S.skuSelected.add(i);});
+    skuRefreshVisible();
+  }
+  skuUpdateSel();
+}
 function skuRefreshVisible(){
   document.querySelectorAll('#sku-tbody tr').forEach(tr=>{
     const idx=parseInt(tr.dataset.idx);const sel=S.skuSelected.has(idx);
@@ -480,21 +567,43 @@ function skuRefreshVisible(){
     tr.querySelector('.sku-chk').textContent=sel?'●':'○';
   });
 }
+function skuNewRefreshVisible(){
+  document.querySelectorAll('#new-sku-tbody tr').forEach(tr=>{
+    const idx=parseInt(tr.dataset.idx);const sel=S.skuNewSelected.has(idx);
+    tr.classList.toggle('selected',sel);
+    tr.querySelector('.sku-chk').className=`sku-chk ${sel?'on':''}`;
+    tr.querySelector('.sku-chk').textContent=sel?'●':'○';
+  });
+}
 function skuUpdateSel(){
-  const n=S.skuSelected.size;
+  const isNew=S.skuActiveTab==='allnew';
+  const n=isNew?S.skuNewSelected.size:S.skuSelected.size;
   document.getElementById('sku-sel-stat').textContent=`Выбрано: ${n}`;
   document.getElementById('sku-save-btn').disabled=n===0;
 }
 function skuFilter(){
   const q=document.getElementById('sku-search').value.toLowerCase();
-  const filtered=q?S.skuAllResults.filter(r=>(r['Наименование SKU']||'').toLowerCase().includes(q)||(r['Бренд']||'').toLowerCase().includes(q)||(r['SKU скорр']||'').toLowerCase().includes(q)):S.skuAllResults;
-  skuDisplayRows(filtered);
+  if(S.skuActiveTab==='allnew'){
+    const filtered=q?S.skuAllNew.filter(r=>(r['SKU']||'').toLowerCase().includes(q)||(r['Бренд']||'').toLowerCase().includes(q)||(r['Категория']||'').toLowerCase().includes(q)):S.skuAllNew;
+    skuFillAllNewTable(filtered);
+  } else {
+    const filtered=q?S.skuAllResults.filter(r=>(r['Наименование SKU']||'').toLowerCase().includes(q)||(r['Бренд']||'').toLowerCase().includes(q)||(r['SKU скорр']||'').toLowerCase().includes(q)):S.skuAllResults;
+    skuDisplayRows(filtered);
+  }
 }
 async function skuSave(){
-  const selected=[...S.skuSelected].map(i=>S.skuAllResults[i]).filter(Boolean);
-  if(!selected.length)return;
-  if(!confirm(`Добавить ${selected.length} строк в справочник?`))return;
-  const result=await pywebview.api.save_sku_results({results:selected,ref_path:S.skuRefPath});
+  let toSave;
+  if(S.skuActiveTab==='allnew'){
+    const rawNew=[...S.skuNewSelected].map(i=>S.skuAllNew[i]).filter(Boolean);
+    if(!rawNew.length)return;
+    if(!confirm(`Добавить ${rawNew.length} строк в справочник?`))return;
+    toSave=rawNew.map(r=>({'Категория':r['Категория']||'','Бренд':r['Бренд']||'','Наименование SKU':r['SKU']||'','SKU скорр':'','Статус SKU':'индикативное','Уверенность':''}));
+  } else {
+    toSave=[...S.skuSelected].map(i=>S.skuAllResults[i]).filter(Boolean);
+    if(!toSave.length)return;
+    if(!confirm(`Добавить ${toSave.length} строк в справочник?`))return;
+  }
+  const result=await pywebview.api.save_sku_results({results:toSave,ref_path:S.skuRefPath});
   if(result.success){showToast('success',`Сохранено ${result.count} строк`);skuLog(`✓ Сохранено ${result.count} строк`);}
   else{showToast('error',result.error||'Ошибка сохранения');}
 }
@@ -875,7 +984,7 @@ function applyThemeFromConfig(cfg){
    *  from/to — Date objects или null (range highlight)
    *  onDayClick(date) — callback
    */
-  function renderCalGrid(container, year, month, from, to, onDayClick) {
+  function renderCalGrid(container, year, month, from, to, onDayClick, pickedDates) {
     container.innerHTML = '';
     // Day-of-week headers (Mon first)
     DOW.forEach(d => {
@@ -914,9 +1023,14 @@ function applyThemeFromConfig(cfg){
       const key = _dateKey(d);
 
       if (key === _dateKey(today) && !btn.classList.contains('other-month')) btn.classList.add('today');
-      if (fromKey && key === fromKey) btn.classList.add('range-start');
-      if (toKey   && key === toKey)   btn.classList.add('range-end');
-      if (fromKey && toKey && key > fromKey && key < toKey) btn.classList.add('in-range');
+      // Multi-mode: highlight picked days
+      if (pickedDates && pickedDates.has(key)) {
+        btn.classList.add('day-picked');
+      } else {
+        if (fromKey && key === fromKey) btn.classList.add('range-start');
+        if (toKey   && key === toKey)   btn.classList.add('range-end');
+        if (fromKey && toKey && key > fromKey && key < toKey) btn.classList.add('in-range');
+      }
 
       btn.addEventListener('click', () => onDayClick(d));
       container.appendChild(btn);
@@ -932,6 +1046,22 @@ function applyThemeFromConfig(cfg){
   let _dlFrom = null;   // Date
   let _dlTo   = null;   // Date
   let _dlPhase = 'from'; // 'from' | 'to'
+  let _dlMode  = 'range'; // 'range' | 'single' | 'multi'
+  let _dlDates = new Set(); // Date keys для multi-режима
+
+  function dlToggleMode() {
+    const modes = ['range', 'single', 'multi'];
+    _dlMode = modes[(modes.indexOf(_dlMode) + 1) % 3];
+    const btn = document.getElementById('dl-mode-btn');
+    if (btn) {
+      if (_dlMode === 'range')  { btn.textContent = '↔ Диапазон';      btn.classList.remove('active'); }
+      if (_dlMode === 'single') { btn.textContent = '📍 Точка';          btn.classList.add('active'); }
+      if (_dlMode === 'multi')  { btn.textContent = '✦ Несколько дней'; btn.classList.add('active'); }
+    }
+    if (_dlMode !== 'multi') { _dlDates.clear(); }
+    if (_dlMode === 'single' && _dlFrom) { _dlTo = _dlFrom; _dlPhase = 'from'; dlCalRender(); dlSave(); }
+    else { dlCalRender(); dlUpdateBadge(); }
+  }
 
   function dlCalPrev() { _dlViewMonth--; if (_dlViewMonth < 0){ _dlViewMonth=11; _dlViewYear--; } dlCalRender(); }
   function dlCalNext() { _dlViewMonth++; if (_dlViewMonth > 11){ _dlViewMonth=0; _dlViewYear++; } dlCalRender(); }
@@ -945,18 +1075,29 @@ function applyThemeFromConfig(cfg){
     document.getElementById('dl-cal-title-r').textContent =
       MONTH_RU[rightMonth] + ' ' + rightYear;
 
-    renderCalGrid(
-      document.getElementById('dl-cal-left'),
-      _dlViewYear, _dlViewMonth, _dlFrom, _dlTo, dlOnDayClick
-    );
-    renderCalGrid(
-      document.getElementById('dl-cal-right'),
-      rightYear, rightMonth, _dlFrom, _dlTo, dlOnDayClick
-    );
+    const picked = _dlMode === 'multi' ? _dlDates : null;
+    const from   = _dlMode === 'multi' ? null : _dlFrom;
+    const to     = _dlMode === 'multi' ? null : _dlTo;
+
+    renderCalGrid(document.getElementById('dl-cal-left'),  _dlViewYear, _dlViewMonth, from, to, dlOnDayClick, picked);
+    renderCalGrid(document.getElementById('dl-cal-right'), rightYear, rightMonth,     from, to, dlOnDayClick, picked);
     dlUpdateBadge();
   }
 
   function dlOnDayClick(d) {
+    if (_dlMode === 'multi') {
+      const key = _dateKey(d);
+      if (_dlDates.has(key)) _dlDates.delete(key);
+      else _dlDates.add(key);
+      dlCalRender();
+      dlSave();
+      return;
+    }
+    if (_dlMode === 'single') {
+      _dlFrom = d; _dlTo = d; _dlPhase = 'from';
+      dlCalRender(); dlSave();
+      return;
+    }
     if (_dlPhase === 'from') {
       _dlFrom  = d; _dlTo = null; _dlPhase = 'to';
     } else {
@@ -971,8 +1112,24 @@ function applyThemeFromConfig(cfg){
   function dlUpdateBadge() {
     const badge = document.getElementById('dl-range-badge');
     if (!badge) return;
+    if (_dlMode === 'multi') {
+      const n = _dlDates.size;
+      if (n > 0) {
+        badge.textContent = `✦ ${n} ${n===1?'день':n<5?'дня':'дней'}`;
+        badge.style.background = 'var(--green-muted)';
+        badge.style.color      = 'var(--green-dark)';
+      } else {
+        badge.textContent = 'выберите дни';
+        badge.style.background = 'var(--surface2)';
+        badge.style.color      = 'var(--text3)';
+      }
+      return;
+    }
     if (_dlFrom && _dlTo) {
-      badge.textContent = _dateKey(_dlFrom) + '  —  ' + _dateKey(_dlTo);
+      const isSingle = _dateKey(_dlFrom) === _dateKey(_dlTo);
+      badge.textContent = isSingle
+        ? '📍 ' + _dateKey(_dlFrom)
+        : _dateKey(_dlFrom) + '  —  ' + _dateKey(_dlTo);
       badge.style.background = 'var(--green-muted)';
       badge.style.color      = 'var(--green-dark)';
     } else if (_dlFrom) {
@@ -987,13 +1144,29 @@ function applyThemeFromConfig(cfg){
   }
 
   function dlSave() {
+    if (_dlMode === 'multi') {
+      // Сохраняем sorted список дат
+      const sorted = [..._dlDates].sort();
+      const cfg = collectFormConfig();
+      cfg.dl_mode = 'multi';
+      cfg.dates_list = JSON.stringify(sorted);
+      cfg.date_from = sorted[0] || null;
+      cfg.date_to   = sorted[sorted.length - 1] || null;
+      pywebview.api.save_config(cfg);
+      return;
+    }
     if (!_dlFrom || !_dlTo) return;
     // Sync hidden fields for backward compat
     document.getElementById('sel-month-from').value = _dlFrom.getMonth()+1;
     document.getElementById('sel-year-from').value  = _dlFrom.getFullYear();
     document.getElementById('sel-month-to').value   = _dlTo.getMonth()+1;
     document.getElementById('sel-year-to').value    = _dlTo.getFullYear();
-    autoSave();
+    const cfg = collectFormConfig();
+    cfg.dl_mode   = _dlMode;
+    cfg.date_from = _dateKey(_dlFrom);
+    cfg.date_to   = _dateKey(_dlTo);
+    cfg.dates_list = null;
+    pywebview.api.save_config(cfg);
   }
 
   function dlPreset(p) {
@@ -1020,12 +1193,26 @@ function applyThemeFromConfig(cfg){
   }
 
   function dlCalInit(cfg) {
+    // Восстановить режим
+    if (cfg.dl_mode) {
+      _dlMode = cfg.dl_mode;
+      const btn = document.getElementById('dl-mode-btn');
+      if (btn) {
+        if (_dlMode === 'range')  { btn.textContent = '↔ Диапазон';      btn.classList.remove('active'); }
+        if (_dlMode === 'single') { btn.textContent = '📍 Точка';          btn.classList.add('active'); }
+        if (_dlMode === 'multi')  { btn.textContent = '✦ Несколько дней'; btn.classList.add('active'); }
+      }
+    }
+    // Восстановить multi-даты
+    if (_dlMode === 'multi' && cfg.dates_list) {
+      try { JSON.parse(cfg.dates_list).forEach(k => _dlDates.add(k)); } catch(e) {}
+    }
     // Restore from config if day-level dates saved
-    if (cfg.date_from && cfg.date_to) {
+    if (cfg.date_from && cfg.date_to && _dlMode !== 'multi') {
       _dlFrom = new Date(cfg.date_from);
       _dlTo   = new Date(cfg.date_to);
       if (_dlFrom) { _dlViewYear = _dlFrom.getFullYear(); _dlViewMonth = _dlFrom.getMonth(); }
-    } else {
+    } else if (_dlMode !== 'multi') {
       // Default to current month
       const now = new Date();
       _dlFrom = new Date(now.getFullYear(), now.getMonth(), 1);
