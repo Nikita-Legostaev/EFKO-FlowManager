@@ -140,16 +140,34 @@ def download_files_thread(
     set_title=None,
     date_from_str=None,  # "YYYY-MM-DD" — если задан, фильтр по дню
     date_to_str=None,  # "YYYY-MM-DD" — если задан, фильтр по дню
+    dates_list=None,  # список "YYYY-MM-DD" — точечный выбор дат
 ):
+    # Если переданы точечные даты — используем их напрямую
+    if dates_list:
+        try:
+            exact_dates = set()
+            for ds in dates_list:
+                exact_dates.add(datetime.strptime(ds, "%Y-%m-%d").date())
+        except ValueError:
+            exact_dates = None
+
+        if exact_dates:
+            files_to_download = []
+            for f in os.listdir(FTP_FOLDER):
+                if not f.endswith(".xlsx"):
+                    continue
+                d = extract_date(f)
+                if d and d.date() in exact_dates:
+                    files_to_download.append(f)
     # Если переданы конкретные даты — используем day-level фильтр
-    if date_from_str and date_to_str:
+    elif date_from_str and date_to_str:
         try:
             d_from = datetime.strptime(date_from_str, "%Y-%m-%d")
             d_to = datetime.strptime(date_to_str, "%Y-%m-%d")
         except ValueError:
             date_from_str = date_to_str = None
 
-    if date_from_str and date_to_str:
+    if not dates_list and date_from_str and date_to_str:
         if d_from > d_to:
             messagebox.showwarning(
                 "Ошибка", "Начало диапазона не может быть позже конца!"

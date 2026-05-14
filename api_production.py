@@ -35,11 +35,13 @@ class ApiProductionMixin:
         def _prog(msg):
             self._emit("sku_log", msg)
 
-        def _done(results, error=None):
+        def _done(results, error=None, all_new_skus=None):
             if error:
                 self._emit("sku_error", str(error))
             else:
                 self._emit("sku_results", results)
+                if all_new_skus is not None:
+                    self._emit("sku_all_new", all_new_skus)
 
         threading.Thread(
             target=run_matching,
