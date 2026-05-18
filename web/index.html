@@ -128,8 +128,9 @@
             </div>
             <div class="form-row">
               <label class="form-label">Папка сохранения CSV:</label>
-              <input class="form-input" type="text" data-field="output_folder" placeholder="Путь к папке…" readonly>
+              <input class="form-input" type="text" readonly data-field="output_folder" placeholder="Путь к папке…">
               <button class="form-btn-pick" onclick="pickFolder('output_folder')">Обзор</button>
+              <button class="form-btn-clear" onclick="clearField(this)" title="Очистить">✕</button>
             </div>
           </div>
         </div>
@@ -138,13 +139,15 @@
           <div class="card-body">
             <div class="form-row">
               <label class="form-label">Promodate 1 (.xlsx):</label>
-              <input class="form-input" type="text" data-field="pq_file1" placeholder="Путь к файлу…" readonly>
+              <input class="form-input" type="text" readonly data-field="pq_file1" placeholder="Путь к файлу…">
               <button class="form-btn-pick" onclick="pickFile('pq_file1')">Выбрать</button>
+              <button class="form-btn-clear" onclick="clearField(this)" title="Очистить">✕</button>
             </div>
             <div class="form-row">
               <label class="form-label">Promodate 2 (.xlsm):</label>
-              <input class="form-input" type="text" data-field="pq_file2" placeholder="Путь к файлу…" readonly>
+              <input class="form-input" type="text" readonly data-field="pq_file2" placeholder="Путь к файлу…">
               <button class="form-btn-pick" onclick="pickFile('pq_file2')">Выбрать</button>
+              <button class="form-btn-clear" onclick="clearField(this)" title="Очистить">✕</button>
             </div>
             <div class="form-row no-btn">
               <label class="form-label">Макрос 1:</label>
@@ -167,23 +170,27 @@
           <div class="card-body">
             <div class="form-row">
               <label class="form-label">Файл Купера (.xlsx):</label>
-              <input class="form-input" type="text" data-field="pc_kuper_file" placeholder="Путь к файлу…" readonly>
+              <input class="form-input" type="text" readonly data-field="pc_kuper_file" placeholder="Путь к файлу…">
               <button class="form-btn-pick" onclick="pickFile('pc_kuper_file')">Выбрать</button>
+              <button class="form-btn-clear" onclick="clearField(this)" title="Очистить">✕</button>
             </div>
             <div class="form-row">
               <label class="form-label">PromoData (.xlsx):</label>
-              <input class="form-input" type="text" data-field="pc_promo_file" placeholder="Путь к файлу…" readonly>
+              <input class="form-input" type="text" readonly data-field="pc_promo_file" placeholder="Путь к файлу…">
               <button class="form-btn-pick" onclick="pickFile('pc_promo_file')">Выбрать</button>
+              <button class="form-btn-clear" onclick="clearField(this)" title="Очистить">✕</button>
             </div>
             <div class="form-row">
               <label class="form-label">Справочник SKU (.xlsx):</label>
-              <input class="form-input" type="text" data-field="pc_sprav_file" placeholder="Путь к файлу…" readonly>
+              <input class="form-input" type="text" readonly data-field="pc_sprav_file" placeholder="Путь к файлу…">
               <button class="form-btn-pick" onclick="pickFile('pc_sprav_file')">Выбрать</button>
+              <button class="form-btn-clear" onclick="clearField(this)" title="Очистить">✕</button>
             </div>
             <div class="form-row">
               <label class="form-label">Сохранить результат (.xlsx):</label>
-              <input class="form-input" type="text" data-field="pc_output_file" placeholder="Путь к файлу…" readonly>
+              <input class="form-input" type="text" readonly data-field="pc_output_file" placeholder="Путь к файлу…">
               <button class="form-btn-pick" onclick="pcPickOutput()">Выбрать</button>
+              <button class="form-btn-clear" onclick="clearField(this)" title="Очистить">✕</button>
             </div>
             <div class="pc-thresh-row">
               <span class="pc-thresh-lbl">Порог Жаккара:</span>
@@ -222,13 +229,15 @@
           <div class="card-body">
             <div class="form-row">
               <label class="form-label">OLAP файл:</label>
-              <input class="form-input" type="text" data-field="olap_file" placeholder="Путь к файлу…" readonly>
+              <input class="form-input" type="text" readonly data-field="olap_file" placeholder="Путь к файлу…">
               <button class="form-btn-pick" onclick="pickFile('olap_file')">Выбрать</button>
+              <button class="form-btn-clear" onclick="clearField(this)" title="Очистить">✕</button>
             </div>
             <div class="form-row">
               <label class="form-label">Положение конкурентов:</label>
-              <input class="form-input" type="text" data-field="competitors_file" placeholder="Путь к файлу…" readonly>
+              <input class="form-input" type="text" readonly data-field="competitors_file" placeholder="Путь к файлу…">
               <button class="form-btn-pick" onclick="pickFile('competitors_file')">Выбрать</button>
+              <button class="form-btn-clear" onclick="clearField(this)" title="Очистить">✕</button>
             </div>
           </div>
         </div>
@@ -240,14 +249,40 @@
           <div class="card-section"><span class="card-section-icon">📈</span><span class="card-section-title">Файлы Nielsen</span></div>
           <div class="card-body">
             <div class="form-row">
-              <label class="form-label">Входной файл (.xlsx):</label>
-              <input class="form-input" type="text" data-field="nielsen_input" placeholder="Путь к файлу…" readonly>
+              <label class="form-label">Исходник 1 — ST (.xlsx):</label>
+              <input class="form-input" type="text" readonly data-field="nielsen_input" placeholder="Путь к файлу…">
               <button class="form-btn-pick" onclick="pickFile('nielsen_input')">Выбрать</button>
+              <button class="form-btn-clear" onclick="clearField(this)" title="Очистить">✕</button>
             </div>
             <div class="form-row">
-              <label class="form-label">Папка сохранения:</label>
-              <input class="form-input" type="text" data-field="nielsen_output" placeholder="Путь к папке…" readonly>
+              <label class="form-label">Папка сохранения ST:</label>
+              <input class="form-input" type="text" readonly data-field="nielsen_output" placeholder="Путь к папке…">
               <button class="form-btn-pick" onclick="pickFolder('nielsen_output')">Обзор</button>
+              <button class="form-btn-clear" onclick="clearField(this)" title="Очистить">✕</button>
+            </div>
+            <div class="form-row">
+              <label class="form-label">Исходник 2 — NU (.xlsx):</label>
+              <input class="form-input" type="text" readonly data-field="nielsen_input2" placeholder="Путь к файлу…">
+              <button class="form-btn-pick" onclick="pickFile('nielsen_input2')">Выбрать</button>
+              <button class="form-btn-clear" onclick="clearField(this)" title="Очистить">✕</button>
+            </div>
+            <div class="form-row">
+              <label class="form-label">Папка сохранения NU:</label>
+              <input class="form-input" type="text" readonly data-field="nielsen_output2" placeholder="Путь к папке…">
+              <button class="form-btn-pick" onclick="pickFolder('nielsen_output2')">Обзор</button>
+              <button class="form-btn-clear" onclick="clearField(this)" title="Очистить">✕</button>
+            </div>
+            <div class="form-row">
+              <label class="form-label">Справочник (.xlsx):</label>
+              <input class="form-input" type="text" readonly data-field="nielsen_sprav_path" placeholder="Единый файл справочника…">
+              <button class="form-btn-pick" onclick="pickFile('nielsen_sprav_path')">Выбрать</button>
+              <button class="form-btn-clear" onclick="clearField(this)" title="Очистить">✕</button>
+            </div>
+            <div class="form-row">
+              <label class="form-label">Обновить Power Query (.xlsx/.xlsm):</label>
+              <input class="form-input" type="text" readonly data-field="nielsen_pq_file" placeholder="Файл для обновления PQ…">
+              <button class="form-btn-pick" onclick="pickFile('nielsen_pq_file')">Выбрать</button>
+              <button class="form-btn-clear" onclick="clearField(this)" title="Очистить">✕</button>
             </div>
           </div>
         </div>
@@ -266,6 +301,7 @@
               <select class="form-select" data-field="nielsen_category" style="width:180px">
                 <option>Масло</option><option>Кетчуп</option>
                 <option>Майонез</option><option>Маргарин</option>
+                <option>Растительное молоко</option><option>Соусы</option><option>РАМ</option>
               </select>
             </div>
           </div>
@@ -279,8 +315,9 @@
           <div class="card-body">
             <div class="form-row">
               <label class="form-label">Excel файл:</label>
-              <input class="form-input" type="text" data-field="query_refresh_file" placeholder="Путь к файлу…" readonly>
+              <input class="form-input" type="text" readonly data-field="query_refresh_file" placeholder="Путь к файлу…">
               <button class="form-btn-pick" onclick="pickFile('query_refresh_file')">Выбрать</button>
+              <button class="form-btn-clear" onclick="clearField(this)" title="Очистить">✕</button>
             </div>
           </div>
         </div>
@@ -293,28 +330,33 @@
           <div class="card-body">
             <div class="form-row">
               <label class="form-label">Файл СВОД:</label>
-              <input class="form-input" type="text" data-field="prod_svod_folder" placeholder="Путь к файлу СВОД (.xlsx)…" readonly>
+              <input class="form-input" type="text" readonly data-field="prod_svod_folder" placeholder="Путь к файлу СВОД (.xlsx)…">
               <button class="form-btn-pick" onclick="pickFile('prod_svod_folder')">Выбрать</button>
+              <button class="form-btn-clear" onclick="clearField(this)" title="Очистить">✕</button>
             </div>
             <div class="form-row">
               <label class="form-label">Файл НПК:</label>
-              <input class="form-input" type="text" data-field="prod_npk_file" placeholder="Путь к файлу…" readonly>
+              <input class="form-input" type="text" readonly data-field="prod_npk_file" placeholder="Путь к файлу…">
               <button class="form-btn-pick" onclick="pickFile('prod_npk_file')">Выбрать</button>
+              <button class="form-btn-clear" onclick="clearField(this)" title="Очистить">✕</button>
             </div>
             <div class="form-row">
               <label class="form-label">Папка Тольяти:</label>
-              <input class="form-input" type="text" data-field="prod_tolyatti" placeholder="Путь к папке…" readonly>
+              <input class="form-input" type="text" readonly data-field="prod_tolyatti" placeholder="Путь к папке…">
               <button class="form-btn-pick" onclick="pickFolder('prod_tolyatti')">Обзор</button>
+              <button class="form-btn-clear" onclick="clearField(this)" title="Очистить">✕</button>
             </div>
             <div class="form-row">
               <label class="form-label">Файл тестовые_данные:</label>
-              <input class="form-input" type="text" data-field="prod_target" placeholder="Путь к файлу…" readonly>
+              <input class="form-input" type="text" readonly data-field="prod_target" placeholder="Путь к файлу…">
               <button class="form-btn-pick" onclick="pickFile('prod_target')">Выбрать</button>
+              <button class="form-btn-clear" onclick="clearField(this)" title="Очистить">✕</button>
             </div>
             <div class="form-row">
               <label class="form-label">Файл маппинга:</label>
-              <input class="form-input" type="text" data-field="prod_mapping" placeholder="Путь к файлу…" readonly>
+              <input class="form-input" type="text" readonly data-field="prod_mapping" placeholder="Путь к файлу…">
               <button class="form-btn-pick" onclick="pickFile('prod_mapping')">Выбрать</button>
+              <button class="form-btn-clear" onclick="clearField(this)" title="Очистить">✕</button>
             </div>
           </div>
         </div>
@@ -372,15 +414,17 @@
           <div class="card-body">
             <div class="form-row">
               <label class="form-label">КУБ-файл (.xlsx):</label>
-              <input class="form-input" type="text" id="oos-kub-file" data-field="oos_kub_file"
-                     placeholder="01 КУБ_для отчета с ООС_майонез_2026.xlsx" readonly>
+              <input class="form-input" type="text" readonly id="oos-kub-file" data-field="oos_kub_file"
+                     placeholder="01 КУБ_для отчета с ООС_майонез_2026.xlsx">
               <button class="form-btn-pick" onclick="oosPickFile('oos-kub-file','oos_kub_file')">Выбрать</button>
+              <button class="form-btn-clear" onclick="clearField(this)" title="Очистить">✕</button>
             </div>
             <div class="form-row">
               <label class="form-label">ELT-файл (.xlsx):</label>
-              <input class="form-input" type="text" id="oos-elt-file" data-field="oos_elt_file"
-                     placeholder="01_ELT_куб майонез 2026.xlsx" readonly>
+              <input class="form-input" type="text" readonly id="oos-elt-file" data-field="oos_elt_file"
+                     placeholder="01_ELT_куб майонез 2026.xlsx">
               <button class="form-btn-pick" onclick="oosPickFile('oos-elt-file','oos_elt_file')">Выбрать</button>
+              <button class="form-btn-clear" onclick="clearField(this)" title="Очистить">✕</button>
             </div>
           </div>
         </div>
@@ -395,21 +439,24 @@
           <div class="card-body">
             <div class="form-row">
               <label class="form-label" style="min-width:120px">Слобода:</label>
-              <input class="form-input" type="text" id="oos-report-sloboda" data-field="oos_report_sloboda"
-                     placeholder="Отчет_по_майонезу_в_ФС_без_OOS__Query__2026.xlsx" readonly>
+              <input class="form-input" type="text" readonly id="oos-report-sloboda" data-field="oos_report_sloboda"
+                     placeholder="Отчет_по_майонезу_в_ФС_без_OOS__Query__2026.xlsx">
               <button class="form-btn-pick" onclick="oosPickFile('oos-report-sloboda','oos_report_sloboda')">Выбрать</button>
+              <button class="form-btn-clear" onclick="clearField(this)" title="Очистить">✕</button>
             </div>
             <div class="form-row">
               <label class="form-label" style="min-width:120px">Провансаль:</label>
-              <input class="form-input" type="text" id="oos-report-provansale" data-field="oos_report_provansale"
-                     placeholder="Отчет_по_майонезу_провансаль_в_ФС_без_OOS__Query__2026.xlsx" readonly>
+              <input class="form-input" type="text" readonly id="oos-report-provansale" data-field="oos_report_provansale"
+                     placeholder="Отчет_по_майонезу_провансаль_в_ФС_без_OOS__Query__2026.xlsx">
               <button class="form-btn-pick" onclick="oosPickFile('oos-report-provansale','oos_report_provansale')">Выбрать</button>
+              <button class="form-btn-clear" onclick="clearField(this)" title="Очистить">✕</button>
             </div>
             <div class="form-row">
               <label class="form-label" style="min-width:120px">Оливковый:</label>
-              <input class="form-input" type="text" id="oos-report-olive" data-field="oos_report_olive"
-                     placeholder="Отчет_по_оливковому_майонезу_в_ФС_без_OOS__Query__2026.xlsx" readonly>
+              <input class="form-input" type="text" readonly id="oos-report-olive" data-field="oos_report_olive"
+                     placeholder="Отчет_по_оливковому_майонезу_в_ФС_без_OOS__Query__2026.xlsx">
               <button class="form-btn-pick" onclick="oosPickFile('oos-report-olive','oos_report_olive')">Выбрать</button>
+              <button class="form-btn-clear" onclick="clearField(this)" title="Очистить">✕</button>
             </div>
           </div>
         </div>
@@ -735,6 +782,16 @@
         <input class="sku-input" id="sku-csv-folder" placeholder="Путь к папке…" readonly>
         <div class="sku-csv-count" id="sku-csv-count"></div>
         <button class="btn btn-blue" style="width:100%;margin-bottom:4px;border-radius:8px" onclick="skuPickFolder()">📁 Выбрать папку</button>
+        <div class="sku-sb-sec">Режим матчинга</div>
+        <div class="sku-mode-toggle">
+          <button class="sku-mode-btn active" id="sku-mode-ml" onclick="skuSetMode('ml')">
+            🧠 ML <span class="sku-mode-badge">бета</span>
+          </button>
+          <button class="sku-mode-btn" id="sku-mode-classic" onclick="skuSetMode('classic')">
+            📐 Классический
+          </button>
+        </div>
+        <div class="sku-divider"></div>
         <div class="sku-sb-sec">Порог уверенности</div>
         <div class="thresh-val" id="thresh-val">0.50</div>
         <input class="thresh-slider" type="range" min="0.30" max="0.95" step="0.05" value="0.50"

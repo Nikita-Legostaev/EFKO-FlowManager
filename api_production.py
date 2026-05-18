@@ -46,6 +46,7 @@ class ApiProductionMixin:
         threading.Thread(
             target=run_matching,
             args=(p["ref_path"], p["csv_folder"], float(p["threshold"]), _prog, _done),
+            kwargs={"mode": p.get("mode", "ml")},
             daemon=True,
         ).start()
         return True

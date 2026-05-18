@@ -54,6 +54,12 @@ class ApiCoreMixin:
 
     # ── Конфиг ───────────────────────────────────────────────────────────────
 
+    def js_error(self, msg: str):
+        """Логирует JS ошибки из браузера."""
+        import logging
+        logging.getLogger("flowmanager").error(f"[JS] {msg}")
+        return True
+
     def get_config(self):
         return load_config()
 
@@ -69,10 +75,22 @@ class ApiCoreMixin:
 
     # ── Файловые диалоги ─────────────────────────────────────────────────────
 
-    def browse_file(self):
+    def browse_file(self, initial_dir: str = ""):
+        start = initial_dir if initial_dir and os.path.isdir(initial_dir) else os.path.expanduser("~")
         result = self._window.create_file_dialog(
             webview.FileDialog.OPEN,
+            directory=start,
             file_types=("Excel Files (*.xlsx;*.xlsm)", "All Files (*.*)"),
+        )
+        return result[0] if result else None
+
+    def browse_any_file(self, initial_dir: str = ""):
+        """Диалог без фильтра — показывает все файлы."""
+        start = initial_dir if initial_dir and os.path.isdir(initial_dir) else os.path.expanduser("~")
+        result = self._window.create_file_dialog(
+            webview.FileDialog.OPEN,
+            directory=start,
+            file_types=("All Files (*.*)", "Excel Files (*.xlsx;*.xlsm)"),
         )
         return result[0] if result else None
 

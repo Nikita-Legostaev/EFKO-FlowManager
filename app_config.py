@@ -64,6 +64,10 @@ def load_config() -> dict:
         "competitors_file": "",
         "nielsen_input": "",
         "nielsen_output": "",
+        "nielsen_input2": "",
+        "nielsen_output2": "",
+        "nielsen_sprav_path": "",
+        "nielsen_pq_file": "",
         "nielsen_format": "csv",
         "nielsen_category": "Масло",
         "query_refresh_file": "",
@@ -87,6 +91,10 @@ def load_config() -> dict:
         "oos_report_provansale": "",
         "oos_report_olive": "",
         "dark_theme": False,
+        "sku_ref_path": "",
+        "sku_csv_folder": "",
+        "dl_mode": "range",
+        "dates_list": "",
     }
     for k, v in SCHEDULER_DEFAULTS.items():
         if k not in defaults:

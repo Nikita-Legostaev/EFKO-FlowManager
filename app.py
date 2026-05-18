@@ -150,12 +150,20 @@ api = Api()
 
 html_path = _resource(os.path.join("web", "index.html"))
 
+import ctypes
+try:
+    ctypes.windll.user32.SetProcessDPIAware()
+    _sw = ctypes.windll.user32.GetSystemMetrics(0)
+    _sh = ctypes.windll.user32.GetSystemMetrics(1)
+except Exception:
+    _sw, _sh = 1280, 800
+
 window = webview.create_window(
     "EFKO FlowManager",
     html_path,
     js_api=api,
-    width=1700,
-    height=1200,
+    width=_sw,
+    height=_sh,
     min_size=(1000, 700),
     background_color="#F5F5F7",
     easy_drag=False,
@@ -166,11 +174,10 @@ api._window = window
 
 def _bring_to_front():
     import ctypes
-
     try:
         hwnd = ctypes.windll.user32.FindWindowW(None, "EFKO FlowManager")
         if hwnd:
-            ctypes.windll.user32.ShowWindow(hwnd, 9)
+            ctypes.windll.user32.ShowWindow(hwnd, 3)   # SW_MAXIMIZE
             ctypes.windll.user32.SetForegroundWindow(hwnd)
     except Exception:
         pass
