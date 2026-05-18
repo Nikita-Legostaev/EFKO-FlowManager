@@ -1,126 +1,64 @@
 """
-api_promodate.py — миксин промодаты: скачивание, обработка, стадии.
+api_production.py — миксин: производство и SKU-матчер.
 """
 
 import threading
-from app_config import _SV
-from promodate_functions import (
-    FILTER_OPTIONS,
-    download_files_thread,
-    process_files_thread,
-    refresh_power_query_files,
-    run_stage_query1,
-    run_stage_query2,
-    run_stage_macros,
-)
+from production_functions import run_production
+try:
+    from sku_matcher_functions import run_matching, save_to_reference
+except ImportError as _e:
+    def run_matching(*a, **kw): pass
+    def save_to_reference(*a, **kw): return 0
+    print(f"[WARN] sku_matcher_functions не загружен: {_e}")
 
 
 class ApiPromodateMixin:
 
-    def start_download(self, p):
-        self._stop_event.clear()
-
-        def _w():
-            download_files_thread(
-                _SV(p.get("month_from", "")),
-                _SV(p.get("year_from", "")),
-                _SV(p.get("month_to", "")),
-                _SV(p.get("year_to", "")),
-                self._log,
-                self._mb,
-                progress_callback=self._progress,
-                set_title=self._set_title,
-                date_from_str=p.get("date_from") or None,
-                date_to_str=p.get("date_to") or None,
-                dates_list=p.get("dates_list") or None,
-            )
-            self._emit("set_title", "")
-            self._emit("hide_progress")
-
-        threading.Thread(target=_w, daemon=True).start()
-        return True
-
-    def start_process(self, p):
-        self._stop_event.clear()
-
-        def _noop(*args, **kwargs):
-            pass
-
-        def _w():
-            process_files_thread(
-                _SV(p["output_folder"]),
-                _SV(p["category"]),
-                FILTER_OPTIONS,
-                self._log,
-                self._mb,
-                self._stop_event,
-                _noop,
-                _SV(p["pq_file1"]),
-                _SV(p["pq_file2"]),
-                _SV(p["macro1"]),
-                _SV(p["macro2"]),
-                progress_callback=self._progress,
-                set_title=self._set_title,
-            )
-            if self._stop_event.is_set():
-                self._emit("set_title", "")
-                self._emit("hide_progress")
-                return
-
-            refresh_power_query_files(
-                _SV(p["pq_file1"]),
-                _SV(p["pq_file2"]),
-                _SV(p["macro1"]),
-                _SV(p["macro2"]),
-                self._log,
-                self._stop_event,
-            )
-            self._emit("set_title", "")
-            self._emit("hide_progress")
-
-        threading.Thread(target=_w, daemon=True).start()
-        return True
-
-    def run_stage_q1(self, p):
+    def run_production(self, p):
         self._stop_event.clear()
         threading.Thread(
             target=lambda: (
-                run_stage_query1(
-                    _SV(p["pq_file1"]), self._log, self._stop_event, self._mb
-                ),
-                self._emit("set_title", ""),
-            ),
-            daemon=True,
-        ).start()
-        return True
-
-    def run_stage_q2(self, p):
-        self._stop_event.clear()
-        threading.Thread(
-            target=lambda: (
-                run_stage_query2(
-                    _SV(p["pq_file2"]), self._log, self._stop_event, self._mb
-                ),
-                self._emit("set_title", ""),
-            ),
-            daemon=True,
-        ).start()
-        return True
-
-    def run_stage_macros(self, p):
-        self._stop_event.clear()
-        threading.Thread(
-            target=lambda: (
-                run_stage_macros(
-                    _SV(p["pq_file2"]),
-                    _SV(p["macro1"]),
-                    _SV(p["macro2"]),
+                run_production(
+                    p.get("svod_folder", ""),
+                    p.get("npk_file", ""),
+                    p.get("tolyatti_folder", ""),
+                    p.get("target_file", ""),
+                    p.get("mapping_file", ""),
+                    p.get("month_str", ""),
+                    p.get("year", ""),
                     self._log,
-                    self._stop_event,
                     self._mb,
+                    self._stop_event,
                 ),
                 self._emit("set_title", ""),
             ),
             daemon=True,
         ).start()
         return True
+
+    def run_sku_matching(self, p):
+        def _prog(msg):
+            self._emit("sku_log", msg)
+
+        def _done(results, error=None, all_new_skus=None):
+            if error:
+                self._emit("sku_error", str(error))
+            else:
+                self._emit("sku_results", results)
+                if all_new_skus is not None:
+                    self._emit("sku_all_new", all_new_skus)
+
+        threading.Thread(
+            target=run_matching,
+            args=(p["ref_path"], p["csv_folder"], float(p["threshold"]), _prog, _done),
+            kwargs={"mode": p.get("mode", "ml")},
+            daemon=True,
+        ).start()
+        return True
+
+    def save_sku_results(self, p):
+        try:
+            count = save_to_reference(p["results"], p["ref_path"])
+            return {"success": True, "count": count}
+        except Exception as e:
+            return {"success": False, "error": str(e)}

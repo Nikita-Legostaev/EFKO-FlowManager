@@ -32,21 +32,22 @@ class ApiCompetitorsMixin:
 
     def run_nielsen(self, p):
         self._stop_event.clear()
-        threading.Thread(
-            target=lambda: (
-                process_nielsen(
-                    p["input_file"],
-                    p["output_dir"],
-                    p["format"],
-                    self._log,
-                    self._mb,
-                    self._stop_event,
-                    p["category"],
-                ),
-                self._emit("set_title", ""),
-            ),
-            daemon=True,
-        ).start()
+        def _w():
+            process_nielsen(
+                p["input_file"],
+                p["output_dir"],
+                p["format"],
+                self._log,
+                self._mb,
+                self._stop_event,
+                p["category"],
+                sprav_path=p.get("sprav_path") or None,
+                input_file2=p.get("input_file2") or None,
+                output_dir2=p.get("output_dir2") or None,
+                pq_file=p.get("pq_file") or None,
+            )
+            self._emit("set_title", "")
+        threading.Thread(target=_w, daemon=True).start()
         return True
 
     def run_query_refresh(self, p):

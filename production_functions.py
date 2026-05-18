@@ -411,7 +411,8 @@ def run_production(
         return
 
     log(f"Читаем СВОД: {os.path.basename(svod_file)}")
-    results, sheet_name = extract_month_data(svod_file)
+    sheet_index = max(0, int(month_str) - 1)
+    results, sheet_name = extract_month_data(svod_file, sheet_index=sheet_index)
     log(f"Извлечено {len(results)} строк из СВОД (лист: {sheet_name})")
 
     if stop_event.is_set():

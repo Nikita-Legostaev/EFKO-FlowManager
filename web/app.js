@@ -32,6 +32,7 @@ const S = {
   page: 'promodate', stage: 'all',
   skuAllResults: [], skuSelected: new Set(), skuRefPath: '',
   skuAllNew: [], skuActiveTab: 'match', skuNewSelected: new Set(),
+  skuMode: 'ml',
   pcLastOutput: '',
 };
 
@@ -79,9 +80,8 @@ window.addEventListener('pywebviewready', async () => {
   }
   const DATE_FIELDS = new Set(['month_from','month_to','year_from','year_to']);
   document.querySelectorAll('[data-field]').forEach(el => {
-    if (DATE_FIELDS.has(el.dataset.field)) return; // управляются из buildSelects
+    if (DATE_FIELDS.has(el.dataset.field)) return;
     el.addEventListener('change', autoSave);
-    el.addEventListener('input',  autoSave);
   });
   dlCalInit(cfg);
   navigate('promodate');
@@ -136,9 +136,12 @@ function buildSelects() {
 }
 
 function applyConfig(cfg) {
+  // Устанавливаем значения без триггера input-событий
   document.querySelectorAll('[data-field]').forEach(el => {
     const key = el.dataset.field;
-    if (cfg[key] !== undefined && cfg[key] !== null) el.value = cfg[key];
+    if (cfg[key] !== undefined && cfg[key] !== null && cfg[key] !== '') {
+      el.value = cfg[key];
+    }
   });
   // Восстанавливаем пути SKU Matcher
   if (cfg.sku_ref_path) {
@@ -243,8 +246,21 @@ function setStage(btn) {
 }
 
 // ── File pickers ──────────────────────────────────────────────────────────
+function clearField(btn) {
+  const row = btn.closest('.form-row');
+  if (!row) return;
+  const input = row.querySelector('.form-input[data-field]');
+  if (!input) return;
+  input.value = '';
+  autoSave();
+}
+
 async function pickFile(field) {
   const path = await pywebview.api.browse_file();
+  if (path) { const el = document.querySelector(`[data-field="${field}"]`); if(el){el.value=path;autoSave();} }
+}
+async function pickAnyFile(field) {
+  const path = await pywebview.api.browse_any_file();
   if (path) { const el = document.querySelector(`[data-field="${field}"]`); if(el){el.value=path;autoSave();} }
 }
 async function pickFolder(field) {
@@ -281,7 +297,7 @@ async function runAction() {
   } else if (S.page==='competitors') {
     await pywebview.api.run_competitors({olap_file:getField('olap_file'),competitors_file:getField('competitors_file')});
   } else if (S.page==='nielsen') {
-    await pywebview.api.run_nielsen({input_file:getField('nielsen_input'),output_dir:getField('nielsen_output'),format:getField('nielsen_format'),category:getField('nielsen_category')});
+    await pywebview.api.run_nielsen({input_file:getField('nielsen_input'),input_file2:getField('nielsen_input2'),output_dir:getField('nielsen_output'),output_dir2:getField('nielsen_output2'),format:getField('nielsen_format'),category:getField('nielsen_category'),sprav_path:getField('nielsen_sprav_path'),pq_file:getField('nielsen_pq_file')});
   } else if (S.page==='query_refresh') {
     await pywebview.api.run_query_refresh({file:getField('query_refresh_file')});
   } else if (S.page==='production') {
@@ -299,8 +315,11 @@ function stopAction() { pywebview.api.stop(); hideProgress(); }
 async function doDownload() {
   showProgress();
   await pywebview.api.start_download({
-    month_from:getField('month_from'),year_from:getField('year_from'),
-    month_to:getField('month_to'),year_to:getField('year_to'),
+    month_from:  getField('month_from'), year_from: getField('year_from'),
+    month_to:    getField('month_to'),   year_to:   getField('year_to'),
+    date_from:   _dlMode === 'multi' ? null : (_dlFrom ? _dateKey(_dlFrom) : null),
+    date_to:     _dlMode === 'multi' ? null : (_dlTo   ? _dateKey(_dlTo)   : null),
+    dates_list:  _dlMode === 'multi' ? [..._dlDates].sort() : null,
   });
 }
 function confirmClearDownloads() { if(confirm('Удалить все файлы из папки «Скаченное»?')) pywebview.api.clear_downloads(); }
@@ -425,6 +444,11 @@ function showToast(type,message){
 function openSkuMatcher()  { document.getElementById('sku-overlay').classList.add('open'); }
 function closeSkuMatcher() { document.getElementById('sku-overlay').classList.remove('open'); }
 function closeSkuIfBg(e)   { if(e.target===document.getElementById('sku-overlay')) closeSkuMatcher(); }
+function skuSetMode(mode) {
+  S.skuMode = mode;
+  document.getElementById('sku-mode-ml').classList.toggle('active', mode === 'ml');
+  document.getElementById('sku-mode-classic').classList.toggle('active', mode === 'classic');
+}
 async function skuPickRef() {
   const p=await pywebview.api.browse_file();
   if(p){document.getElementById('sku-ref-path').value=p;S.skuRefPath=p;skuPersistPaths();}
@@ -457,7 +481,7 @@ async function skuRun(){
   S.skuAllResults=[];S.skuSelected.clear();S.skuAllNew=[];S.skuNewSelected.clear();skuUpdateSel();
   skuUpdateTabCounts(0,0);
   skuSwitchTab('match');
-  await pywebview.api.run_sku_matching({ref_path:ref,csv_folder:folder,threshold:thresh});
+  await pywebview.api.run_sku_matching({ref_path:ref,csv_folder:folder,threshold:thresh,mode:S.skuMode});
 }
 function skuUnlock(){document.getElementById('sku-run-btn').textContent='▶ Запустить матчинг';document.getElementById('sku-run-btn').disabled=false;}
 function skuRenderResults(results){
@@ -520,7 +544,14 @@ function skuDisplayRows(rows){
   rows.forEach((r)=>{
     const gi=S.skuAllResults.indexOf(r);
     const conf=r['Уверенность'];
-    const cc=conf>=0.9?'high':conf>=0.7?'mid':'low';
+    const isAuto=!r['Совпало с'];  // авто-добавленные не имеют источника совпадения
+    let badge;
+    if(isAuto){
+      badge=`<span class="conf-badge conf-auto">авто</span>`;
+    } else {
+      const cc=conf>=0.9?'high':conf>=0.7?'mid':'low';
+      badge=`<span class="conf-badge conf-${cc}">${Math.round(conf*100)}%</span>`;
+    }
     const sel=S.skuSelected.has(gi);
     const tr=document.createElement('tr');tr.dataset.idx=gi;
     if(sel)tr.classList.add('selected');
@@ -528,7 +559,7 @@ function skuDisplayRows(rows){
       <td>${esc(r['Категория']||'')}</td><td>${esc(r['Бренд']||'')}</td>
       <td>${esc(r['Наименование SKU']||'')}</td><td>${esc(r['Совпало с']||'')}</td>
       <td>${esc(r['SKU скорр']||'')}</td>
-      <td style="text-align:center"><span class="conf-badge conf-${cc}">${Math.round(conf*100)}%</span></td>`;
+      <td style="text-align:center">${badge}</td>`;
     tr.addEventListener('click',()=>skuToggleRow(tr,gi));tbody.appendChild(tr);
   });
 }
@@ -1192,6 +1223,13 @@ function applyThemeFromConfig(cfg){
     dlSave();
   }
 
+  function _parseLocalDate(s) {
+    // "YYYY-MM-DD" → Date в локальном часовом поясе (не UTC)
+    if (!s) return null;
+    const [y, m, d] = s.split('-').map(Number);
+    return new Date(y, m - 1, d);
+  }
+
   function dlCalInit(cfg) {
     // Восстановить режим
     if (cfg.dl_mode) {
@@ -1207,13 +1245,12 @@ function applyThemeFromConfig(cfg){
     if (_dlMode === 'multi' && cfg.dates_list) {
       try { JSON.parse(cfg.dates_list).forEach(k => _dlDates.add(k)); } catch(e) {}
     }
-    // Restore from config if day-level dates saved
+    // Restore from config — парсим в локальном TZ, иначе UTC смещает дату
     if (cfg.date_from && cfg.date_to && _dlMode !== 'multi') {
-      _dlFrom = new Date(cfg.date_from);
-      _dlTo   = new Date(cfg.date_to);
+      _dlFrom = _parseLocalDate(cfg.date_from);
+      _dlTo   = _parseLocalDate(cfg.date_to);
       if (_dlFrom) { _dlViewYear = _dlFrom.getFullYear(); _dlViewMonth = _dlFrom.getMonth(); }
     } else if (_dlMode !== 'multi') {
-      // Default to current month
       const now = new Date();
       _dlFrom = new Date(now.getFullYear(), now.getMonth(), 1);
       _dlTo   = new Date(now.getFullYear(), now.getMonth()+1, 0);

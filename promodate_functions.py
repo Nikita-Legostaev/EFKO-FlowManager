@@ -5,7 +5,6 @@ from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import time
 import gc
-from tkinter import filedialog
 
 # Тяжёлые библиотеки импортируются лениво (внутри функций) — ускоряет запуск exe
 
@@ -62,8 +61,8 @@ FILTER_OPTIONS = {
     },
 }
 
-STATUS_SHEET = "Проверка_обновления"
-STATUS_CELL = "A2"
+
+
 
 
 # ── Логирование в файл ────────────────────────────────────────────────────────
@@ -114,12 +113,43 @@ def _max_workers() -> int:
     return min(6, os.cpu_count() or 4)
 
 
+def _excel_optimize(excel):
+    """
+    Отключает перерисовку, события и пересчёт формул.
+    Каждое свойство оборачиваем в try/except — Excel может отказать
+    если книга защищена или COM-объект в нестабильном состоянии.
+    """
+    try: excel.ScreenUpdating = False
+    except Exception: pass
+    try: excel.EnableEvents = False
+    except Exception: pass
+    try: excel.Calculation = -4135   # xlCalculationManual
+    except Exception: pass
+
+
+def _excel_restore(excel):
+    """Восстанавливает настройки Excel перед сохранением."""
+    try: excel.Calculation = -4105   # xlCalculationAutomatic
+    except Exception: pass
+    try: excel.ScreenUpdating = True
+    except Exception: pass
+    try: excel.EnableEvents = True
+    except Exception: pass
+
+
 # ── Скачивание ────────────────────────────────────────────────────────────────
 
 
 def _download_one(src, dst, log):
     filename = os.path.basename(src)
     try:
+        # Пропускаем если файл уже скачан и не изменился (по размеру + mtime)
+        if os.path.exists(dst):
+            src_stat = os.stat(src)
+            dst_stat = os.stat(dst)
+            if src_stat.st_size == dst_stat.st_size and src_stat.st_mtime <= dst_stat.st_mtime:
+                log(f"Пропущен (уже скачан): {filename}")
+                return True
         log(f"Начата загрузка: {filename}")
         shutil.copy2(src, dst)
         log(f"Загрузка завершена: {filename}")
@@ -254,12 +284,6 @@ def clear_download_folder(log, messagebox):
     log("Очистка завершена 🎉")
 
 
-def browse_output_folder(output_folder_var):
-    folder = filedialog.askdirectory()
-    if folder:
-        output_folder_var.set(folder)
-
-
 def clear_output_folder(output_folder_var, log, messagebox):
     """Удаляет все файлы из папки сохранения CSV."""
     folder = output_folder_var.get().strip()
@@ -299,10 +323,20 @@ def get_first_sheet_name(file_path):
 
 
 def process_file(file_path, output_folder, selected_filter, log):
-    """Фильтрует один Excel-файл и сохраняет CSV."""
+    """Фильтрует один Excel-файл и сохраняет CSV. Пропускает уже обработанные."""
     import polars as pl  # ленивый импорт
 
     filename = os.path.basename(file_path)
+    output_file = os.path.join(output_folder, os.path.splitext(filename)[0] + ".csv")
+
+    # Пропускаем если CSV уже существует и новее исходного xlsx
+    if os.path.exists(output_file):
+        src_mtime = os.path.getmtime(file_path)
+        dst_mtime = os.path.getmtime(output_file)
+        if dst_mtime >= src_mtime:
+            log(f"Пропущен (уже обработан): {filename}")
+            return True
+
     try:
         log(f"Обработка: {filename}")
 
@@ -327,9 +361,6 @@ def process_file(file_path, output_folder, selected_filter, log):
         df_filtered = df.filter(group_mask & df["retailer"].is_in(network_map))
 
         os.makedirs(output_folder, exist_ok=True)
-        output_file = os.path.join(
-            output_folder, os.path.splitext(filename)[0] + ".csv"
-        )
         df_filtered.write_csv(output_file, separator=",")
 
         log(f"Готово: {filename} | {df.height} → {df_filtered.height} строк")
@@ -414,8 +445,45 @@ def process_files_thread(
 # ── Power Query / Excel refresh ───────────────────────────────────────────────
 
 
+def _set_sync_refresh(wb, log):
+    """
+    Отключает фоновое обновление для всех Power Query соединений в книге.
+    После этого wb.RefreshAll() становится синхронным — блокирует поток
+    до полного завершения всех запросов, без polling и таймаутов.
+
+    Возвращает список (conn, original_value) для восстановления после сохранения.
+    """
+    saved = []
+    for conn in wb.Connections:
+        try:
+            if conn.Type == 1:  # xlConnectionTypeOLEDB — Power Query
+                oledb = conn.OLEDBConnection
+                saved.append((oledb, oledb.BackgroundQuery))
+                oledb.BackgroundQuery = False
+        except Exception:
+            # Некоторые системные соединения не дают доступ — пропускаем
+            pass
+    if saved:
+        log(f"  Синхронный режим: {len(saved)} PQ-соединений")
+    else:
+        log("  ⚠ PQ-соединений не найдено — RefreshAll() может быть асинхронным")
+    return saved
+
+
+def _restore_bg_refresh(saved):
+    """Восстанавливает BackgroundQuery после сохранения."""
+    for oledb, original in saved:
+        try:
+            oledb.BackgroundQuery = original
+        except Exception:
+            pass
+
+
 def refresh_file(file_path, log, stop_event):
-    """Обновляет Power Query в обычном .xlsx файле."""
+    """
+    Обновляет Power Query в обычном .xlsx файле.
+    Использует BackgroundQuery=False — синхронный RefreshAll() без polling.
+    """
     import pythoncom
     import win32com.client as win32
 
@@ -427,32 +495,25 @@ def refresh_file(file_path, log, stop_event):
         excel = win32.DispatchEx("Excel.Application")
         excel.Visible = False
         excel.DisplayAlerts = False
+        _excel_optimize(excel)
         wb = excel.Workbooks.Open(file_path)
 
-        before = wb.Worksheets[STATUS_SHEET].Range(STATUS_CELL).Value
-        log(f"{filename} — до: {before}")
-        wb.RefreshAll()
-        log(f"{filename} — RefreshAll запущен...")
+        saved = _set_sync_refresh(wb, log)
 
-        timeout = 0
-        while timeout < 450:
-            if stop_event.is_set():
-                log(f"{filename} — остановлено пользователем")
-                return False
-            time.sleep(2)
-            excel.Calculate()
-            after = wb.Worksheets[STATUS_SHEET].Range(STATUS_CELL).Value
-            if after is not None and after != before:
-                log(f"{filename} — обновлено: {after}")
-                break
-            timeout += 1
-        else:
-            log(f"{filename} — тайм-аут ожидания")
+        if stop_event.is_set():
+            log(f"{filename} — остановлено до обновления")
+            return False
+
+        log(f"{filename} — RefreshAll() запущен (синхронно)...")
+        wb.RefreshAll()
+        log(f"{filename} — обновление завершено ✅")
 
         if stop_event.is_set():
             log(f"{filename} — остановлено до сохранения")
             return False
 
+        _restore_bg_refresh(saved)
+        _excel_restore(excel)
         wb.Save()
         log(f"{filename} — сохранён ✅")
         return True
@@ -494,6 +555,7 @@ def _excel_session(log, func):
         excel.Visible = False
         excel.DisplayAlerts = False
         excel.AutomationSecurity = 1
+        _excel_optimize(excel)
         pid = _get_excel_pid(excel)
         return func(excel)
     except Exception:
@@ -518,7 +580,7 @@ def _excel_session(log, func):
 
 
 def _refresh_xlsm_query(file_path, log, stop_event):
-    """Сеанс 1: открыть .xlsm, обновить Power Query, сохранить, закрыть."""
+    """Сеанс 1: открыть .xlsm, обновить Power Query синхронно, сохранить, закрыть."""
     filename = os.path.basename(file_path)
 
     def _run(excel):
@@ -526,50 +588,28 @@ def _refresh_xlsm_query(file_path, log, stop_event):
         try:
             wb = excel.Workbooks.Open(file_path, UpdateLinks=0, ReadOnly=False)
 
-            before = None
-            try:
-                before = wb.Worksheets[STATUS_SHEET].Range(STATUS_CELL).Value
-                log(f"{filename} — до обновления: {before}")
-            except Exception:
-                log(f"{filename} — лист «{STATUS_SHEET}» не найден, ждём по таймауту")
+            saved = _set_sync_refresh(wb, log)
+
+            if stop_event.is_set():
+                log(f"{filename} — остановлено до обновления")
+                return False
 
             try:
-                wb.RefreshAll()
+                wb.RefreshAll()  # синхронный — ждём завершения всех PQ
             except Exception as e:
                 log(f"{filename} — RefreshAll ошибка (продолжаем): {e}")
-            log(f"{filename} — RefreshAll запущен...")
 
-            time.sleep(5)
-
-            timeout = 0
-            while timeout < 450:
-                if stop_event.is_set():
-                    log(f"{filename} — остановлено пользователем")
-                    return False
-                time.sleep(2)
-                try:
-                    excel.Calculate()
-                except Exception:
-                    timeout += 1
-                    continue
-                if before is not None:
-                    try:
-                        after = wb.Worksheets[STATUS_SHEET].Range(STATUS_CELL).Value
-                        if after is not None and after != before:
-                            log(f"{filename} — Power Query обновлён: {after}")
-                            break
-                    except Exception:
-                        pass
-                timeout += 1
-            else:
-                log(f"{filename} — тайм-аут ожидания Power Query")
+            log(f"{filename} — Power Query обновлён ✅")
 
             if stop_event.is_set():
                 log(f"{filename} — остановлено до сохранения")
                 return False
 
+            _restore_bg_refresh(saved)
+
             time.sleep(3)
             try:
+                _excel_restore(excel)
                 wb.Save()
             except Exception as e:
                 log(f"{filename} — ошибка сохранения: {e}")
@@ -624,6 +664,7 @@ def _run_xlsm_macros(file_path, macro_names, log, stop_event):
                 log(f"{filename} — остановлено до сохранения")
                 return False
 
+            _excel_restore(excel)
             wb.Save()
             log(f"{filename} — сохранён после макросов ✅")
             return True
@@ -731,14 +772,11 @@ def refresh_power_query_files(
 
 
 def run_stage_query1(pq_file1_var, log, stop_event, messagebox=None):
-    """Только обновление файла 1 (xlsx)."""
+    """Только обновление файла 1 (xlsx). Если не задан — пропускает."""
     file1 = pq_file1_var.get() if hasattr(pq_file1_var, "get") else str(pq_file1_var)
     if not file1 or not os.path.isfile(file1):
-        msg = "⚠️ Power Query файл 1 не выбран или не существует"
-        log(msg)
-        if messagebox:
-            messagebox.showwarning("Ошибка", msg)
-        return False
+        log("⏭ Power Query файл 1 не указан — шаг пропущен")
+        return True
     log("▶ Стадия: Обновление Query 1...")
     ok = refresh_file(file1, log, stop_event)
     if ok:
@@ -747,14 +785,11 @@ def run_stage_query1(pq_file1_var, log, stop_event, messagebox=None):
 
 
 def run_stage_query2(pq_file2_var, log, stop_event, messagebox=None):
-    """Только обновление Power Query файла 2 (xlsm), без макросов."""
+    """Только обновление Power Query файла 2 (xlsm), без макросов. Если не задан — пропускает."""
     file2 = pq_file2_var.get() if hasattr(pq_file2_var, "get") else str(pq_file2_var)
     if not file2 or not os.path.isfile(file2):
-        msg = "⚠️ Power Query файл 2 не выбран или не существует"
-        log(msg)
-        if messagebox:
-            messagebox.showwarning("Ошибка", msg)
-        return False
+        log("⏭ Power Query файл 2 не указан — шаг пропущен")
+        return True
     log("▶ Стадия: Обновление Query 2 (xlsm)...")
     ok = _refresh_xlsm_query(file2, log, stop_event)
     if ok:
@@ -765,14 +800,11 @@ def run_stage_query2(pq_file2_var, log, stop_event, messagebox=None):
 def run_stage_macros(
     pq_file2_var, macro1_name, macro2_name, log, stop_event, messagebox=None
 ):
-    """Только запуск макросов файла 2 (xlsm), без обновления PQ."""
+    """Только запуск макросов файла 2 (xlsm). Если файл или имена не заданы — пропускает."""
     file2 = pq_file2_var.get() if hasattr(pq_file2_var, "get") else str(pq_file2_var)
     if not file2 or not os.path.isfile(file2):
-        msg = "⚠️ Power Query файл 2 не выбран или не существует"
-        log(msg)
-        if messagebox:
-            messagebox.showwarning("Ошибка", msg)
-        return False
+        log("⏭ Файл макросов (xlsm) не указан — шаг пропущен")
+        return True
 
     m1 = (
         macro1_name.get().strip()
@@ -787,10 +819,8 @@ def run_stage_macros(
     macro_names = [m for m in [m1, m2] if m]
 
     if not macro_names:
-        log("⚠️ Имена макросов не заданы — нечего запускать")
-        if messagebox:
-            messagebox.showwarning("Ошибка", "Укажите имена макросов в полях выше")
-        return False
+        log("⏭ Имена макросов не заданы — шаг пропущен")
+        return True
 
     log(f"▶ Стадия: Запуск макросов ({', '.join(macro_names)})...")
     ok = _run_xlsm_macros(file2, macro_names, log, stop_event)
