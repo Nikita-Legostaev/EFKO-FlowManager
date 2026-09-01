@@ -59,12 +59,11 @@ class ApiOosMixin:
         return self.open_folder(folder)
 
     def scan_ketchup_folder(self, folder):
-        """Возвращает {роль: имя_файла|None} для предпросмотра на фронте."""
-        from services.oos_ketchup import find_ketchup_files, _ROLE_LABELS
+        """Возвращает список имён xlsx-файлов кубов в папке — для предпросмотра на фронте."""
+        from services.oos_ketchup import find_ketchup_files
         if not folder:
-            return {}
-        found = find_ketchup_files(folder)
-        return {_ROLE_LABELS[role]: (p.name if p else None) for role, p in found.items()}
+            return []
+        return [p.name for p in find_ketchup_files(folder)]
 
     def run_oos_ketchup(self, p):
         """

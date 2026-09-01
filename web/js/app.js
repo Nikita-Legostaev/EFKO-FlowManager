@@ -238,14 +238,13 @@ async function oosKetchupPickFolder() {
   oosKetchupRenderScan(scan);
 }
 
-function oosKetchupRenderScan(scan) {
+function oosKetchupRenderScan(files) {
   const el = document.getElementById('oos-ketchup-scan');
   if (!el) return;
-  const entries = Object.entries(scan || {});
-  if (!entries.length) { el.textContent = ''; return; }
-  el.innerHTML = entries.map(([role, name]) =>
-    name ? `✅ ${role}: ${name}` : `⚠️ ${role}: не найден`
-  ).join('<br>');
+  files = files || [];
+  if (!files.length) { el.textContent = ''; return; }
+  el.innerHTML = `Найдено файлов кубов: ${files.length}<br>` +
+    files.map(name => `📄 ${name}`).join('<br>');
 }
 
 function oosKetchupSaveNeed2026() {
