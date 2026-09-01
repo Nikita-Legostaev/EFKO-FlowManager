@@ -245,8 +245,9 @@ body.dark .nav-item.active { box-shadow: 0 3px 12px -3px rgba(var(--green-rgb),.
 }
 /* Призрачный вотермарк — задаётся через data-ghost="…" на самом .page-hero */
 .page-hero::after {
-  content: attr(data-ghost); position: absolute; right: -6px; top: 50%; transform: translateY(-50%);
-  font-size: 96px; font-weight: 800; line-height: 1; letter-spacing: -3px;
+  content: attr(data-ghost); position: absolute; right: 22px; top: 50%; transform: translateY(-50%);
+  font-size: 52px; font-weight: 800; line-height: 1; letter-spacing: -.5px;
+  white-space: nowrap; max-width: calc(100% - 44px);
   color: transparent; -webkit-text-stroke: 1.5px var(--border2);
   user-select: none; pointer-events: none; z-index: 0;
 }
@@ -262,7 +263,8 @@ body.dark .nav-item.active { box-shadow: 0 3px 12px -3px rgba(var(--green-rgb),.
   background: linear-gradient(180deg, var(--text) 0%, var(--text) 45%, var(--text3) 100%);
   -webkit-background-clip: text; background-clip: text; color: transparent; width: fit-content;
 }
-.page-hero-sub { font-size: 12px; color: var(--text2); margin-top: 3px; position: relative; z-index: 1; }
+.page-hero-text { display: flex; flex-direction: column; gap: 6px; position: relative; z-index: 1; }
+.page-hero-sub { font-size: 12px; color: var(--text2); line-height: 1.5; position: relative; z-index: 1; }
 .page-hero-layout { margin-left: auto; display: flex; gap: 4px; position: relative; z-index: 1; }
 .layout-btn {
   width: 32px; height: 32px; border-radius: 9px; border: 1px solid var(--border2);
@@ -778,3 +780,28 @@ body.dark .sched-cal-month.in-range { background:var(--green-muted);color:var(--
 }
 .cal-preset:hover { background:var(--green-muted);border-color:var(--green);color:var(--green-dark) }
 body.dark .cal-day.in-range { background:var(--green-muted);color:var(--green) }
+
+/* ── Фильтр по торговым сетям ────────────────────────────────────────────── */
+.network-filter-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 14px; cursor: pointer; user-select: none;
+  transition: background .12s, border-color .12s, transform .12s;
+}
+.network-filter-item:hover { background: var(--surface); border-color: var(--border2); transform: translateY(-1px); }
+.network-filter-item .net-chk { flex-shrink: 0; width: 15px; height: 15px; accent-color: var(--green); cursor: pointer; }
+.net-swatch { width: 26px; height: 26px; border-radius: 8px; flex-shrink: 0; box-shadow: 0 2px 6px -2px rgba(0,0,0,.25); }
+.net-tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.net-name { font-size: 12.5px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.net-domain { font-size: 10.5px; color: var(--text3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.net-icon-btn {
+  width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0; border: 1px solid var(--border2);
+  background: var(--surface); color: var(--text3); font-size: 11px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+  transition: background .12s, color .12s;
+}
+.net-icon-btn:hover { background: var(--green-muted); color: var(--green-dark); border-color: transparent; }
+.net-icon-btn-play {
+  background: var(--green); color: #fff; border-color: transparent; font-size: 9px; padding-left: 1px;
+}
+.net-icon-btn-play:hover { background: var(--green-hover); color: #fff; }

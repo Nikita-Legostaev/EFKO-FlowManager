@@ -767,6 +767,16 @@ function _updateNetworksBtnLabel() {
   if (count) count.textContent = `Выбрано ${checked.length} из ${checks.length} сетей`;
 }
 
+const NET_SWATCH_COLORS = ['#C93B7A','#33A868','#0A56C4','#B5680A','#6B3FA0','#0A8A82','#C93B2C','#3A7BD5'];
+function _netColor(name) {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+  return NET_SWATCH_COLORS[h % NET_SWATCH_COLORS.length];
+}
+function _netSlug(name) {
+  return name.toLowerCase().replace(/[^a-zа-яё0-9]+/gi, '');
+}
+
 async function loadNetworks() {
   const btn = document.getElementById('load-networks-btn');
   if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
@@ -776,19 +786,47 @@ async function loadNetworks() {
     if (!container) return;
     container.innerHTML = '';
     nets.forEach(n => {
-      const label = document.createElement('label');
-      label.className = 'network-filter-item';
-      label.dataset.name = n.toLowerCase();
-      label.style.cssText = 'display:flex;align-items:center;gap:6px;padding:6px 10px;background:var(--input-bg);border-radius:6px;cursor:pointer;font-size:13px;user-select:none';
+      const row = document.createElement('label');
+      row.className = 'network-filter-item';
+      row.dataset.name = n.toLowerCase();
+
       const chk = document.createElement('input');
       chk.type = 'checkbox';
       chk.className = 'net-chk';
       chk.value = n;
       chk.checked = true;
       chk.onchange = _updateNetworksBtnLabel;
-      label.appendChild(chk);
-      label.appendChild(document.createTextNode(n));
-      container.appendChild(label);
+      row.appendChild(chk);
+
+      const sw = document.createElement('span');
+      sw.className = 'net-swatch';
+      sw.style.background = _netColor(n);
+      row.appendChild(sw);
+
+      const tx = document.createElement('span');
+      tx.className = 'net-tx';
+      tx.innerHTML = `<span class="net-name">${n}</span><span class="net-domain">${_netSlug(n)}.csv</span>`;
+      row.appendChild(tx);
+
+      const infoBtn = document.createElement('button');
+      infoBtn.type = 'button'; infoBtn.className = 'net-icon-btn';
+      infoBtn.title = `Сеть «${n}» — CSV сохраняется как ${_netSlug(n)}.csv`;
+      infoBtn.textContent = '?';
+      infoBtn.onclick = e => e.preventDefault();
+      row.appendChild(infoBtn);
+
+      const playBtn = document.createElement('button');
+      playBtn.type = 'button'; playBtn.className = 'net-icon-btn net-icon-btn-play';
+      playBtn.title = `Оставить только «${n}»`;
+      playBtn.textContent = '▶';
+      playBtn.onclick = e => {
+        e.preventDefault();
+        document.querySelectorAll('#network-filter-list .net-chk').forEach(c => { c.checked = (c.value === n); });
+        _updateNetworksBtnLabel();
+      };
+      row.appendChild(playBtn);
+
+      container.appendChild(row);
     });
     _updateNetworksBtnLabel();
   } catch(e) {
