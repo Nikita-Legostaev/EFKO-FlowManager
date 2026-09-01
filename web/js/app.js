@@ -86,6 +86,8 @@ window.addEventListener('pywebviewready', async () => {
   });
   dlCalInit(cfg);
   syncPromoModeUI(cfg.promodata_mode || 'co');
+  PAGE_PROFILES = (cfg.page_profiles && Object.keys(cfg.page_profiles).length) ? cfg.page_profiles : {};
+  pageProfilesInitAll();
   navigate('promodate');
   schedLoad();
   _hideSplash();
@@ -173,6 +175,7 @@ function applyConfig(cfg) {
 
 function autoSave() {
   pywebview.api.save_config(collectFormConfig());
+  pageProfileSyncActive(S.page);
 }
 
 function collectFormConfig() {
@@ -207,6 +210,7 @@ async function oosPickFile(inputId, fieldKey) {
   const cfg = collectFormConfig();
   cfg[fieldKey] = path;
   pywebview.api.save_config(cfg);
+  pageProfileSyncActive(S.page);
   S[fieldKey] = path;
 }
 
@@ -238,6 +242,7 @@ async function oosKetchupPickFolder() {
   const cfg = collectFormConfig();
   cfg.oos_ketchup_folder = path;
   pywebview.api.save_config(cfg);
+  pageProfileSyncActive(S.page);
   await oosKetchupRescan();
 }
 
@@ -268,6 +273,7 @@ function oosKetchupSaveNeed2026() {
   const cfg = collectFormConfig();
   cfg.oos_ketchup_need_2026 = checked ? '1' : '';
   pywebview.api.save_config(cfg);
+  pageProfileSyncActive(S.page);
 }
 
 async function oosKetchupPickReportFile(inputId, fieldKey) {
@@ -321,6 +327,216 @@ function _refreshUpdateOpenBtn() {
 function refreshOpenFile() {
   const f = _refreshLastFile[S.page];
   if (f) pywebview.api.open_file(f);
+}
+
+// ── Page profiles («под-страницы» 1/2/3 с разными наборами данных) ────────
+// Каждая вкладка может хранить несколько именованных наборов значений всех
+// [data-field]/чекбоксов внутри своей #pane-<page>. Переключение наборов не
+// стирает предыдущие — они остаются сохранёнными в cfg.page_profiles.
+let PAGE_PROFILES = {};
+const DEFAULT_PROFILE_NAME = 'Основной';
+
+const PAGE_PROFILE_CUSTOM = {
+  oos: {
+    capture: () => ({ category: _oosCategory }),
+    apply: (data) => {
+      if (!data || !data.category) return;
+      const btn = document.getElementById(data.category === 'Кетчуп' ? 'oos-cat-ketchup' : 'oos-cat-mayo');
+      if (btn) oosSetCategory(data.category, btn);
+    },
+  },
+};
+
+function pageProfileCapture(page) {
+  const scope = document.getElementById('pane-' + page);
+  const out = {};
+  if (scope) {
+    scope.querySelectorAll('[data-field]').forEach(el => {
+      out['df:' + el.dataset.field] = (el.type === 'checkbox') ? el.checked : el.value;
+    });
+    scope.querySelectorAll('input[type="checkbox"]:not([data-field])[id]').forEach(el => {
+      out['id:' + el.id] = el.checked;
+    });
+  }
+  const custom = PAGE_PROFILE_CUSTOM[page];
+  if (custom && custom.capture) out.__custom = custom.capture();
+  return out;
+}
+
+function pageProfileApply(page, snapshot) {
+  const scope = document.getElementById('pane-' + page);
+  snapshot = snapshot || {};
+  if (scope) {
+    // Всегда сбрасываем поля на значение из набора (или на пусто, если в
+    // наборе его нет) — иначе при переключении на новый пустой набор
+    // остались бы значения от предыдущего.
+    scope.querySelectorAll('[data-field]').forEach(el => {
+      const v = snapshot['df:' + el.dataset.field];
+      if (el.type === 'checkbox') el.checked = !!v;
+      else el.value = (v !== undefined && v !== null) ? v : '';
+    });
+    scope.querySelectorAll('input[type="checkbox"]:not([data-field])[id]').forEach(el => {
+      el.checked = !!snapshot['id:' + el.id];
+    });
+  }
+  const custom = PAGE_PROFILE_CUSTOM[page];
+  if (custom && custom.apply) custom.apply(snapshot.__custom);
+  pageProfilePostApply(page);
+}
+
+function pageProfilePostApply(page) {
+  if (page === 'promodate') {
+    syncPromoModeUI(getField('promodata_mode') || 'co');
+    const thr = getField('pc_threshold');
+    const lbl = document.getElementById('pc-thresh-val');
+    if (thr && lbl) lbl.textContent = parseFloat(thr).toFixed(2);
+  }
+  if (page === 'oos' && typeof oosKetchupRescan === 'function') {
+    const cb = document.getElementById('oos-ketchup-need-2026');
+    const row = document.getElementById('oos-ketchup-2026-row');
+    if (cb && row) row.style.opacity = cb.checked ? '1' : '.4';
+    oosKetchupRescan();
+  }
+}
+
+function pageProfileStore(page) {
+  let store = PAGE_PROFILES[page];
+  if (!store || !store.profiles || !Object.keys(store.profiles).length) {
+    store = { active: DEFAULT_PROFILE_NAME, profiles: {} };
+    store.profiles[DEFAULT_PROFILE_NAME] = pageProfileCapture(page);
+    PAGE_PROFILES[page] = store;
+  }
+  if (!store.profiles[store.active]) store.active = Object.keys(store.profiles)[0];
+  return store;
+}
+
+function pageProfilesPersist() {
+  pywebview.api.save_config({ page_profiles: PAGE_PROFILES });
+}
+
+function pageProfileSyncActive(page) {
+  const store = PAGE_PROFILES[page];
+  if (!store) return;
+  store.profiles[store.active] = pageProfileCapture(page);
+  pageProfilesPersist();
+}
+
+function ensureProfileBar(page) {
+  const pane = document.getElementById('pane-' + page);
+  if (!pane) return null;
+  let bar = pane.querySelector(':scope > .page-profile-bar');
+  if (!bar) {
+    bar = document.createElement('div');
+    bar.className = 'page-profile-bar';
+    bar.id = 'profile-bar-' + page;
+    pane.insertBefore(bar, pane.firstChild);
+  }
+  return bar;
+}
+
+function renderProfileBar(page) {
+  const bar = ensureProfileBar(page);
+  if (!bar) return;
+  const store = pageProfileStore(page);
+  bar.innerHTML = '';
+
+  const label = document.createElement('span');
+  label.className = 'profile-bar-label';
+  label.textContent = 'Набор данных:';
+  bar.appendChild(label);
+
+  Object.keys(store.profiles).forEach(name => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'profile-chip' + (name === store.active ? ' active' : '');
+    btn.textContent = name;
+    btn.title = `Переключиться на «${name}»`;
+    btn.addEventListener('click', () => pageProfileSwitch(page, name));
+    bar.appendChild(btn);
+  });
+
+  const addBtn = document.createElement('button');
+  addBtn.type = 'button';
+  addBtn.className = 'profile-chip profile-chip-add';
+  addBtn.textContent = '+ Добавить';
+  addBtn.title = 'Новый набор данных (старые не удаляются)';
+  addBtn.addEventListener('click', () => pageProfileAdd(page));
+  bar.appendChild(addBtn);
+
+  const renBtn = document.createElement('button');
+  renBtn.type = 'button';
+  renBtn.className = 'profile-chip profile-chip-icon';
+  renBtn.textContent = '✎';
+  renBtn.title = 'Переименовать текущий набор';
+  renBtn.addEventListener('click', () => pageProfileRename(page));
+  bar.appendChild(renBtn);
+
+  if (Object.keys(store.profiles).length > 1) {
+    const delBtn = document.createElement('button');
+    delBtn.type = 'button';
+    delBtn.className = 'profile-chip profile-chip-icon profile-chip-del';
+    delBtn.textContent = '🗑';
+    delBtn.title = 'Удалить текущий набор';
+    delBtn.addEventListener('click', () => pageProfileDelete(page));
+    bar.appendChild(delBtn);
+  }
+}
+
+function pageProfileSwitch(page, name) {
+  const store = pageProfileStore(page);
+  if (name === store.active) return;
+  store.profiles[store.active] = pageProfileCapture(page);
+  store.active = name;
+  pageProfileApply(page, store.profiles[name]);
+  renderProfileBar(page);
+  pageProfilesPersist();
+}
+
+function pageProfileAdd(page) {
+  const name = (prompt('Название нового набора данных:') || '').trim();
+  if (!name) return;
+  const store = pageProfileStore(page);
+  if (store.profiles[name]) { showToast('warning', 'Набор с таким названием уже есть'); return; }
+  store.profiles[store.active] = pageProfileCapture(page);
+  store.profiles[name] = {};
+  store.active = name;
+  pageProfileApply(page, {});
+  renderProfileBar(page);
+  pageProfilesPersist();
+  showToast('success', `Создан набор «${name}» — заполните поля новыми данными`);
+}
+
+function pageProfileRename(page) {
+  const store = pageProfileStore(page);
+  const oldName = store.active;
+  const newName = (prompt('Новое название набора:', oldName) || '').trim();
+  if (!newName || newName === oldName) return;
+  if (store.profiles[newName]) { showToast('warning', 'Набор с таким названием уже есть'); return; }
+  store.profiles[newName] = store.profiles[oldName];
+  delete store.profiles[oldName];
+  store.active = newName;
+  renderProfileBar(page);
+  pageProfilesPersist();
+}
+
+function pageProfileDelete(page) {
+  const store = pageProfileStore(page);
+  const names = Object.keys(store.profiles);
+  if (names.length <= 1) return;
+  if (!confirm(`Удалить набор «${store.active}»? Данные в нём будут потеряны.`)) return;
+  delete store.profiles[store.active];
+  store.active = Object.keys(store.profiles)[0];
+  pageProfileApply(page, store.profiles[store.active]);
+  renderProfileBar(page);
+  pageProfilesPersist();
+}
+
+function pageProfilesInitAll() {
+  document.querySelectorAll('.pane[id^="pane-"]').forEach(pane => {
+    const page = pane.id.replace('pane-', '');
+    pageProfileStore(page);
+    renderProfileBar(page);
+  });
 }
 
 // ── Navigation ────────────────────────────────────────────────────────────
@@ -1448,6 +1664,7 @@ function applyThemeFromConfig(cfg){
       cfg.date_from = sorted[0] || null;
       cfg.date_to   = sorted[sorted.length - 1] || null;
       pywebview.api.save_config(cfg);
+      pageProfileSyncActive('promodate');
       return;
     }
     if (!_dlFrom || !_dlTo) return;
@@ -1462,6 +1679,7 @@ function applyThemeFromConfig(cfg){
     cfg.date_to   = _dateKey(_dlTo);
     cfg.dates_list = null;
     pywebview.api.save_config(cfg);
+    pageProfileSyncActive('promodate');
   }
 
   function dlPreset(p) {

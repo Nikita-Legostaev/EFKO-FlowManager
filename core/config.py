@@ -65,6 +65,8 @@ def load_config() -> dict:
         "msb_file1": "",
         "msb_file2": "",
         "msb_file3": "",
+        # ── Именованные наборы данных на вкладках («под-страницы» 1/2/3) ──
+        "page_profiles": {},
         "dark_theme": False,
         "sku_ref_path": "",
         "sku_csv_folder": "",
