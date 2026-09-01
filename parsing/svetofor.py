@@ -111,7 +111,7 @@ def load_regions():
         m = RE_REGION.match(path)
         if not m:
             continue
-        okrug_code, slug = m.group(1), m.group(2)
+        okrug_code, _slug = m.group(1), m.group(2)
         if okrug_code not in OKRUG_NAMES:
             continue
         # Страница самого округа: /shops/szfo.html — сюда не попадает,

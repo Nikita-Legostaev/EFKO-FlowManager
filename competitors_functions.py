@@ -1,6 +1,5 @@
 # competitors_functions.py
 import os
-import time
 import gc
 
 def _excel_optimize(excel):

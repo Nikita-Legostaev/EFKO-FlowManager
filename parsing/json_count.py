@@ -17,7 +17,11 @@
     DaData:  https://dadata.ru/
 """
 
-import json, time, os, re, sys
+import json
+import time
+import os
+import re
+import sys
 import pandas as pd
 import requests as req
 from geopy.geocoders import Nominatim

@@ -14,7 +14,9 @@ Antibot Cloud обходится через playwright-stealth.
     python dobrocen_parser.py
 """
 
-import re, sys, asyncio
+import re
+import sys
+import asyncio
 from collections import Counter, defaultdict
 from itertools import groupby
 
