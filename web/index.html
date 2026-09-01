@@ -39,6 +39,15 @@
       <button class="nav-item" data-page="oos">
         <span class="nav-icon">📉</span> Отчёт без OOS
       </button>
+      <button class="nav-item" data-page="dist_competitors">
+        <span class="nav-icon">📦</span> Дистрибуция конкурентов
+      </button>
+      <button class="nav-item" data-page="market_share_territory">
+        <span class="nav-icon">🗺️</span> Доли рынка (территории)
+      </button>
+      <button class="nav-item" data-page="market_share_brands">
+        <span class="nav-icon">🏷️</span> Доли рынка брендов
+      </button>
 
     </div>
     <div class="sb-footer">
@@ -564,6 +573,81 @@
         </div><!-- /oos-ketchup-fields -->
       </div><!-- /pane-oos -->
 
+      <!-- ══════════════════════════════════════════════════════
+           ДИСТРИБУЦИЯ КОНКУРЕНТОВ
+      ═══════════════════════════════════════════════════════ -->
+      <div class="pane" id="pane-dist_competitors">
+        <div class="card">
+          <div class="card-section">
+            <span class="card-section-icon">🔄</span>
+            <span class="card-section-title">Отчёт по дистрибуции основных конкурентов</span>
+          </div>
+          <div class="card-body">
+            <div class="form-row">
+              <label class="form-label">Excel файл:</label>
+              <input class="form-input" type="text" readonly id="dist-competitors-file" data-field="dist_competitors_file"
+                     placeholder="Отчёт по дистрибуции основных конкурентов.xlsx">
+              <button class="form-btn-pick" onclick="pickFile('dist_competitors_file')">Выбрать</button>
+              <button class="form-btn-clear" onclick="clearField(this)" title="Очистить">✕</button>
+            </div>
+          </div>
+        </div>
+      </div><!-- /pane-dist_competitors -->
+
+      <!-- ══════════════════════════════════════════════════════
+           ДОЛИ РЫНКА ПРОИЗВОДИТЕЛЕЙ И ТМ ПО ТЕРРИТОРИЯМ
+      ═══════════════════════════════════════════════════════ -->
+      <div class="pane" id="pane-market_share_territory">
+        <div class="card">
+          <div class="card-section">
+            <span class="card-section-icon">🔄</span>
+            <span class="card-section-title">Отчёт по динамике долей рынка основных производителей и ТМ в разрезе территорий</span>
+          </div>
+          <div class="card-body">
+            <div class="form-row">
+              <label class="form-label">Excel файл:</label>
+              <input class="form-input" type="text" readonly id="market-share-territory-file" data-field="market_share_territory_file"
+                     placeholder="Отчёт по динамике долей рынка производителей и ТМ по территориям.xlsx">
+              <button class="form-btn-pick" onclick="pickFile('market_share_territory_file')">Выбрать</button>
+              <button class="form-btn-clear" onclick="clearField(this)" title="Очистить">✕</button>
+            </div>
+          </div>
+        </div>
+      </div><!-- /pane-market_share_territory -->
+
+      <!-- ══════════════════════════════════════════════════════
+           ДОЛИ РЫНКА БРЕНДОВ КОМПАНИИ ПО ТЕРРИТОРИЯМ
+      ═══════════════════════════════════════════════════════ -->
+      <div class="pane" id="pane-market_share_brands">
+        <div class="card">
+          <div class="card-section">
+            <span class="card-section-icon">🔄</span>
+            <span class="card-section-title">Отчёт по динамике долей рынка брендов Компании в разрезе территорий</span>
+            <span style="margin-left:8px;font-size:11px;color:var(--text3)">(файл 1 и файл 2 обновляются первыми, затем — файл 3)</span>
+          </div>
+          <div class="card-body">
+            <div class="form-row">
+              <label class="form-label" style="min-width:70px">Файл 1:</label>
+              <input class="form-input" type="text" readonly id="msb-file1" data-field="msb_file1" placeholder="Первый исходный файл…">
+              <button class="form-btn-pick" onclick="pickFile('msb_file1')">Выбрать</button>
+              <button class="form-btn-clear" onclick="clearField(this)" title="Очистить">✕</button>
+            </div>
+            <div class="form-row">
+              <label class="form-label" style="min-width:70px">Файл 2:</label>
+              <input class="form-input" type="text" readonly id="msb-file2" data-field="msb_file2" placeholder="Второй исходный файл…">
+              <button class="form-btn-pick" onclick="pickFile('msb_file2')">Выбрать</button>
+              <button class="form-btn-clear" onclick="clearField(this)" title="Очистить">✕</button>
+            </div>
+            <div class="form-row">
+              <label class="form-label" style="min-width:70px">Файл 3:</label>
+              <input class="form-input" type="text" readonly id="msb-file3" data-field="msb_file3" placeholder="Итоговый файл (обновляется после 1 и 2)…">
+              <button class="form-btn-pick" onclick="pickFile('msb_file3')">Выбрать</button>
+              <button class="form-btn-clear" onclick="clearField(this)" title="Очистить">✕</button>
+            </div>
+          </div>
+        </div>
+      </div><!-- /pane-market_share_brands -->
+
       <!-- ── LOG ── -->
       <div class="card" id="log-card">
         <div class="log-header">
@@ -617,6 +701,12 @@
         <div class="action-spacer"></div>
         <button class="btn btn-ghost" id="oos-open-btn" style="display:none" onclick="oosOpenFolder()">📁 Открыть папку</button>
         <button class="btn btn-primary" onclick="oosRunAll()">▶ Запустить</button>
+        <button class="btn btn-danger"  onclick="stopAction()">■ Стоп</button>
+      </div>
+      <div id="bar-refresh" class="bar-group" style="display:none;align-items:center;gap:8px;width:100%">
+        <div class="action-spacer"></div>
+        <button class="btn btn-ghost" id="refresh-open-btn" style="display:none" onclick="refreshOpenFile()">📂 Открыть файл</button>
+        <button class="btn btn-primary" onclick="runAction()">▶ Запустить</button>
         <button class="btn btn-danger"  onclick="stopAction()">■ Стоп</button>
       </div>
     </div>

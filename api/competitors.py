@@ -55,6 +55,11 @@ class ApiCompetitorsMixin:
         return True
 
     def run_query_refresh(self, p):
+        """
+        p: {file, page?} — page (необязательно) пробрасывается обратно в
+        событие query_refresh_done, чтобы фронт знал, для какой вкладки
+        показывать кнопку «Открыть файл».
+        """
         self._stop_event.clear()
 
         def _w():
@@ -71,7 +76,54 @@ class ApiCompetitorsMixin:
                         "message": f"Обновлено: {os.path.basename(p['file'])}",
                     },
                 )
+                self._emit(
+                    "query_refresh_done", {"file": p["file"], "page": p.get("page", "")}
+                )
+            elif not self._stop_event.is_set():
+                self._emit(
+                    "toast",
+                    {"type": "error", "message": f"Не удалось обновить: {os.path.basename(p['file'])}"},
+                )
             self._emit("set_title", "")
+            self._emit("hide_progress")
+
+        threading.Thread(target=_w, daemon=True).start()
+        return True
+
+    def run_market_share_brands(self, p):
+        """
+        p: {file1, file2, file3}
+        Отчёт по динамике долей рынка брендов Компании: сначала обновляются
+        через query файл1 и файл2, затем (после них) — файл3.
+        """
+        self._stop_event.clear()
+
+        def _w():
+            from services.competitors import refresh_files_sequential
+
+            self._emit("set_title", "⏳ Доли рынка брендов…")
+            files = [p["file1"], p["file2"], p["file3"]]
+
+            self._log("📋 Шаг 1/2: обновляем исходные файлы (1, 2)...")
+            ok = refresh_files_sequential(files[:2], self._log, self._stop_event)
+
+            if ok:
+                self._log("📋 Шаг 2/2: обновляем итоговый файл (3)...")
+                ok = refresh_files_sequential(files[2:], self._log, self._stop_event)
+
+            if ok:
+                self._emit(
+                    "toast", {"type": "success", "message": "✅ Доли рынка брендов обновлены"}
+                )
+                self._emit("market_share_brands_done", {"file": files[2]})
+            elif self._stop_event.is_set():
+                self._emit("toast", {"type": "warning", "message": "Остановлено"})
+            else:
+                self._emit(
+                    "toast", {"type": "error", "message": "❌ Не удалось обновить все файлы"}
+                )
+            self._emit("set_title", "")
+            self._emit("hide_progress")
 
         threading.Thread(target=_w, daemon=True).start()
         return True

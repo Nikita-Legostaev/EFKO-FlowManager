@@ -299,14 +299,39 @@ window.__pyEvent = function(payload) {
     _oosLastFile = payload.data.report_file || '';
     document.getElementById('oos-open-btn').style.display = _oosLastFile ? '' : 'none';
   }
+  if (payload.type === 'query_refresh_done' && payload.data.page) {
+    _refreshLastFile[payload.data.page] = payload.data.file || '';
+    _refreshUpdateOpenBtn();
+  }
+  if (payload.type === 'market_share_brands_done') {
+    _refreshLastFile['market_share_brands'] = payload.data.file || '';
+    _refreshUpdateOpenBtn();
+  }
   __origEvent(payload);
 };
+
+// ── Общий бар «Обновить квери» (дистрибуция / доли рынка) ─────────────────
+let _refreshLastFile = {};
+function _refreshUpdateOpenBtn() {
+  const btn = document.getElementById('refresh-open-btn');
+  if (!btn) return;
+  const f = _refreshLastFile[S.page];
+  btn.style.display = f ? '' : 'none';
+}
+function refreshOpenFile() {
+  const f = _refreshLastFile[S.page];
+  if (f) pywebview.api.open_file(f);
+}
 
 // ── Navigation ────────────────────────────────────────────────────────────
 const PAGE_TITLES = {
   promodate:'Промодата', competitors:'Конкуренты', nielsen:'Nielsen',
   query_refresh:'Обновить квери', production:'Производство', oos:'Отчёт без OOS',
+  dist_competitors:'Дистрибуция конкурентов',
+  market_share_territory:'Доли рынка по территориям',
+  market_share_brands:'Доли рынка брендов',
 };
+const REFRESH_PAGES = new Set(['dist_competitors', 'market_share_territory', 'market_share_brands']);
 function navigate(page) {
   S.page = page;
   document.querySelectorAll('.nav-item[data-page]').forEach(b => b.classList.toggle('active', b.dataset.page===page));
@@ -316,9 +341,11 @@ function navigate(page) {
   const barId = page==='promodate' ? 'bar-promodate'
               : page==='competitors' ? 'bar-competitors'
               : page==='oos' ? 'bar-oos'
+              : REFRESH_PAGES.has(page) ? 'bar-refresh'
               : 'bar-default';
   const bar = document.getElementById(barId);
   if (bar) bar.style.display = 'flex';
+  if (barId === 'bar-refresh') _refreshUpdateOpenBtn();
 }
 document.querySelectorAll('.nav-item[data-page]').forEach(b => b.addEventListener('click', ()=>navigate(b.dataset.page)));
 
@@ -409,7 +436,22 @@ async function runAction() {
     const archCb = document.getElementById('nielsen_arch_enabled');
     if (archCb) { archCb.checked = false; autoSave(); }
   } else if (S.page==='query_refresh') {
-    await pywebview.api.run_query_refresh({file:getField('query_refresh_file')});
+    await pywebview.api.run_query_refresh({file:getField('query_refresh_file'), page:'query_refresh'});
+  } else if (S.page==='dist_competitors') {
+    const f = getField('dist_competitors_file');
+    if (!f) { addLog('⚠️ Укажите файл отчёта'); return; }
+    document.getElementById('refresh-open-btn').style.display = 'none';
+    await pywebview.api.run_query_refresh({file:f, page:'dist_competitors'});
+  } else if (S.page==='market_share_territory') {
+    const f = getField('market_share_territory_file');
+    if (!f) { addLog('⚠️ Укажите файл отчёта'); return; }
+    document.getElementById('refresh-open-btn').style.display = 'none';
+    await pywebview.api.run_query_refresh({file:f, page:'market_share_territory'});
+  } else if (S.page==='market_share_brands') {
+    const f1 = getField('msb_file1'), f2 = getField('msb_file2'), f3 = getField('msb_file3');
+    if (!f1 || !f2 || !f3) { addLog('⚠️ Укажите все 3 файла'); return; }
+    document.getElementById('refresh-open-btn').style.display = 'none';
+    await pywebview.api.run_market_share_brands({file1:f1, file2:f2, file3:f3});
   } else if (S.page==='production') {
     const monthLabel = getField('prod_month');
     await pywebview.api.run_production({

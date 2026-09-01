@@ -59,6 +59,12 @@ def load_config() -> dict:
         "oos_ketchup_report_2026": "",
         "oos_ketchup_report_2024_2026": "",
         "oos_ketchup_need_2026": "1",
+        # ── Дистрибуция конкурентов / Доли рынка ──
+        "dist_competitors_file": "",
+        "market_share_territory_file": "",
+        "msb_file1": "",
+        "msb_file2": "",
+        "msb_file3": "",
         "dark_theme": False,
         "sku_ref_path": "",
         "sku_csv_folder": "",

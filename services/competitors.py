@@ -98,6 +98,18 @@ def refresh_file(file_path, log, stop_event, timeout_minutes: int = 15):
         gc.collect()
 
 
+def refresh_files_sequential(paths, log, stop_event):
+    """Обновляет через query несколько файлов по очереди. Останавливается
+    на первой ошибке/остановке. Возвращает True, если все файлы обновлены."""
+    for i, path in enumerate(paths, 1):
+        if stop_event.is_set():
+            return False
+        log(f"[{i}/{len(paths)}] {os.path.basename(path)}")
+        if not refresh_file(path, log, stop_event, timeout_minutes=90):
+            return False
+    return True
+
+
 def refresh_competitors_pipeline(
     olap_file,
     competitors_file,
