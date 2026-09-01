@@ -10,6 +10,22 @@ FTP_FOLDER = r"M:\FTP"
 DOWNLOAD_FOLDER = os.path.join(os.getcwd(), "Скаченное")
 os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
 
+# ── Режимы промодаты ──────────────────────────────────────────────────────────
+# Каждый режим — свой источник скачанных xlsx, чтобы файлы разных режимов
+# не путались между собой. «ЦО» — это и есть исторический DOWNLOAD_FOLDER,
+# оставлен как есть ради обратной совместимости с уже скачанными файлами.
+PROMO_MODES = {"co": "ЦО", "monitoring": "Мониторинг цен", "extra": "Дополнительно"}
+DEFAULT_PROMO_MODE = "co"
+
+
+def download_folder_for_mode(mode: str) -> str:
+    """Папка скачивания xlsx для выбранного режима промодаты."""
+    if mode not in PROMO_MODES or mode == DEFAULT_PROMO_MODE:
+        return DOWNLOAD_FOLDER
+    path = os.path.join(DOWNLOAD_FOLDER, PROMO_MODES[mode])
+    os.makedirs(path, exist_ok=True)
+    return path
+
 network_map = {
     "Globus", "Metro", "Ашан", "Дикси",
     "Лента Гипер", "Лента Супер", "Лента Эконом",
@@ -139,7 +155,10 @@ def download_files_thread(
     month_from_var, year_from_var, month_to_var, year_to_var,
     log, messagebox, progress_callback=None, set_title=None,
     date_from_str=None, date_to_str=None, dates_list=None,
+    download_folder=None,
 ):
+    dst_folder = download_folder or DOWNLOAD_FOLDER
+    os.makedirs(dst_folder, exist_ok=True)
     if dates_list:
         try:
             exact_dates = {datetime.strptime(ds, "%Y-%m-%d").date() for ds in dates_list}
@@ -191,7 +210,7 @@ def download_files_thread(
     completed = 0
     with ThreadPoolExecutor(max_workers=_max_workers()) as executor:
         futures = {
-            executor.submit(_download_one, os.path.join(FTP_FOLDER, f), os.path.join(DOWNLOAD_FOLDER, f), log): f
+            executor.submit(_download_one, os.path.join(FTP_FOLDER, f), os.path.join(dst_folder, f), log): f
             for f in files_to_download
         }
         for future in as_completed(futures):
@@ -200,14 +219,15 @@ def download_files_thread(
             if set_title: set_title(f"⏳ Загрузка {completed} / {total}...")
 
     if set_title: set_title("✅ Готово")
-    messagebox.showinfo("Готово", f"Загрузка завершена!\nПапка: {DOWNLOAD_FOLDER}")
+    messagebox.showinfo("Готово", f"Загрузка завершена!\nПапка: {dst_folder}")
     log("Загрузка всех файлов завершена 🎉")
 
 
 # ── Очистка ───────────────────────────────────────────────────────────────────
 
-def clear_download_folder(log, messagebox):
-    files = [os.path.join(DOWNLOAD_FOLDER, f) for f in os.listdir(DOWNLOAD_FOLDER)]
+def clear_download_folder(log, messagebox, download_folder=None):
+    folder = download_folder or DOWNLOAD_FOLDER
+    files = [os.path.join(folder, f) for f in os.listdir(folder)]
     if not files:
         messagebox.showinfo("Очистка", "Папка уже пуста")
         return
@@ -358,7 +378,9 @@ def process_files_thread(
     pq_file1, pq_file2, macro1_name, macro2_name,
     progress_callback=None, set_title=None,
     networks=None,   # список выбранных сетей, None = все по умолчанию
+    download_folder=None,
 ):
+    src_folder = download_folder or DOWNLOAD_FOLDER
     output_folder = output_folder_var.get().strip()
     if not output_folder:
         messagebox.showwarning("Ошибка", "Укажите папку сохранения!")
@@ -372,9 +394,9 @@ def process_files_thread(
 
     # Смена категории обязана обнулить папку — иначе останутся CSV прошлой категории
     _reset_output_if_category_changed(output_folder, cat_name, log)
-    files = [os.path.join(DOWNLOAD_FOLDER, f) for f in os.listdir(DOWNLOAD_FOLDER) if f.endswith(".xlsx")]
+    files = [os.path.join(src_folder, f) for f in os.listdir(src_folder) if f.endswith(".xlsx")]
     if not files:
-        messagebox.showwarning("Ошибка", "Нет Excel-файлов в папке Скаченное!")
+        messagebox.showwarning("Ошибка", f"Нет Excel-файлов в папке {src_folder}!")
         return
 
     # Лог какие сети используются
