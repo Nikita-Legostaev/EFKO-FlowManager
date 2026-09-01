@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-api_parsing.py — миксин: вкладка «Парсинг ЖДСК».
+api/parsing.py — миксин: вкладка «Парсинг ЖДСК».
 
 Скрипты парсинга живут внутри сборки приложения, результаты пишутся в папку,
 которую пользователь выбирает во вкладке. Путь запоминается в config.json
@@ -11,8 +11,8 @@ import os
 import logging
 import threading
 
-from app_config import load_config, save_config_data
-from parsing_functions import (
+from core.config import load_config, save_config_data
+from services.parsing_runner import (
     scripts_dir,
     list_parsers,
     find_parser,
@@ -108,7 +108,7 @@ class ApiParsingMixin:
             webbrowser.open(url)
             return {"ok": True}
         except Exception as e:
-            logging.error(f"[api_parsing] open url: {e}")
+            logging.error(f"[api.parsing] open url: {e}")
             return {"ok": False}
 
     # ── Справка ──────────────────────────────────────────────────────────
@@ -160,7 +160,7 @@ class ApiParsingMixin:
                 res = run_parser(out, key, self._log, self._stop_event,
                                  api_keys=self._api_keys())
             except Exception as e:
-                logging.exception("[api_parsing] run_parser_one")
+                logging.exception("[api.parsing] run_parser_one")
                 res = {"ok": False, "msg": str(e), "outputs": []}
             self._emit("parse_done", {"key": key, **res})
             self._emit("toast", {
@@ -204,7 +204,7 @@ class ApiParsingMixin:
                 os.startfile(out)
                 return {"ok": True}
             except Exception as e:
-                logging.error(f"[api_parsing] open folder: {e}")
+                logging.error(f"[api.parsing] open folder: {e}")
         self._emit("toast", {"type": "warning",
                              "message": "Папка результатов не выбрана или недоступна"})
         return {"ok": False}
@@ -215,17 +215,17 @@ class ApiParsingMixin:
                 os.startfile(path)
                 return {"ok": True}
             except Exception as e:
-                logging.error(f"[api_parsing] open file: {e}")
+                logging.error(f"[api.parsing] open file: {e}")
         self._emit("toast", {"type": "warning", "message": "Файл не найден"})
         return {"ok": False}
 
     # ── Обновления ───────────────────────────────────────────────────────
 
     def check_updates_manual(self):
-        from updater import get_update_info
+        from updater.updater import get_update_info
         return get_update_info()
 
     def install_update_now(self):
-        from updater import install_now
+        from updater.updater import install_now
         win = getattr(self, "_window", None)
         return install_now(on_exit=(lambda: win.destroy()) if win else None)

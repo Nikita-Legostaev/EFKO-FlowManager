@@ -1,7 +1,7 @@
 """
-price_comparison_functions.py
+services/price_comparison.py
 Логика сравнения цен Купер vs PromoData — модуль для EFKO FlowManager.
-Код идентичен standalone comparison_gui.py, адаптирован для вызова из app.py.
+Код идентичен standalone comparison_gui.py, адаптирован для вызова из api/price.py.
 """
 
 import re

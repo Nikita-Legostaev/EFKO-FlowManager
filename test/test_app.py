@@ -12,7 +12,7 @@ import tempfile
 
 class TestExtractDate:
     def setup_method(self):
-        from promodate_functions import extract_date
+        from services.promodate import extract_date
 
         self.extract_date = extract_date
 
@@ -39,12 +39,12 @@ class TestExtractDate:
 
 class TestDownloadFilesThread:
     def setup_method(self):
-        from promodate_functions import download_files_thread
+        from services.promodate import download_files_thread
 
         self.fn = download_files_thread
 
-    @patch("promodate_functions.os.listdir")
-    @patch("promodate_functions.ThreadPoolExecutor")
+    @patch("services.promodate.os.listdir")
+    @patch("services.promodate.ThreadPoolExecutor")
     def test_filters_by_month_and_year(self, mock_executor, mock_listdir):
         """Test that download_files_thread filters files by month/year correctly"""
         mock_listdir.return_value = [
@@ -61,7 +61,7 @@ from unittest.mock import patch
 
 class TestExtractDate:
     def setup_method(self):
-        from promodate_functions import extract_date
+        from services.promodate import extract_date
 
         self.extract_date = extract_date
 
@@ -88,12 +88,12 @@ class TestExtractDate:
 
 class TestClearDownloadFolder:
     def setup_method(self):
-        from promodate_functions import clear_download_folder, DOWNLOAD_FOLDER
+        from services.promodate import clear_download_folder, DOWNLOAD_FOLDER
 
         self.fn = clear_download_folder
         self.folder = DOWNLOAD_FOLDER
 
-    @patch("promodate_functions.os.listdir", return_value=[])
+    @patch("services.promodate.os.listdir", return_value=[])
     def test_empty_folder_shows_info(self, _):
         log = MagicMock()
         mb = MagicMock()
@@ -101,16 +101,16 @@ class TestClearDownloadFolder:
         mb.showinfo.assert_called_once()
         log.assert_not_called()
 
-    @patch("promodate_functions.os.remove")
-    @patch("promodate_functions.os.listdir", return_value=["a.xlsx", "b.csv"])
+    @patch("services.promodate.os.remove")
+    @patch("services.promodate.os.listdir", return_value=["a.xlsx", "b.csv"])
     def test_deletes_all_files(self, mock_list, mock_remove):
         log = MagicMock()
         mb = MagicMock()
         self.fn(log, mb)
         assert mock_remove.call_count == 2
 
-    @patch("promodate_functions.os.remove", side_effect=PermissionError("locked"))
-    @patch("promodate_functions.os.listdir", return_value=["locked.xlsx"])
+    @patch("services.promodate.os.remove", side_effect=PermissionError("locked"))
+    @patch("services.promodate.os.listdir", return_value=["locked.xlsx"])
     def test_remove_error_is_logged(self, _, __):
         log = MagicMock()
         mb = MagicMock()
@@ -121,7 +121,7 @@ class TestClearDownloadFolder:
 
 class TestMakeUniqueColumns:
     def setup_method(self):
-        from nielsen_functions import make_unique_columns
+        from services.nielsen import make_unique_columns
 
         self.fn = make_unique_columns
 
@@ -146,7 +146,7 @@ class TestMakeUniqueColumns:
 
 class TestMeltPolars:
     def setup_method(self):
-        from nielsen_functions import melt_polars
+        from services.nielsen import melt_polars
 
         self.fn = melt_polars
 
@@ -193,7 +193,7 @@ class TestMeltPolars:
 
 class TestOptimizeForSize:
     def setup_method(self):
-        from nielsen_functions import optimize_for_size
+        from services.nielsen import optimize_for_size
 
         self.fn = optimize_for_size
 
@@ -216,7 +216,7 @@ class TestOptimizeForSize:
 
 class TestProcessNielsen:
     def setup_method(self):
-        from nielsen_functions import process_nielsen
+        from services.nielsen import process_nielsen
 
         self.fn = process_nielsen
 
@@ -249,7 +249,7 @@ class TestProcessNielsen:
 
 class TestRefreshCompetitorsPipeline:
     def setup_method(self):
-        from competitors_functions import refresh_competitors_pipeline
+        from services.competitors import refresh_competitors_pipeline
 
         self.fn = refresh_competitors_pipeline
 
@@ -280,7 +280,7 @@ class TestRefreshCompetitorsPipeline:
         finally:
             os.unlink(fname)
 
-    @patch("competitors_functions.refresh_file", return_value=False)
+    @patch("services.competitors.refresh_file", return_value=False)
     def test_pipeline_aborts_if_olap_fails(self, mock_refresh):
         with tempfile.NamedTemporaryFile(
             suffix=".xlsx", delete=False
@@ -300,7 +300,7 @@ class TestRefreshCompetitorsPipeline:
             os.unlink(p1)
             os.unlink(p2)
 
-    @patch("competitors_functions.refresh_file", return_value=True)
+    @patch("services.competitors.refresh_file", return_value=True)
     def test_pipeline_success_shows_info(self, mock_refresh):
         with tempfile.NamedTemporaryFile(
             suffix=".xlsx", delete=False
@@ -321,7 +321,7 @@ class TestRefreshCompetitorsPipeline:
             os.unlink(p1)
             os.unlink(p2)
 
-    @patch("competitors_functions.refresh_file", return_value=True)
+    @patch("services.competitors.refresh_file", return_value=True)
     def test_pipeline_aborts_on_stop_between_files(self, mock_refresh):
         with tempfile.NamedTemporaryFile(
             suffix=".xlsx", delete=False
@@ -351,7 +351,7 @@ class TestRefreshCompetitorsPipeline:
 
 class TestMeltPolarsElseBranch:
     def setup_method(self):
-        from nielsen_functions import melt_polars
+        from services.nielsen import melt_polars
 
         self.fn = melt_polars
 
@@ -422,7 +422,7 @@ class TestMeltPolarsElseBranch:
 
 class TestBrowseOutputFolder:
     def setup_method(self):
-        from promodate_functions import browse_output_folder
+        from services.promodate import browse_output_folder
 
         self.fn = browse_output_folder
 
@@ -447,7 +447,7 @@ class TestBrowseOutputFolder:
 
 class TestGetFirstSheetName:
     def setup_method(self):
-        from promodate_functions import get_first_sheet_name
+        from services.promodate import get_first_sheet_name
 
         self.fn = get_first_sheet_name
 
@@ -492,7 +492,7 @@ class TestGetFirstSheetName:
         # Verify executor was used
         mock_executor.assert_called()
 
-    @patch("promodate_functions.os.listdir", return_value=["irrelevant.xlsx"])
+    @patch("services.promodate.os.listdir", return_value=["irrelevant.xlsx"])
     def test_no_matching_files_warns(self, mock_listdir):
         """Test warning when no files match the date range"""
         month_from = MagicMock()
@@ -512,12 +512,12 @@ class TestGetFirstSheetName:
 
 class TestClearDownloadFolder:
     def setup_method(self):
-        from promodate_functions import clear_download_folder, DOWNLOAD_FOLDER
+        from services.promodate import clear_download_folder, DOWNLOAD_FOLDER
 
         self.fn = clear_download_folder
         self.folder = DOWNLOAD_FOLDER
 
-    @patch("promodate_functions.os.listdir", return_value=[])
+    @patch("services.promodate.os.listdir", return_value=[])
     def test_empty_folder_shows_info(self, _):
         log = MagicMock()
         mb = MagicMock()
@@ -525,16 +525,16 @@ class TestClearDownloadFolder:
         mb.showinfo.assert_called_once()
         log.assert_not_called()
 
-    @patch("promodate_functions.os.remove")
-    @patch("promodate_functions.os.listdir", return_value=["a.xlsx", "b.csv"])
+    @patch("services.promodate.os.remove")
+    @patch("services.promodate.os.listdir", return_value=["a.xlsx", "b.csv"])
     def test_deletes_all_files(self, mock_list, mock_remove):
         log = MagicMock()
         mb = MagicMock()
         self.fn(log, mb)
         assert mock_remove.call_count == 2
 
-    @patch("promodate_functions.os.remove", side_effect=PermissionError("locked"))
-    @patch("promodate_functions.os.listdir", return_value=["locked.xlsx"])
+    @patch("services.promodate.os.remove", side_effect=PermissionError("locked"))
+    @patch("services.promodate.os.listdir", return_value=["locked.xlsx"])
     def test_remove_error_is_logged(self, _, __):
         log = MagicMock()
         mb = MagicMock()
@@ -545,7 +545,7 @@ class TestClearDownloadFolder:
 
 class TestProcessFile:
     def setup_method(self):
-        from promodate_functions import process_file, FILTER_OPTIONS
+        from services.promodate import process_file, FILTER_OPTIONS
 
         self.fn = process_file
         self.filter = FILTER_OPTIONS.get("Масло", {})
@@ -565,15 +565,15 @@ class TestProcessFile:
             }
         )
 
-    @patch("promodate_functions.get_first_sheet_name", return_value="Sheet1")
-    @patch("promodate_functions.os.makedirs")
+    @patch("services.promodate.get_first_sheet_name", return_value="Sheet1")
+    @patch("services.promodate.os.makedirs")
     def test_matching_row_is_saved(self, mock_mkd, mock_sheet):
         """Test that matching rows are saved correctly"""
         df = self._make_df("Соусы и масла", "Масло растительное", "Пятёрочка")
 
         log = MagicMock()
         # Mock at the function level to avoid import-time issues
-        with patch("promodate_functions.pl.read_excel") as mock_read:
+        with patch("services.promodate.pl.read_excel") as mock_read:
             mock_read.return_value = df
             with patch("pandas.DataFrame.to_csv"):
                 self.fn("/fake/file.xlsx", "/out", self.filter, log)
@@ -581,11 +581,11 @@ class TestProcessFile:
         success_logged = any("Готово" in str(c) for c in log.call_args_list)
         assert success_logged
 
-    @patch("promodate_functions.get_first_sheet_name", return_value="Sheet1")
+    @patch("services.promodate.get_first_sheet_name", return_value="Sheet1")
     def test_exception_is_logged(self, mock_sheet):
         """Test that exceptions during file processing are logged"""
         log = MagicMock()
-        with patch("promodate_functions.pl.read_excel") as mock_read:
+        with patch("services.promodate.pl.read_excel") as mock_read:
             mock_read.side_effect = Exception("read error")
             self.fn("/fake/bad.xlsx", "/out", self.filter, log)
 
@@ -595,7 +595,7 @@ class TestProcessFile:
 
 class TestMakeUniqueColumns:
     def setup_method(self):
-        from nielsen_functions import make_unique_columns
+        from services.nielsen import make_unique_columns
 
         self.fn = make_unique_columns
 
@@ -620,7 +620,7 @@ class TestMakeUniqueColumns:
 
 class TestMeltPolars:
     def setup_method(self):
-        from nielsen_functions import melt_polars
+        from services.nielsen import melt_polars
 
         self.fn = melt_polars
 
@@ -667,7 +667,7 @@ class TestMeltPolars:
 
 class TestOptimizeForSize:
     def setup_method(self):
-        from nielsen_functions import optimize_for_size
+        from services.nielsen import optimize_for_size
 
         self.fn = optimize_for_size
 
@@ -690,7 +690,7 @@ class TestOptimizeForSize:
 
 class TestProcessNielsen:
     def setup_method(self):
-        from nielsen_functions import process_nielsen
+        from services.nielsen import process_nielsen
 
         self.fn = process_nielsen
 
@@ -723,18 +723,18 @@ class TestProcessNielsen:
 
 class TestRefreshFile:
     def setup_method(self):
-        from competitors_functions import refresh_file
+        from services.competitors import refresh_file
 
         self.fn = refresh_file
 
-    @patch("competitors_functions.pythoncom")
+    @patch("services.competitors.pythoncom")
     def test_successful_refresh(self, mock_com):
         """Test successful file refresh with COM/Excel interaction"""
         log = MagicMock()
         stop = threading.Event()
 
         # Mock win32 at patch time, not import time
-        with patch("competitors_functions.win32") as mock_win32:
+        with patch("services.competitors.win32") as mock_win32:
             mock_excel = MagicMock()
             mock_wb = MagicMock()
             mock_win32.DispatchEx.return_value = mock_excel
@@ -744,15 +744,15 @@ class TestRefreshFile:
             mock_wb.Worksheets.__getitem__ = MagicMock(return_value=ws)
             ws.Range.return_value.Value = "NEW"
 
-            with patch("competitors_functions.time.sleep"):
+            with patch("services.competitors.time.sleep"):
                 result = self.fn("/fake/file.xlsx", log, stop)
 
             assert isinstance(result, bool)
 
-    @patch("competitors_functions.pythoncom")
+    @patch("services.competitors.pythoncom")
     def test_stop_event_aborts(self, mock_com):
         """Test that stop event aborts the refresh"""
-        with patch("competitors_functions.win32") as mock_win32:
+        with patch("services.competitors.win32") as mock_win32:
             mock_excel = MagicMock()
             mock_wb = MagicMock()
             mock_win32.DispatchEx.return_value = mock_excel
@@ -766,15 +766,15 @@ class TestRefreshFile:
             stop.set()
 
             log = MagicMock()
-            with patch("competitors_functions.time.sleep"):
+            with patch("services.competitors.time.sleep"):
                 result = self.fn("/fake/file.xlsx", log, stop)
 
             assert result is False
 
-    @patch("competitors_functions.pythoncom")
+    @patch("services.competitors.pythoncom")
     def test_exception_returns_false(self, mock_com):
         """Test that COM errors are caught and logged"""
-        with patch("competitors_functions.win32.DispatchEx") as mock_dispatch:
+        with patch("services.competitors.win32.DispatchEx") as mock_dispatch:
             mock_dispatch.side_effect = Exception("COM error")
 
             log = MagicMock()
@@ -788,7 +788,7 @@ class TestRefreshFile:
 
 class TestRefreshCompetitorsPipeline:
     def setup_method(self):
-        from competitors_functions import refresh_competitors_pipeline
+        from services.competitors import refresh_competitors_pipeline
 
         self.fn = refresh_competitors_pipeline
 
@@ -819,7 +819,7 @@ class TestRefreshCompetitorsPipeline:
         finally:
             os.unlink(fname)
 
-    @patch("competitors_functions.refresh_file", return_value=False)
+    @patch("services.competitors.refresh_file", return_value=False)
     def test_pipeline_aborts_if_olap_fails(self, mock_refresh):
         with tempfile.NamedTemporaryFile(
             suffix=".xlsx", delete=False
@@ -839,7 +839,7 @@ class TestRefreshCompetitorsPipeline:
             os.unlink(p1)
             os.unlink(p2)
 
-    @patch("competitors_functions.refresh_file", return_value=True)
+    @patch("services.competitors.refresh_file", return_value=True)
     def test_pipeline_success_shows_info(self, mock_refresh):
         with tempfile.NamedTemporaryFile(
             suffix=".xlsx", delete=False
@@ -860,7 +860,7 @@ class TestRefreshCompetitorsPipeline:
             os.unlink(p1)
             os.unlink(p2)
 
-    @patch("competitors_functions.refresh_file", return_value=True)
+    @patch("services.competitors.refresh_file", return_value=True)
     def test_pipeline_aborts_on_stop_between_files(self, mock_refresh):
         with tempfile.NamedTemporaryFile(
             suffix=".xlsx", delete=False
@@ -890,7 +890,7 @@ class TestRefreshCompetitorsPipeline:
 
 class TestLoadSheet:
     def setup_method(self):
-        from nielsen_functions import load_sheet
+        from services.nielsen import load_sheet
 
         self.fn = load_sheet
 
@@ -910,7 +910,7 @@ class TestLoadSheet:
         df = pl.DataFrame({"Col1": ["a"], "Col2": [1.0]})
 
         log = MagicMock()
-        with patch("nielsen_functions.pl.read_excel") as mock_read:
+        with patch("services.nielsen.pl.read_excel") as mock_read:
             mock_read.return_value = df
             name, result = self.fn("BRAND", "/fake/input.xlsx", tmp_path, log)
 
@@ -925,7 +925,7 @@ class TestLoadSheet:
         df = pl.DataFrame({"Unnamed_0": [1], "Value": [2], "Unnamed_1": [3]})
 
         log = MagicMock()
-        with patch("nielsen_functions.pl.read_excel") as mock_read:
+        with patch("services.nielsen.pl.read_excel") as mock_read:
             mock_read.return_value = df
             _, result = self.fn("SKU1", "/fake/input.xlsx", tmp_path, log)
 
@@ -937,7 +937,7 @@ class TestLoadSheet:
         df = pl.DataFrame({"A": [1, None, 3], "B": [4, None, 6]})
 
         log = MagicMock()
-        with patch("nielsen_functions.pl.read_excel") as mock_read:
+        with patch("services.nielsen.pl.read_excel") as mock_read:
             mock_read.return_value = df
             _, result = self.fn("SKU2", "/fake/input.xlsx", tmp_path, log)
 
@@ -948,7 +948,7 @@ class TestLoadSheet:
         df = pl.DataFrame({"A": [1], "A_1": [2]})
 
         log = MagicMock()
-        with patch("nielsen_functions.pl.read_excel") as mock_read:
+        with patch("services.nielsen.pl.read_excel") as mock_read:
             mock_read.return_value = df
             _, result = self.fn("MAN", "/fake/input.xlsx", tmp_path, log)
 
@@ -957,7 +957,7 @@ class TestLoadSheet:
 
 class TestMeltPolarsElseBranch:
     def setup_method(self):
-        from nielsen_functions import melt_polars
+        from services.nielsen import melt_polars
 
         self.fn = melt_polars
 
@@ -1028,7 +1028,7 @@ class TestMeltPolarsElseBranch:
 
 class TestSaveOptimizedFull:
     def setup_method(self):
-        from nielsen_functions import save_optimized
+        from services.nielsen import save_optimized
 
         self.fn = save_optimized
 
@@ -1077,7 +1077,7 @@ class TestSaveOptimizedFull:
 
 class TestProcessNielsenFull:
     def setup_method(self):
-        from nielsen_functions import process_nielsen
+        from services.nielsen import process_nielsen
 
         self.fn = process_nielsen
 
@@ -1120,7 +1120,7 @@ class TestProcessNielsenFull:
         finally:
             os.unlink(fname)
 
-    @patch("nielsen_functions.load_sheet")
+    @patch("services.nielsen.load_sheet")
     def test_stop_during_small_sheets_aborts(self, mock_load):
         with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as f:
             fname = f.name
@@ -1140,25 +1140,25 @@ class TestProcessNielsenFull:
 
 class TestGetFirstSheetName:
     def setup_method(self):
-        from promodate_functions import get_first_sheet_name
+        from services.promodate import get_first_sheet_name
 
         self.fn = get_first_sheet_name
 
-    @patch("promodate_functions.openpyxl.load_workbook")
+    @patch("services.promodate.openpyxl.load_workbook")
     def test_returns_first_sheet(self, mock_load):
         mock_wb = MagicMock()
         mock_wb.sheetnames = ["Data", "Sheet2", "Sheet3"]
         mock_load.return_value = mock_wb
         assert self.fn("/fake/file.xlsx") == "Data"
 
-    @patch("promodate_functions.openpyxl.load_workbook")
+    @patch("services.promodate.openpyxl.load_workbook")
     def test_single_sheet(self, mock_load):
         mock_wb = MagicMock()
         mock_wb.sheetnames = ["OnlySheet"]
         mock_load.return_value = mock_wb
         assert self.fn("/fake/file.xlsx") == "OnlySheet"
 
-    @patch("promodate_functions.openpyxl.load_workbook")
+    @patch("services.promodate.openpyxl.load_workbook")
     def test_opens_in_read_only_mode(self, mock_load):
         mock_wb = MagicMock()
         mock_wb.sheetnames = ["Sheet1"]
@@ -1169,7 +1169,7 @@ class TestGetFirstSheetName:
 
 class TestRefreshFilePromodate:
     def setup_method(self):
-        from promodate_functions import refresh_file
+        from services.promodate import refresh_file
 
         self.fn = refresh_file
 
@@ -1192,40 +1192,40 @@ class TestRefreshFilePromodate:
         type(ws.Range.return_value).Value = PropertyMock(side_effect=get_value)
         return mock_excel, mock_wb
 
-    @patch("promodate_functions.gc.collect")
-    @patch("promodate_functions.pythoncom")
+    @patch("services.promodate.gc.collect")
+    @patch("services.promodate.pythoncom")
     def test_successful_refresh_returns_true_and_saves(self, mock_com, mock_gc):
-        with patch("promodate_functions.win32") as mock_win32:
+        with patch("services.promodate.win32") as mock_win32:
             mock_excel, mock_wb = self._setup_excel_mock(mock_win32, ["OLD", "NEW"])
             log = MagicMock()
             stop = threading.Event()
 
-            with patch("promodate_functions.time.sleep"):
+            with patch("services.promodate.time.sleep"):
                 result = self.fn("/fake/file.xlsx", log, stop)
 
             assert result is True
             mock_wb.Save.assert_called_once()
             assert any("сохранён" in str(c) for c in log.call_args_list)
 
-    @patch("promodate_functions.gc.collect")
-    @patch("promodate_functions.pythoncom")
+    @patch("services.promodate.gc.collect")
+    @patch("services.promodate.pythoncom")
     def test_stop_event_before_loop_returns_false(self, mock_com, mock_gc):
-        with patch("promodate_functions.win32") as mock_win32:
+        with patch("services.promodate.win32") as mock_win32:
             self._setup_excel_mock(mock_win32, ["SAME", "SAME"])
             stop = threading.Event()
             stop.set()
             log = MagicMock()
 
-            with patch("promodate_functions.time.sleep"):
+            with patch("services.promodate.time.sleep"):
                 result = self.fn("/fake/file.xlsx", log, stop)
 
             assert result is False
             assert any("остановлено" in str(c) for c in log.call_args_list)
 
-    @patch("promodate_functions.gc.collect")
-    @patch("promodate_functions.pythoncom")
+    @patch("services.promodate.gc.collect")
+    @patch("services.promodate.pythoncom")
     def test_exception_returns_false_and_logs_error(self, mock_com, mock_gc):
-        with patch("promodate_functions.win32.DispatchEx") as mock_dispatch:
+        with patch("services.promodate.win32.DispatchEx") as mock_dispatch:
             mock_dispatch.side_effect = Exception("COM init failed")
             log = MagicMock()
             stop = threading.Event()
@@ -1233,10 +1233,10 @@ class TestRefreshFilePromodate:
             assert result is False
             assert any("Ошибка" in str(c) for c in log.call_args_list)
 
-    @patch("promodate_functions.gc.collect")
-    @patch("promodate_functions.pythoncom")
+    @patch("services.promodate.gc.collect")
+    @patch("services.promodate.pythoncom")
     def test_stop_during_loop_returns_false(self, mock_com, mock_gc):
-        with patch("promodate_functions.win32") as mock_win32:
+        with patch("services.promodate.win32") as mock_win32:
             self._setup_excel_mock(mock_win32, ["SAME"] * 10)
             stop = threading.Event()
             log = MagicMock()
@@ -1248,7 +1248,7 @@ class TestRefreshFilePromodate:
                 if call_n[0] >= 2:
                     stop.set()
 
-            with patch("promodate_functions.time.sleep", side_effect=sleep_and_stop):
+            with patch("services.promodate.time.sleep", side_effect=sleep_and_stop):
                 result = self.fn("/fake/file.xlsx", log, stop)
 
             assert result is False
@@ -1256,7 +1256,7 @@ class TestRefreshFilePromodate:
 
 class TestRefreshPowerQueryFiles:
     def setup_method(self):
-        from promodate_functions import refresh_power_query_files
+        from services.promodate import refresh_power_query_files
 
         self.fn = refresh_power_query_files
 
@@ -1290,7 +1290,7 @@ class TestRefreshPowerQueryFiles:
         finally:
             os.unlink(p1)
 
-    @patch("promodate_functions.refresh_file", return_value=False)
+    @patch("services.promodate.refresh_file", return_value=False)
     def test_file1_fails_skips_file2(self, mock_refresh):
         with tempfile.NamedTemporaryFile(
             suffix=".xlsx", delete=False
@@ -1311,7 +1311,7 @@ class TestRefreshPowerQueryFiles:
             os.unlink(p1)
             os.unlink(p2)
 
-    @patch("promodate_functions.refresh_file", return_value=True)
+    @patch("services.promodate.refresh_file", return_value=True)
     def test_both_succeed_logs_promodate_updated(self, mock_refresh):
         with tempfile.NamedTemporaryFile(
             suffix=".xlsx", delete=False
@@ -1333,7 +1333,7 @@ class TestRefreshPowerQueryFiles:
             os.unlink(p1)
             os.unlink(p2)
 
-    @patch("promodate_functions.refresh_file", return_value=True)
+    @patch("services.promodate.refresh_file", return_value=True)
     def test_stop_between_files_skips_file2(self, mock_refresh):
         with tempfile.NamedTemporaryFile(
             suffix=".xlsx", delete=False
@@ -1359,7 +1359,7 @@ class TestRefreshPowerQueryFiles:
             os.unlink(p1)
             os.unlink(p2)
 
-    @patch("promodate_functions.refresh_file", return_value=True)
+    @patch("services.promodate.refresh_file", return_value=True)
     def test_file2_fails_no_success_log(self, mock_refresh):
         with tempfile.NamedTemporaryFile(
             suffix=".xlsx", delete=False
@@ -1384,7 +1384,7 @@ class TestRefreshPowerQueryFiles:
 
 class TestProcessFilesThread:
     def setup_method(self):
-        from promodate_functions import process_files_thread, FILTER_OPTIONS
+        from services.promodate import process_files_thread, FILTER_OPTIONS
 
         self.fn = process_files_thread
         self.FILTER_OPTIONS = FILTER_OPTIONS
@@ -1432,7 +1432,7 @@ class TestProcessFilesThread:
         mock_pq = MagicMock()
 
         with patch(
-            "promodate_functions.os.listdir", return_value=["readme.txt", "data.csv"]
+            "services.promodate.os.listdir", return_value=["readme.txt", "data.csv"]
         ):
             self.fn(
                 output_var,
@@ -1449,7 +1449,7 @@ class TestProcessFilesThread:
             )
         mb.showwarning.assert_called_once()
 
-    @patch("promodate_functions.process_file")
+    @patch("services.promodate.process_file")
     def test_only_xlsx_files_are_processed(self, mock_process):
         """Test that only .xlsx files are processed"""
         output_var = MagicMock()
@@ -1464,7 +1464,7 @@ class TestProcessFilesThread:
         mock_pq = MagicMock()
 
         with patch(
-            "promodate_functions.os.listdir", return_value=["a.xlsx", "b.xlsx", "c.txt"]
+            "services.promodate.os.listdir", return_value=["a.xlsx", "b.xlsx", "c.txt"]
         ):
             self.fn(
                 output_var,
@@ -1482,7 +1482,7 @@ class TestProcessFilesThread:
 
         assert mock_process.call_count == 2
 
-    @patch("promodate_functions.process_file")
+    @patch("services.promodate.process_file")
     def test_shows_success_messagebox(self, mock_process):
         """Test success message after processing"""
         output_var = MagicMock()
@@ -1496,7 +1496,7 @@ class TestProcessFilesThread:
         pq2 = MagicMock()
         mock_pq = MagicMock()
 
-        with patch("promodate_functions.os.listdir", return_value=["a.xlsx"]):
+        with patch("services.promodate.os.listdir", return_value=["a.xlsx"]):
             self.fn(
                 output_var,
                 filter_var,
@@ -1513,7 +1513,7 @@ class TestProcessFilesThread:
 
         mb.showinfo.assert_called_once()
 
-    @patch("promodate_functions.process_file")
+    @patch("services.promodate.process_file")
     def test_calls_refresh_power_query_at_end(self, mock_process):
         """Test that power query refresh is called at the end"""
         output_var = MagicMock()
@@ -1527,7 +1527,7 @@ class TestProcessFilesThread:
         pq2 = MagicMock()
         mock_pq = MagicMock()
 
-        with patch("promodate_functions.os.listdir", return_value=["a.xlsx"]):
+        with patch("services.promodate.os.listdir", return_value=["a.xlsx"]):
             self.fn(
                 output_var,
                 filter_var,
@@ -1544,7 +1544,7 @@ class TestProcessFilesThread:
 
         mock_pq.assert_called_once()
 
-    @patch("promodate_functions.process_file")
+    @patch("services.promodate.process_file")
     def test_logs_completion_message(self, mock_process):
         """Test that completion message is logged"""
         output_var = MagicMock()
@@ -1558,7 +1558,7 @@ class TestProcessFilesThread:
         pq2 = MagicMock()
         mock_pq = MagicMock()
 
-        with patch("promodate_functions.os.listdir", return_value=["a.xlsx"]):
+        with patch("services.promodate.os.listdir", return_value=["a.xlsx"]):
             self.fn(
                 output_var,
                 filter_var,

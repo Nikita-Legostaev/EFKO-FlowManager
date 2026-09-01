@@ -30,7 +30,7 @@
     {
       "key": "kb",
       "name": "Красное & Белое",
-      "script": "K&B.py",
+      "script": "kb.py",
       "icon": "🟥",
       "outputs": [
         "kb_shops.xlsx"
@@ -41,7 +41,7 @@
     {
       "key": "kb_2gis",
       "name": "Красное & Белое (2ГИС)",
-      "script": "k&b_2gis.py",
+      "script": "kb_2gis.py",
       "icon": "🗺",
       "outputs": [
         "kb_by_region_2gis.json"
@@ -77,7 +77,7 @@
         "svetofor_shops.xlsx"
       ],
       "needs_key": false,
-      "help": "Сбор точек сети «Светофор» (svetoformagazin.com).\n\nЧитает регионы из svetofor_main.html — файл должен лежать в папке parsing/ внутри приложения, оттуда он копируется в папку результатов. Если его нет, скрипт падает с «No such file or directory».\n\nИтог — svetofor_shops.xlsx.\n\nЕсли результат пустой: откройте svetofor_main.html и проверьте, не отдал ли сайт заглушку или капчу; повторите через 10–15 минут."
+      "help": "Сбор точек сети «Светофор» (svetoformagazin.com).\n\nЧитает регионы из svetofor_main.html — файл должен лежать в папке parsers/ внутри приложения, оттуда он копируется в папку результатов. Если его нет, скрипт падает с «No such file or directory».\n\nИтог — svetofor_shops.xlsx.\n\nЕсли результат пустой: откройте svetofor_main.html и проверьте, не отдал ли сайт заглушку или капчу; повторите через 10–15 минут."
     },
     {
       "key": "pobeda",
@@ -99,7 +99,7 @@
         "dobrocen_shops.xlsx"
       ],
       "needs_key": false,
-      "help": "Сбор точек сети «Доброцен» (Playwright + Stealth).\n\nЧитает список городов из cities.html и справочник city_and_regions_Russia.xlsx — оба файла должны лежать в папке parsing/ внутри приложения, оттуда они копируются в папку результатов.\n\nОбратите внимание: файл скрипта называется dobtocen.py — опечатка в имени историческая.\n\nИтог — dobrocen_shops.xlsx."
+      "help": "Сбор точек сети «Доброцен» (Playwright + Stealth).\n\nЧитает список городов из cities.html и справочник city_and_regions_Russia.xlsx — оба файла должны лежать в папке parsers/ внутри приложения, оттуда они копируются в папку результатов.\n\nОбратите внимание: файл скрипта называется dobtocen.py — опечатка в имени историческая.\n\nИтог — dobrocen_shops.xlsx."
     },
     {
       "key": "smart",

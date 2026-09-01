@@ -1,53 +1,18 @@
 """
-app_config.py — конфиг, логирование и вспомогательные классы.
-Импортируется всеми api_*.py и app.py.
+core/config.py — конфиг и вспомогательные классы.
+Импортируется всеми api/*.py и app/*.py.
 """
 
 import os
 import json
 import logging
-import sys as _sys
 from datetime import datetime
-from production_functions import MONTH_LABELS
-from scheduler_functions import SCHEDULER_DEFAULTS
 
-# ── Пути ─────────────────────────────────────────────────────────────────────
-
-
-def _resource(rel_path: str) -> str:
-    """Абсолютный путь к ресурсу — корректно и в EXE, и из исходников."""
-    if getattr(_sys, "frozen", False):
-        base = os.path.dirname(_sys.executable)
-    else:
-        base = os.path.dirname(os.path.abspath(__file__))
-    return os.path.join(base, rel_path)
-
+from services.production import MONTH_LABELS
+from services.scheduler import SCHEDULER_DEFAULTS
+from core.paths import _resource
 
 CONFIG_FILE = _resource("config.json")
-
-
-# ── Логирование ───────────────────────────────────────────────────────────────
-
-
-def setup_logger():
-    if getattr(_sys, "frozen", False):
-        base = os.path.dirname(_sys.executable)
-    else:
-        base = os.path.dirname(os.path.abspath(__file__))
-    log_path = os.path.join(base, "flowmanager.log")
-
-    logger = logging.getLogger()
-    logger.setLevel(logging.INFO)
-    fmt = logging.Formatter(
-        "%(asctime)s [%(levelname)s] %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
-    )
-    fh = logging.FileHandler(log_path, encoding="utf-8")
-    fh.setFormatter(fmt)
-    logger.addHandler(fh)
-    ch = logging.StreamHandler()
-    ch.setFormatter(fmt)
-    logger.addHandler(ch)
-    logging.info(f"Лог: {log_path}")
 
 
 # ── Конфиг ────────────────────────────────────────────────────────────────────
