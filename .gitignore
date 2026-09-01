@@ -31,6 +31,8 @@ MANIFEST
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.
 *.manifest
 *.spec
+# ...кроме нашего собственного, руками поддерживаемого — он в репозитории.
+!EFKO-FlowManager.spec
 
 # Installer logs
 pip-log.txt
