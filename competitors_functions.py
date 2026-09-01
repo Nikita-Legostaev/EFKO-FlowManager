@@ -1,16 +1,57 @@
 # competitors_functions.py
 import os
-import time
 import gc
+
+def _excel_optimize(excel):
+    try: excel.ScreenUpdating = False
+    except Exception: pass
+    try: excel.EnableEvents = False
+    except Exception: pass
+    try: excel.Calculation = -4135
+    except Exception: pass
+
+def _excel_restore(excel):
+    try: excel.Calculation = -4105
+    except Exception: pass
+    try: excel.ScreenUpdating = True
+    except Exception: pass
+    try: excel.EnableEvents = True
+    except Exception: pass
+
 
 # Тяжёлые COM-библиотеки — ленивый импорт, чтобы не тормозить запуск exe
 
-STATUS_SHEET = "Проверка_обновления"
-STATUS_CELL = "A2"
+
+
+
+def _set_sync_refresh(wb, log):
+    """Отключает BackgroundQuery для всех OLEDB/PQ соединений → RefreshAll() синхронный."""
+    saved = []
+    for conn in wb.Connections:
+        try:
+            if conn.Type == 1:  # xlConnectionTypeOLEDB
+                oledb = conn.OLEDBConnection
+                saved.append((oledb, oledb.BackgroundQuery))
+                oledb.BackgroundQuery = False
+        except Exception:
+            pass
+    if saved:
+        log(f"  Синхронный режим: {len(saved)} PQ-соединений")
+    else:
+        log("  ⚠ PQ-соединений не найдено — RefreshAll() может быть асинхронным")
+    return saved
+
+
+def _restore_bg_refresh(saved):
+    for oledb, original in saved:
+        try:
+            oledb.BackgroundQuery = original
+        except Exception:
+            pass
 
 
 def refresh_file(file_path, log, stop_event, timeout_minutes: int = 15):
-    import pythoncom  # ленивый импорт
+    import pythoncom
     import win32com.client as win32
 
     filename = os.path.basename(file_path)
@@ -21,34 +62,25 @@ def refresh_file(file_path, log, stop_event, timeout_minutes: int = 15):
         excel = win32.DispatchEx("Excel.Application")
         excel.Visible = False
         excel.DisplayAlerts = False
+        _excel_optimize(excel)
         wb = excel.Workbooks.Open(file_path)
 
-        before = wb.Worksheets[STATUS_SHEET].Range(STATUS_CELL).Value
-        log(f"{filename} — до: {before}")
-        wb.RefreshAll()
-        log(f"{filename} — RefreshAll запущен...")
+        saved = _set_sync_refresh(wb, log)
 
-        timeout = 0
-        max_iter = timeout_minutes * 30  # итераций (sleep 2 сек → 30 итер/мин)
-        while timeout < max_iter:
-            if stop_event.is_set():
-                log(f"{filename} — остановлено пользователем")
-                return False
-            time.sleep(2)
-            excel.Calculate()
-            after = wb.Worksheets[STATUS_SHEET].Range(STATUS_CELL).Value
-            if after is not None and after != before:
-                log(f"{filename} — обновлено: {after}")
-                break
-            timeout += 1
-        else:
-            log(f"{filename} — тайм-аут ожидания")
+        if stop_event.is_set():
+            log(f"{filename} — остановлено до обновления")
+            return False
 
-        # Исправлено: проверяем stop_event перед сохранением
+        log(f"{filename} — RefreshAll() запущен (синхронно)...")
+        wb.RefreshAll()  # блокирует до завершения всех PQ
+        log(f"{filename} — обновление завершено ✅")
+
         if stop_event.is_set():
             log(f"{filename} — остановлено до сохранения")
             return False
 
+        _restore_bg_refresh(saved)
+        _excel_restore(excel)
         wb.Save()
         log(f"{filename} — сохранён ✅")
         return True

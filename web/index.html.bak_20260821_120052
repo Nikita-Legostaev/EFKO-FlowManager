@@ -920,7 +920,6 @@
 </div>
 
 <script src="app.js"></script>
-<script src="addons.js"></script>
 <!-- ── Модальное окно выбора сетей ────────────────────────────────────── -->
 <div id="networks-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,1);z-index:1000;align-items:center;justify-content:center">
   <div style="background:var(--card);border-radius:12px;width:600px;max-width:90vw;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 8px 40px rgba(0,0,0,0.4)">

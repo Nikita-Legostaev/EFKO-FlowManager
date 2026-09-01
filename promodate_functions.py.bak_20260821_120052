@@ -250,60 +250,6 @@ def get_first_sheet_name(file_path):
     return name
 
 
-CATEGORY_MARKER = "_last_category.txt"
-
-
-def _read_last_category(output_folder: str) -> str:
-    path = os.path.join(output_folder, CATEGORY_MARKER)
-    try:
-        if os.path.isfile(path):
-            with open(path, encoding="utf-8") as f:
-                return f.read().strip()
-    except Exception:
-        pass
-    return ""
-
-
-def _write_last_category(output_folder: str, cat_name: str):
-    try:
-        os.makedirs(output_folder, exist_ok=True)
-        with open(os.path.join(output_folder, CATEGORY_MARKER), "w", encoding="utf-8") as f:
-            f.write(cat_name)
-    except Exception as e:
-        logging.error(f"[promodate] не удалось записать {CATEGORY_MARKER}: {e}")
-
-
-def _reset_output_if_category_changed(output_folder: str, cat_name: str, log) -> bool:
-    """
-    Если прошлый прогон был по другой категории — удаляет старые CSV.
-
-    Имя CSV собирается только из имени исходного xlsx и категорию не содержит,
-    поэтому без этой чистки process_file() посчитает лежащие файлы «уже
-    обработанными» и в папке останутся данные предыдущей категории.
-    """
-    os.makedirs(output_folder, exist_ok=True)
-    prev = _read_last_category(output_folder)
-
-    if prev and prev != cat_name:
-        removed = 0
-        for f in os.listdir(output_folder):
-            if not f.lower().endswith(".csv"):
-                continue
-            try:
-                os.remove(os.path.join(output_folder, f))
-                removed += 1
-            except Exception as e:
-                log(f"⚠ Не удалось удалить {f}: {e}")
-        log(f"🔄 Категория сменилась: «{prev}» → «{cat_name}». Удалено старых CSV: {removed}")
-    elif not prev:
-        log(f"ℹ Категория обработки: «{cat_name}» (первый прогон в этой папке)")
-    else:
-        log(f"ℹ Категория обработки: «{cat_name}» — та же, готовые CSV пропускаются")
-
-    _write_last_category(output_folder, cat_name)
-    return bool(prev and prev != cat_name)
-
-
 def process_file(file_path, output_folder, selected_filter, log, networks=None):
     """
     Фильтрует один Excel-файл и сохраняет CSV.
@@ -342,10 +288,7 @@ def process_file(file_path, output_folder, selected_filter, log, networks=None):
         os.makedirs(output_folder, exist_ok=True)
         df_filtered.write_csv(output_file, separator=",")
 
-        cat_label = (selected_filter.get("category") if isinstance(selected_filter, dict)
-                     else "+".join(f["category"] for f in selected_filter))
-        log(f"Готово: {filename} | {df.height} → {df_filtered.height} строк "
-            f"| категория: {cat_label} | сетей: {len(active_networks)}")
+        log(f"Готово: {filename} | {df.height} → {df_filtered.height} строк | сетей: {len(active_networks)}")
         return True
     except Exception as e:
         log(f"Ошибка обработки {filename}: {e}")
@@ -364,14 +307,8 @@ def process_files_thread(
         messagebox.showwarning("Ошибка", "Укажите папку сохранения!")
         return
 
-    cat_name = filter_var.get()
-    if cat_name not in FILTER_OPTIONS:
-        messagebox.showwarning("Ошибка", f"Неизвестная категория: {cat_name}")
-        return
-    selected_filter = FILTER_OPTIONS[cat_name]
+    selected_filter = FILTER_OPTIONS[filter_var.get()]
 
-    # Смена категории обязана обнулить папку — иначе останутся CSV прошлой категории
-    _reset_output_if_category_changed(output_folder, cat_name, log)
     files = [os.path.join(DOWNLOAD_FOLDER, f) for f in os.listdir(DOWNLOAD_FOLDER) if f.endswith(".xlsx")]
     if not files:
         messagebox.showwarning("Ошибка", "Нет Excel-файлов в папке Скаченное!")
@@ -436,8 +373,7 @@ def _restore_bg_refresh(saved):
         except Exception: pass
 
 def refresh_file(file_path, log, stop_event):
-    import pythoncom
-    import win32com.client as win32
+    import pythoncom, win32com.client as win32
     filename = os.path.basename(file_path)
     excel = wb = None
     try:
@@ -475,8 +411,7 @@ def refresh_file(file_path, log, stop_event):
         gc.collect()
 
 def _excel_session(log, func):
-    import pythoncom
-    import win32com.client as win32
+    import pythoncom, win32com.client as win32
     excel = pid = None
     pythoncom.CoInitialize()
     try:
