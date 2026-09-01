@@ -598,7 +598,7 @@ const PAGE_TITLES = {
   market_share_territory:'Доли рынка по территориям',
   market_share_brands:'Доли рынка брендов',
 };
-const REFRESH_PAGES = new Set(['dist_competitors', 'market_share_territory', 'market_share_brands']);
+const REFRESH_PAGES = new Set(['query_refresh', 'dist_competitors', 'market_share_territory', 'market_share_brands']);
 function navigate(page) {
   S.page = page;
   document.querySelectorAll('.nav-item[data-page]').forEach(b => b.classList.toggle('active', b.dataset.page===page));
@@ -703,7 +703,10 @@ async function runAction() {
     const archCb = document.getElementById('nielsen_arch_enabled');
     if (archCb) { archCb.checked = false; autoSave(); }
   } else if (S.page==='query_refresh') {
-    await pywebview.api.run_query_refresh({file:getField('query_refresh_file'), page:'query_refresh'});
+    const f = getField('query_refresh_file');
+    if (!f) { addLog('⚠️ Укажите Excel файл'); return; }
+    document.getElementById('refresh-open-btn').style.display = 'none';
+    await pywebview.api.run_query_refresh({file:f, page:'query_refresh'});
   } else if (S.page==='dist_competitors') {
     const f = getField('dist_competitors_file');
     if (!f) { addLog('⚠️ Укажите файл отчёта'); return; }
