@@ -67,6 +67,9 @@ def load_config() -> dict:
         "msb_file3": "",
         # ── Именованные наборы данных на вкладках («под-страницы» 1/2/3) ──
         "page_profiles": {},
+        # ── Конструктор дизайна ──
+        "theme_custom": {},
+        "oos_layout": "1col",
         "dark_theme": False,
         "sku_ref_path": "",
         "sku_csv_folder": "",

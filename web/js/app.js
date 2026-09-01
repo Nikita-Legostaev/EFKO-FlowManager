@@ -164,6 +164,11 @@ function applyConfig(cfg) {
     need2026Cb.checked = cfg.oos_ketchup_need_2026 !== '';
     document.getElementById('oos-ketchup-2026-row').style.opacity = need2026Cb.checked ? '1' : '.4';
   }
+  if (cfg.oos_layout === '2col') {
+    document.getElementById('pane-oos').classList.add('layout-2col');
+    document.querySelectorAll('#oos-layout-switch .layout-btn').forEach(b =>
+      b.classList.toggle('active', b.dataset.layout === '2col'));
+  }
   if (cfg.oos_ketchup_folder) {
     pywebview.api.scan_ketchup_folder(
       cfg.oos_ketchup_folder,
@@ -465,7 +470,9 @@ function ensureProfileBar(page) {
     bar = document.createElement('div');
     bar.className = 'page-profile-bar';
     bar.id = 'profile-bar-' + page;
-    pane.insertBefore(bar, pane.firstChild);
+    const hero = pane.querySelector(':scope > .page-hero');
+    if (hero) pane.insertBefore(bar, hero.nextSibling);
+    else pane.insertBefore(bar, pane.firstChild);
   }
   return bar;
 }
@@ -1168,6 +1175,8 @@ function toggleTheme(){
   const isDark=document.body.classList.toggle('dark');
   applyThemeUI(isDark);
   pywebview.api.save_config(collectFormConfig());
+  applyCustomTheme();
+  if (_themeDrawerOpen) syncThemeDrawerInputs();
 }
 function applyThemeUI(isDark){
   document.getElementById('theme-icon').textContent=isDark?'☀️':'🌙';
@@ -1175,6 +1184,206 @@ function applyThemeUI(isDark){
 }
 function applyThemeFromConfig(cfg){
   if(cfg.dark_theme){document.body.classList.add('dark');applyThemeUI(true);}
+  THEME_CUSTOM = (cfg.theme_custom && cfg.theme_custom.light && cfg.theme_custom.dark) ? cfg.theme_custom : null;
+  applyCustomTheme();
+}
+
+// ── Конструктор дизайна (theme drawer) ──────────────────────────────────────
+let THEME_CUSTOM = null; // {light:{accent,bg,surface,text}, dark:{...}, radius}
+let _themeDrawerOpen = false;
+
+const THEME_PRESETS = [
+  { name: 'Зелёный',    accent: '#0E6B3C' },
+  { name: 'Синий',      accent: '#0A56C4' },
+  { name: 'Фиолетовый', accent: '#6B3FA0' },
+  { name: 'Оранжевый',  accent: '#B5680A' },
+  { name: 'Розовый',    accent: '#C93B7A' },
+  { name: 'Бирюзовый',  accent: '#0A8A82' },
+];
+
+function _hexToRgb(hex) {
+  hex = (hex || '#000000').replace('#', '');
+  if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
+  const n = parseInt(hex, 16) || 0;
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+function _rgbToHex(r, g, b) {
+  return '#' + [r, g, b].map(v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('');
+}
+function _rgbToHsl(r, g, b) {
+  r /= 255; g /= 255; b /= 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  let h, s, l = (max + min) / 2;
+  if (max === min) { h = s = 0; }
+  else {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+      case g: h = (b - r) / d + 2; break;
+      default: h = (r - g) / d + 4;
+    }
+    h /= 6;
+  }
+  return [h * 360, s * 100, l * 100];
+}
+function _hslToRgb(h, s, l) {
+  h /= 360; s /= 100; l /= 100;
+  let r, g, b;
+  if (s === 0) { r = g = b = l; }
+  else {
+    const hue2rgb = (p, q, t) => {
+      if (t < 0) t += 1; if (t > 1) t -= 1;
+      if (t < 1/6) return p + (q - p) * 6 * t;
+      if (t < 1/2) return q;
+      if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+      return p;
+    };
+    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+    const p = 2 * l - q;
+    r = hue2rgb(p, q, h + 1/3); g = hue2rgb(p, q, h); b = hue2rgb(p, q, h - 1/3);
+  }
+  return [r * 255, g * 255, b * 255];
+}
+function _shade(hex, dl, ds) {
+  const [h, s, l] = _rgbToHsl(..._hexToRgb(hex));
+  const nl = Math.max(0, Math.min(100, l + dl));
+  const ns = Math.max(0, Math.min(100, s + (ds || 0)));
+  return _rgbToHex(..._hslToRgb(h, ns, nl));
+}
+
+function _defaultThemeSet(isDark) {
+  return isDark
+    ? { accent: '#33D874', bg: '#0A0B0A', surface: '#1A1B1E', text: '#F3F2EC' }
+    : { accent: '#0E6B3C', bg: '#F2F0EA', surface: '#FFFFFF', text: '#16160F' };
+}
+
+function getThemeCustom() {
+  if (!THEME_CUSTOM) THEME_CUSTOM = { light: _defaultThemeSet(false), dark: _defaultThemeSet(true), radius: 20 };
+  return THEME_CUSTOM;
+}
+
+function applyCustomTheme() {
+  const store = getThemeCustom();
+  const isDark = document.body.classList.contains('dark');
+  const t = isDark ? store.dark : store.light;
+  const root = document.documentElement.style;
+  root.setProperty('--green', t.accent);
+  root.setProperty('--green-dark',  _shade(t.accent, isDark ? +12 : -16));
+  root.setProperty('--green-hover', _shade(t.accent, isDark ? +6  : -7));
+  root.setProperty('--green-muted', isDark ? _shade(t.accent, -28, -20) : _shade(t.accent, +42, -20));
+  root.setProperty('--green-dim',   isDark ? _shade(t.accent, -12, -10) : _shade(t.accent, +25, -10));
+  root.setProperty('--bg', t.bg);
+  root.setProperty('--surface', t.surface);
+  root.setProperty('--surface2', _shade(t.surface, isDark ? +7 : -4));
+  root.setProperty('--text', t.text);
+  root.setProperty('--text2', _shade(t.text, isDark ? -22 : +34));
+  root.setProperty('--text3', _shade(t.text, isDark ? -42 : +58));
+  root.setProperty('--border', _shade(t.surface, isDark ? +10 : -8));
+  root.setProperty('--border2', _shade(t.surface, isDark ? +18 : -16));
+  const radius = store.radius || 20;
+  root.setProperty('--radius', radius + 'px');
+  root.setProperty('--radius-sm', Math.max(6, Math.round(radius * 0.6)) + 'px');
+}
+
+function themeCustomPersist() {
+  pywebview.api.save_config({ theme_custom: getThemeCustom() });
+}
+
+function syncThemeDrawerInputs() {
+  const store = getThemeCustom();
+  const isDark = document.body.classList.contains('dark');
+  const t = isDark ? store.dark : store.light;
+  document.getElementById('theme-drawer-mode').textContent = isDark ? 'тёмную' : 'светлую';
+  document.getElementById('tc-accent').value = t.accent;
+  document.getElementById('tc-bg').value = t.bg;
+  document.getElementById('tc-surface').value = t.surface;
+  document.getElementById('tc-text').value = t.text;
+  document.getElementById('tc-accent-sw').style.background = t.accent;
+  document.getElementById('tc-bg-sw').style.background = t.bg;
+  document.getElementById('tc-surface-sw').style.background = t.surface;
+  document.getElementById('tc-text-sw').style.background = t.text;
+  const radius = store.radius || 20;
+  document.getElementById('tc-radius').value = radius;
+  document.getElementById('tc-radius-val').textContent = radius + 'px';
+  renderThemePresets();
+}
+
+function renderThemePresets() {
+  const wrap = document.getElementById('theme-presets');
+  if (!wrap) return;
+  const store = getThemeCustom();
+  const isDark = document.body.classList.contains('dark');
+  const currentAccent = (isDark ? store.dark : store.light).accent.toLowerCase();
+  wrap.innerHTML = '';
+  THEME_PRESETS.forEach(p => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'theme-preset-btn' + (p.accent.toLowerCase() === currentAccent ? ' active' : '');
+    btn.style.background = p.accent;
+    btn.title = p.name;
+    btn.addEventListener('click', () => themeApplyPreset(p.accent));
+    wrap.appendChild(btn);
+  });
+}
+
+function themeApplyPreset(accent) {
+  const store = getThemeCustom();
+  const isDark = document.body.classList.contains('dark');
+  (isDark ? store.dark : store.light).accent = accent;
+  applyCustomTheme();
+  syncThemeDrawerInputs();
+  themeCustomPersist();
+}
+
+function themeCustomPreview() {
+  const store = getThemeCustom();
+  const isDark = document.body.classList.contains('dark');
+  const t = isDark ? store.dark : store.light;
+  t.accent  = document.getElementById('tc-accent').value;
+  t.bg      = document.getElementById('tc-bg').value;
+  t.surface = document.getElementById('tc-surface').value;
+  t.text    = document.getElementById('tc-text').value;
+  store.radius = parseInt(document.getElementById('tc-radius').value, 10) || 20;
+  document.getElementById('tc-radius-val').textContent = store.radius + 'px';
+  ['accent', 'bg', 'surface', 'text'].forEach(k => {
+    document.getElementById('tc-' + k + '-sw').style.background = t[k];
+  });
+  applyCustomTheme();
+  renderThemePresets();
+  themeCustomPersist();
+}
+
+function themeCustomReset() {
+  THEME_CUSTOM = { light: _defaultThemeSet(false), dark: _defaultThemeSet(true), radius: 20 };
+  applyCustomTheme();
+  syncThemeDrawerInputs();
+  themeCustomPersist();
+  showToast('success', 'Дизайн сброшен к стандартному');
+}
+
+function themeDrawerOpen() {
+  if (_schedOpen) schedDrawerClose();
+  _themeDrawerOpen = true;
+  syncThemeDrawerInputs();
+  document.getElementById('theme-drawer').style.transform = 'translateX(0)';
+  const ov = document.getElementById('theme-overlay');
+  ov.style.pointerEvents = 'auto';
+  ov.style.background = 'rgba(0,0,0,.32)';
+}
+function themeDrawerClose() {
+  _themeDrawerOpen = false;
+  document.getElementById('theme-drawer').style.transform = 'translateX(100%)';
+  const ov = document.getElementById('theme-overlay');
+  ov.style.pointerEvents = 'none';
+  ov.style.background = 'rgba(0,0,0,0)';
+}
+
+// ── Раскладка вкладки «Отчёт без OOS» (пилотный пример 1/2 колонки) ────────
+function oosSetLayout(mode, btn) {
+  document.querySelectorAll('#oos-layout-switch .layout-btn').forEach(b => b.classList.toggle('active', b === btn));
+  document.getElementById('pane-oos').classList.toggle('layout-2col', mode === '2col');
+  pywebview.api.save_config({ oos_layout: mode });
 }
 
   // ══════════════════════════════════════════════════════════════════════
@@ -1184,6 +1393,7 @@ function applyThemeFromConfig(cfg){
   // ── Открытие / закрытие drawer ────────────────────────────────────────
   let _schedOpen = false;
   function schedDrawerOpen() {
+    if (_themeDrawerOpen) themeDrawerClose();
     _schedOpen = true;
     document.getElementById('sched-drawer').style.transform = 'translateX(0)';
     const ov = document.getElementById('sched-overlay');

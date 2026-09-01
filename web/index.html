@@ -56,6 +56,10 @@
         <span class="nav-icon" id="theme-icon">🌙</span>
         <span id="theme-label">Тёмная тема</span>
       </button>
+      <button class="nav-item" style="font-size:12px" onclick="themeDrawerOpen()">
+        <span class="nav-icon">🎨</span>
+        <span>Дизайн</span>
+      </button>
     </div>
   </nav>
 
@@ -437,6 +441,19 @@
            ОТЧЁТ БЕЗ OOS
       ═══════════════════════════════════════════════════════ -->
       <div class="pane" id="pane-oos">
+        <!-- Hero -->
+        <div class="page-hero">
+          <div class="page-hero-icon">📉</div>
+          <div class="page-hero-text">
+            <div class="page-hero-title">Отчёт без OOS</div>
+            <div class="page-hero-sub">Майонез · Кетчуп — обновление кубов и отчётов через query</div>
+          </div>
+          <div class="page-hero-layout" id="oos-layout-switch">
+            <button class="layout-btn active" data-layout="1col" onclick="oosSetLayout('1col',this)" title="1 колонка">▤</button>
+            <button class="layout-btn" data-layout="2col" onclick="oosSetLayout('2col',this)" title="2 колонки">▦</button>
+          </div>
+        </div>
+
         <!-- Категория -->
         <div class="card">
           <div class="card-section">
@@ -955,6 +972,78 @@
       height:40px;padding:0 16px;border-radius:10px;border:1px solid var(--border);
       background:var(--surface2);color:var(--text2);font-size:13px;font-weight:500;cursor:pointer">
       Закрыть
+    </button>
+  </div>
+</aside>
+
+<!-- ══════════ THEME DRAWER (конструктор дизайна) ══════════ -->
+<div id="theme-overlay" onclick="themeDrawerClose()" style="
+  position:fixed;inset:0;background:rgba(0,0,0,0);pointer-events:none;
+  z-index:900;transition:background .25s"></div>
+
+<aside id="theme-drawer" style="
+  position:fixed;top:0;right:0;bottom:0;width:340px;
+  background:var(--surface);border-left:1px solid var(--border);
+  box-shadow:-8px 0 40px rgba(0,0,0,.12);
+  z-index:901;transform:translateX(100%);transition:transform .28s cubic-bezier(.4,0,.2,1);
+  display:flex;flex-direction:column;overflow:hidden">
+
+  <div style="padding:18px 20px 14px;border-bottom:1px solid var(--border);flex-shrink:0;
+              display:flex;align-items:center;gap:10px">
+    <span style="font-size:18px">🎨</span>
+    <div>
+      <div style="font-size:14px;font-weight:700;color:var(--text)">Конструктор дизайна</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:1px">Настраивает текущую тему (<span id="theme-drawer-mode">светлую</span>)</div>
+    </div>
+    <button onclick="themeDrawerClose()" style="
+      margin-left:auto;width:28px;height:28px;border-radius:8px;border:none;
+      background:var(--surface2);color:var(--text2);font-size:16px;
+      cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
+  </div>
+
+  <div style="flex:1;overflow-y:auto;padding:18px 20px">
+    <div style="font-size:11.5px;font-weight:600;color:var(--text3);margin-bottom:8px">Готовые палитры</div>
+    <div id="theme-presets" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px"></div>
+
+    <div style="font-size:11.5px;font-weight:600;color:var(--text3);margin-bottom:10px">Свои цвета</div>
+    <div class="theme-picker-row">
+      <span class="theme-picker-swatch" id="tc-accent-sw"></span>
+      <label>Акцент</label>
+      <input type="color" id="tc-accent" oninput="themeCustomPreview()">
+    </div>
+    <div class="theme-picker-row">
+      <span class="theme-picker-swatch" id="tc-bg-sw"></span>
+      <label>Фон страницы</label>
+      <input type="color" id="tc-bg" oninput="themeCustomPreview()">
+    </div>
+    <div class="theme-picker-row">
+      <span class="theme-picker-swatch" id="tc-surface-sw"></span>
+      <label>Поверхность карточек</label>
+      <input type="color" id="tc-surface" oninput="themeCustomPreview()">
+    </div>
+    <div class="theme-picker-row">
+      <span class="theme-picker-swatch" id="tc-text-sw"></span>
+      <label>Текст</label>
+      <input type="color" id="tc-text" oninput="themeCustomPreview()">
+    </div>
+
+    <div style="font-size:11.5px;font-weight:600;color:var(--text3);margin:18px 0 8px">Скругление углов</div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <input type="range" id="tc-radius" min="4" max="28" step="2" style="flex:1" oninput="themeCustomPreview()">
+      <span id="tc-radius-val" style="font-size:11.5px;color:var(--text2);width:34px;text-align:right">20px</span>
+    </div>
+  </div>
+
+  <div style="padding:14px 16px;border-top:1px solid var(--border);flex-shrink:0;display:flex;gap:8px">
+    <button onclick="themeCustomReset()" style="
+      flex:1;height:38px;border-radius:10px;border:1px solid var(--border);
+      background:var(--surface2);color:var(--text2);font-size:12.5px;font-weight:600;cursor:pointer">
+      ↺ Сбросить
+    </button>
+    <button onclick="themeDrawerClose()" style="
+      flex:1;height:38px;border-radius:10px;border:none;
+      background:var(--green);color:#fff;font-size:12.5px;font-weight:600;cursor:pointer">
+      Готово
     </button>
   </div>
 </aside>
