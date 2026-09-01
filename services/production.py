@@ -300,6 +300,10 @@ def write_to_target(target_path, results, mapping, month_num, year, log):
 
     written = []
     not_found = []
+    # year/month фиксированы на весь вызов — колонка для листа одна и та
+    # же для всех строк маппинга этого листа, нет смысла искать её заново
+    # на каждой строке.
+    target_col_cache = {}
 
     for m in mapping:
         key = (m["завод"], m["подкат"])
@@ -322,19 +326,23 @@ def write_to_target(target_path, results, mapping, month_num, year, log):
 
         ws = wb[sheet_name]
 
-        target_col = None
-        for col in ws.iter_cols(min_col=2, max_row=2):
-            for cell in col:
-                v = cell.value
-                if (
-                    isinstance(v, dt.datetime)
-                    and v.year == year
-                    and v.month == month_num
-                ):
-                    target_col = cell.column
+        if sheet_name in target_col_cache:
+            target_col = target_col_cache[sheet_name]
+        else:
+            target_col = None
+            for col in ws.iter_cols(min_col=2, max_row=2):
+                for cell in col:
+                    v = cell.value
+                    if (
+                        isinstance(v, dt.datetime)
+                        and v.year == year
+                        and v.month == month_num
+                    ):
+                        target_col = cell.column
+                        break
+                if target_col:
                     break
-            if target_col:
-                break
+            target_col_cache[sheet_name] = target_col
 
         if target_col is None:
             not_found.append(f"{sheet_name}: колонка {year}-{month_num:02d} не найдена")
