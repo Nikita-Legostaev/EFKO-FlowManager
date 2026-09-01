@@ -12,7 +12,7 @@ from services.production import MONTH_LABELS
 from services.scheduler import SCHEDULER_DEFAULTS
 from core.paths import _resource
 
-CONFIG_FILE = _resource("config.json")
+CONFIG_FILE = _resource("config.json", writable=True)
 
 
 # ── Конфиг ────────────────────────────────────────────────────────────────────
