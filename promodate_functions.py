@@ -436,7 +436,8 @@ def _restore_bg_refresh(saved):
         except Exception: pass
 
 def refresh_file(file_path, log, stop_event):
-    import pythoncom, win32com.client as win32
+    import pythoncom
+    import win32com.client as win32
     filename = os.path.basename(file_path)
     excel = wb = None
     try:
@@ -474,7 +475,8 @@ def refresh_file(file_path, log, stop_event):
         gc.collect()
 
 def _excel_session(log, func):
-    import pythoncom, win32com.client as win32
+    import pythoncom
+    import win32com.client as win32
     excel = pid = None
     pythoncom.CoInitialize()
     try:

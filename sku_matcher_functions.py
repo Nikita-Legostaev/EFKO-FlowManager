@@ -274,7 +274,6 @@ class SKUMatcher:
 
     def __init__(self, ref_rows, descriptors, flavors=frozenset()):
         from sklearn.feature_extraction.text import TfidfVectorizer
-        import numpy as np
 
         self.descriptors = descriptors
         self.flavors = flavors
@@ -511,7 +510,7 @@ def _evaluate_model(matcher, ref_rows: list, log, k_folds: int = 5):
     std_acc   = (sum((x - avg_acc) ** 2 for x in fold_accs) / len(fold_accs)) ** 0.5
     avg_score = sum(fold_scores) / len(fold_scores) if fold_scores else 0
 
-    log(f"  ────────────────────────────────────")
+    log("  ────────────────────────────────────")
     log(f"  Средняя точность:  {avg_acc:.1f}% ± {std_acc:.1f}%")
     log(f"  Ср. уверенность:   {avg_score:.2f}")
 

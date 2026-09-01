@@ -689,7 +689,6 @@ def process_nielsen(
     arch_input2: str | None = None,
     arch_enabled: bool = False,
 ):
-    import polars as pl
 
     if not input_file and not input_file2:
         log("Ни один исходник Nielsen не выбран!")
