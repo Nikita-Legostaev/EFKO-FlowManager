@@ -39,6 +39,7 @@ _optional = [
     'requests', 'urllib3', 'certifi', 'idna', 'charset_normalizer',
     'bs4', 'soupsieve', 'lxml', 'lxml.etree', 'lxml._elementpath',
     'html5lib', 'fake_useragent',
+    'playwright', 'playwright.async_api', 'playwright.sync_api',
 ]
 _parser_libs = []
 for _mod in _optional:
@@ -80,7 +81,7 @@ a = Analysis(
         'services', 'services.scheduler', 'services.promodate',
         'services.sku_matcher', 'services.competitors', 'services.nielsen',
         'services.production', 'services.price_comparison', 'services.oos',
-        'services.parsing_runner',
+        'services.oos_ketchup', 'services.parsing_runner',
         'updater', 'updater.updater',
         'runpy', 'contextlib', 'shutil', 'webbrowser', 'csv', 're',
         'pkg_resources', 'packaging', 'json', 'threading', 'subprocess', 'uuid',
