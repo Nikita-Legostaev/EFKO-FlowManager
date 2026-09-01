@@ -858,7 +858,7 @@ function toggleAllNetworks(checked) {
 
 function resetNetworksToDefault() {
   document.getElementById('network-filter-list').innerHTML =
-    '<span style="color:var(--text-muted);font-size:12px;grid-column:1/-1">Список сброшен — используется фильтр по умолчанию</span>';
+    '<span style="color:var(--text3);font-size:12px;grid-column:1/-1">Список сброшен — используется фильтр по умолчанию</span>';
   const label = document.getElementById('networks-btn-label');
   if (label) label.textContent = 'Все по умолчанию';
   const count = document.getElementById('networks-count-label');
