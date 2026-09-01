@@ -210,11 +210,7 @@ __marimo__/
 
 
 # Excel files
-*.xlsx
-*.xls
-*.xlsm
-*.xlsb
-*.csv
+
 
 # Text files
 last_folder.txt
