@@ -1,9 +1,9 @@
 {
-  "output_folder": "C:\\Users\\n.legostaev\\Desktop\\Для мониторинга цен в ФС (с янв.26)",
-  "pq_file1": "V:\\ОАР\\Внутренняя\\старый Коммон\\33_КОМИТЕТ ПО ЦЕНООБРАЗОВАНИЮ БП\\Полочные цены Promodata\\PromoData(авто)(Частые).xlsx",
-  "pq_file2": "V:\\ОАР\\Внутренняя\\старый Коммон\\33_КОМИТЕТ ПО ЦЕНООБРАЗОВАНИЮ БП\\Полочные цены Promodata\\Отчет по полочным ценам (парсер)(авто)(Частые).xlsm",
+  "output_folder": "",
+  "pq_file1": "",
+  "pq_file2": "",
   "macro1": "ExtendDatesAndFormulas",
-  "macro2": "",
+  "macro2": "ExtendDatesAndFormulas_MNZ",
   "olap_file": "",
   "competitors_file": "",
   "nielsen_input": "",
@@ -63,5 +63,35 @@
   "scheduler_win_task": false,
   "scheduler_last_run": "",
   "scheduler_last_status": "",
-  "parsing_output": "C:\\Users\\n.legostaev\\Desktop\\тест_пасинга_ждск"
+  "parsing_output": "C:\\Users\\n.legostaev\\Desktop\\тест_пасинга_ждск",
+  "promodata_mode": "co",
+  "promodata_output_folders": {
+    "co": "C:\\Users\\n.legostaev\\Desktop\\Для мониторинга цен в ФС (с янв.26)",
+    "monitoring": "",
+    "extra": ""
+  },
+  "parsing_keys": {},
+  "promodata_mode_settings": {
+    "co": {
+      "output_folder": "",
+      "pq_file1": "",
+      "pq_file2": "",
+      "macro1": "ExtendDatesAndFormulas",
+      "macro2": "ExtendDatesAndFormulas_MNZ"
+    },
+    "monitoring": {
+      "output_folder": "",
+      "pq_file1": "V:\\ОАР\\Внутренняя\\старый Коммон\\33_КОМИТЕТ ПО ЦЕНООБРАЗОВАНИЮ БП\\Полочные цены Promodata\\PromoData(авто)(Частые).xlsx",
+      "pq_file2": "V:\\ОАР\\Внутренняя\\старый Коммон\\33_КОМИТЕТ ПО ЦЕНООБРАЗОВАНИЮ БП\\Полочные цены Promodata\\Отчет по полочным ценам (парсер)(авто)(Частые).xlsm",
+      "macro1": "ExtendDatesAndFormulas",
+      "macro2": ""
+    },
+    "extra": {
+      "output_folder": "",
+      "pq_file1": "",
+      "pq_file2": "",
+      "macro1": "ExtendDatesAndFormulas",
+      "macro2": "ExtendDatesAndFormulas_MNZ"
+    }
+  }
 }
