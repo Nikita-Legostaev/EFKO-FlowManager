@@ -1,10 +1,10 @@
 """
-api_production.py — миксин: производство и SKU-матчер.
+api/production.py — миксин: производство и SKU-матчер.
 """
 
 import threading
-from production_functions import run_production
-from sku_matcher_functions import run_matching, save_to_reference, RejectionStore
+from services.production import run_production
+from services.sku_matcher import run_matching, save_to_reference, RejectionStore
 
 
 class ApiProductionMixin:

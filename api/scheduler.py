@@ -1,13 +1,13 @@
 """
-api_scheduler.py — миксин: планировщик промодаты и Windows Task Scheduler.
+api/scheduler.py — миксин: планировщик промодаты и Windows Task Scheduler.
 """
 
 import os
 import logging
 import threading
 from datetime import datetime
-from app_config import _SV, load_config, save_config_data
-from promodate_functions import (
+from core.config import _SV, load_config, save_config_data
+from services.promodate import (
     FILTER_OPTIONS,
     download_files_thread,
     process_files_thread,
@@ -16,7 +16,7 @@ from promodate_functions import (
     run_stage_query2,
     run_stage_macros,
 )
-from scheduler_functions import SCHEDULER_DEFAULTS
+from services.scheduler import SCHEDULER_DEFAULTS
 
 
 class ApiSchedulerMixin:
@@ -170,25 +170,22 @@ class ApiSchedulerMixin:
     def _get_python_exe(self) -> str:
         """Возвращает путь к исполняемому файлу для запуска headless скрипта."""
         import sys as _sys
-        if getattr(_sys, "frozen", False):
-            base = os.path.dirname(_sys.executable)
-            headless = os.path.join(base, "promodate_headless.exe")
+        from core.paths import app_root, is_frozen
+        if is_frozen():
+            headless = os.path.join(app_root(), "promodate_headless.exe")
             if os.path.exists(headless):
                 return headless
-        base = os.path.dirname(_sys.executable)
-        pythonw = os.path.join(base, "pythonw.exe")
+        pythonw = os.path.join(app_root(), "pythonw.exe")
         return pythonw if os.path.exists(pythonw) else _sys.executable
 
     def _get_script_path(self) -> str:
-        import sys as _sys
-        if getattr(_sys, "frozen", False):
-            base = os.path.dirname(_sys.executable)
-            headless_exe = os.path.join(base, "promodate_headless.exe")
+        from core.paths import app_root, is_frozen
+        if is_frozen():
+            headless_exe = os.path.join(app_root(), "promodate_headless.exe")
             if os.path.exists(headless_exe):
                 return headless_exe
-            return os.path.join(base, "promodate_headless.py")
-        base = os.path.dirname(os.path.abspath(__file__))
-        return os.path.join(base, "promodate_headless.py")
+            return os.path.join(app_root(), "promodate_headless.py")
+        return os.path.join(app_root(), "promodate_headless.py")
 
     def create_windows_task(self, data: dict):
         """
