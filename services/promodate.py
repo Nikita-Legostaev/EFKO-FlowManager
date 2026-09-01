@@ -53,9 +53,8 @@ def get_available_networks(folder: str = None) -> list:
         return sorted(network_map)
     try:
         import polars as pl
-        file_path  = os.path.join(folder, files[0])
-        sheet_name = get_first_sheet_name(file_path)
-        df = pl.read_excel(file_path, sheet_name=sheet_name).select(["retailer"])
+        file_path = os.path.join(folder, files[0])
+        df = pl.read_excel(file_path, sheet_id=1).select(["retailer"])
         networks = df["retailer"].drop_nulls().unique().to_list()
         result   = sorted(str(n).strip() for n in networks if str(n).strip())
         return result if result else sorted(network_map)
@@ -326,8 +325,9 @@ def process_file(file_path, output_folder, selected_filter, log, networks=None):
 
         active_networks = set(networks) if networks else network_map
 
-        sheet_name = get_first_sheet_name(file_path)
-        df = pl.read_excel(file_path, sheet_name=sheet_name).select(needed_columns)
+        # sheet_id=1 читает первый лист по позиции — не нужен отдельный
+        # проход через openpyxl только ради имени листа.
+        df = pl.read_excel(file_path, sheet_id=1).select(needed_columns)
         df = df.with_columns([pl.col(c).cast(pl.Utf8).str.strip_chars() for c in df.columns])
 
         if isinstance(selected_filter, dict):
