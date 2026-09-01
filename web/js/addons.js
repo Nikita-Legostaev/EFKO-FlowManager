@@ -2,8 +2,8 @@
  * addons.js — надстройка интерфейса EFKO FlowManager
  *
  * Подключается ОДНОЙ строкой в конце web/index.html, сразу после app.js:
- *     <script src="app.js"></script>
- *     <script src="addons.js"></script>   ← добавить эту
+ *     <script src="js/app.js"></script>
+ *     <script src="js/addons.js"></script>   ← добавить эту
  *
  * Сам дорисовывает в существующий интерфейс:
  *   • кнопку «⚙️ Сделать CSV» на главном экране (только обработка xlsx → CSV);
@@ -445,7 +445,7 @@
       list.innerHTML =
         '<span style="color:var(--text3);font-size:12px;grid-column:1/-1">' +
         'Скрипты парсинга не найдены в сборке приложения. ' +
-        'Проверьте, что папка parsing/ попала в сборку.</span>';
+        'Проверьте, что папка parsers/ попала в сборку.</span>';
       return;
     }
     list.innerHTML = '';

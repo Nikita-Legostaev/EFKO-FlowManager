@@ -1,11 +1,11 @@
 """
-api_price.py — миксин: сравнение цен Купер vs PromoData.
+api/price.py — миксин: сравнение цен Купер vs PromoData.
 """
 
 import logging
 import os
 import threading
-# price_comparison_functions импортируется лениво, внутри рабочего потока:
+# services.price_comparison импортируется лениво, внутри рабочего потока:
 # его загрузка занимает ~19 секунд и раньше происходила при каждом старте
 
 
@@ -15,7 +15,7 @@ class ApiPriceMixin:
         self._stop_event.clear()
 
         def _w():
-            from price_comparison_functions import run_comparison as run_price_comparison
+            from services.price_comparison import run_comparison as run_price_comparison
             self._emit("set_title", "⏳ Сравнение цен…")
             self._emit("pc_started", None)
             try:

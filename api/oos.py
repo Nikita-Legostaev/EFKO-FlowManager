@@ -1,11 +1,11 @@
 """
-api_oos.py — миксин: отчёт без OOS (Слобода / Провансаль / Оливковый).
+api/oos.py — миксин: отчёт без OOS (Слобода / Провансаль / Оливковый).
 """
 
 import logging
 import threading
 from pathlib import Path
-# oos_functions импортируется лениво, внутри рабочего потока:
+# services.oos импортируется лениво, внутри рабочего потока:
 # его загрузка занимает ~5 секунд и раньше происходила при каждом старте
 
 
@@ -19,7 +19,7 @@ class ApiOosMixin:
         self._stop_event.clear()
 
         def _w():
-            from oos_functions import run_oos_report as _run_oos_report
+            from services.oos import run_oos_report as _run_oos_report
             self._emit("set_title", "⏳ Отчёт без OOS…")
             tasks = p.get("tasks", [])
             last_file = ""
