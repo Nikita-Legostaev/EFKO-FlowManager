@@ -414,6 +414,90 @@ def optimize_for_size(df):
     return df
 
 
+def pivot_by_fact(df, log) -> object:
+    """
+    Разворачивает колонку FACT в отдельные столбцы.
+
+    Было (длинный формат):
+      BRAND | FACT                   | ATTRIBUTE | VALUE
+      X     | Units (in 1000 PACKS)  | 01.03.2021 | 100
+      X     | Value (in 1000 RUR)    | 01.03.2021 | 500
+
+    Стало (широкий формат):
+      BRAND | ATTRIBUTE  | Units (in 1000 PACKS) | Value (in 1000 RUR)
+      X     | 01.03.2021 | 100                   | 500
+    """
+    import polars as pl
+
+    if "FACT" not in df.columns or "VALUE" not in df.columns:
+        return df
+
+    # VALUE → Float64 (из любого типа: Categorical, Utf8, Float32 и т.д.)
+    try:
+        value_dtype = df["VALUE"].dtype
+        if value_dtype in (pl.Categorical, pl.Utf8, pl.String):
+            df = df.with_columns(
+                pl.col("VALUE").cast(pl.Utf8)
+                .str.replace_all(r"\s", "", literal=False)  # убираем пробелы/неразрывные
+                .str.replace(",", ".", literal=True)
+                .cast(pl.Float64, strict=False)
+                .alias("VALUE")
+            )
+        elif value_dtype == pl.Float32:
+            df = df.with_columns(pl.col("VALUE").cast(pl.Float64).alias("VALUE"))
+    except Exception as e:
+        log(f"  ⚠ pivot_by_fact: не удалось привести VALUE к числу: {e}")
+        return df
+
+    # Убираем только строки где FACT пустой (без VALUE — оставляем, null останется в пивоте)
+    df = df.filter(pl.col("FACT").is_not_null())
+
+    if df.is_empty():
+        log("  ⚠ pivot_by_fact: нет данных")
+        return df
+
+    # Индексные колонки = всё кроме FACT и VALUE
+    index_cols = [c for c in df.columns if c not in ("FACT", "VALUE")]
+
+    # Убираем колонки которые зависят 1-к-1 от FACT (добавлены JOIN-ом справочника FACT)
+    # Например "Показатель" — русское название FACT. Они делают каждую строку уникальной
+    # и ломают пивот, создавая отдельную строку вместо отдельного столбца.
+    fact_derived = []
+    for col in index_cols:
+        try:
+            n_per_fact = (
+                df.select(["FACT", col])
+                .unique()
+                .group_by("FACT")
+                .agg(pl.col(col).n_unique().alias("n"))
+                .filter(pl.col("n") > 1)
+            )
+            if len(n_per_fact) == 0:  # каждому FACT соответствует ровно 1 значение
+                fact_derived.append(col)
+        except Exception:
+            pass
+
+    if fact_derived:
+        log(f"  Удалены FACT-зависимые столбцы: {fact_derived}")
+        df = df.drop(fact_derived)
+        index_cols = [c for c in index_cols if c not in fact_derived]
+
+    fact_vals = df["FACT"].unique().drop_nulls().to_list()
+    log(f"  FACT pivot → {len(fact_vals)} столбцов: {fact_vals}")
+
+    try:
+        pivoted = df.pivot(
+            values="VALUE",
+            index=index_cols,
+            on="FACT",
+            aggregate_function="mean",
+        )
+        return pivoted
+    except Exception as e:
+        log(f"  ⚠ pivot_by_fact ошибка: {e} — возвращаем без пивота")
+        return df
+
+
 def save_optimized(df, name: str, output_dir: Path, fmt: str, log, stop_event):
     import polars as pl
 
@@ -424,12 +508,21 @@ def save_optimized(df, name: str, output_dir: Path, fmt: str, log, stop_event):
 
     if fmt == "csv":
         path = output_dir / f"{name}.csv"
-        df = df.with_columns(
-            pl.col("VALUE")
-            .cast(pl.Utf8)
-            .str.replace(".", ",", literal=True)
-            .alias("VALUE")
-        )
+        if "VALUE" in df.columns:
+            df = df.with_columns(
+                pl.col("VALUE")
+                .cast(pl.Utf8)
+                .str.replace(".", ",", literal=True)
+                .alias("VALUE")
+            )
+        else:
+            # После пивота числовые колонки — бывшие FACT-значения
+            numeric_cols = [c for c in df.columns if df[c].dtype in (pl.Float32, pl.Float64, pl.Int32, pl.Int64, pl.Int16, pl.Int8)]
+            if numeric_cols:
+                df = df.with_columns([
+                    pl.col(c).cast(pl.Utf8).str.replace(".", ",", literal=True)
+                    for c in numeric_cols
+                ])
         df.write_csv(
             path,
             separator=";",
@@ -591,6 +684,10 @@ def process_nielsen(
     input_file2: str | None = None,
     output_dir2: str | None = None,
     pq_file: str | None = None,
+    pq_file_nu: str | None = None,
+    arch_input: str | None = None,
+    arch_input2: str | None = None,
+    arch_enabled: bool = False,
 ):
     import polars as pl
 
@@ -648,6 +745,7 @@ def process_nielsen(
             if stop_event.is_set():
                 log("⛔ Сохранение остановлено")
                 return
+            df = pivot_by_fact(df, log)
             save_optimized(optimize_for_size(df), name, save_dir, fmt, log, stop_event)
         log(f"  Сохранено в {save_dir}")
 
@@ -669,14 +767,54 @@ def process_nielsen(
     for cache_name in used_caches:
         _cleanup_old_caches(base_cache_dir, keep=cache_name, log=log)
 
-    # ── Обновление Power Query (если указан файл) ─────────────────────────────
+    # ── Архивные источники (однократный прогон, суффикс _арх) ────────────────
+    if arch_enabled:
+        def _save_result_arch(result: dict, save_dir: Path, label: str):
+            save_dir.mkdir(parents=True, exist_ok=True)
+            for name, df in result.items():
+                if stop_event.is_set():
+                    return
+                df = pivot_by_fact(df, log)
+                save_optimized(optimize_for_size(df), f"{name}_арх", save_dir, fmt, log, stop_event)
+            log(f"  Архив сохранён в {save_dir}")
+
+        if arch_input and os.path.isfile(arch_input) and dir1:
+            log("── Архивный исходник ST...")
+            res = _process_one_source(arch_input, "ST", category, sprav_path, base_cache_dir, log, stop_event)
+            if res and not stop_event.is_set():
+                r_arch, cache_name = res
+                used_caches.add(cache_name)
+                _save_result_arch(r_arch, dir1, "ST_arch")
+
+        if arch_input2 and os.path.isfile(arch_input2) and not stop_event.is_set():
+            save_arch2 = dir2 or dir1
+            log("── Архивный исходник NU...")
+            res = _process_one_source(arch_input2, "NU", category, sprav_path, base_cache_dir, log, stop_event)
+            if res and not stop_event.is_set():
+                r_arch2, cache_name = res
+                used_caches.add(cache_name)
+                _save_result_arch(r_arch2, save_arch2, "NU_arch")
+    else:
+        log("ℹ️ Архивные источники пропущены (галочка не установлена)")
+
+    # ── Обновление Power Query ST (если указан файл) ──────────────────────────
     if pq_file and os.path.isfile(pq_file):
-        log(f"Обновление Power Query: {os.path.basename(pq_file)}...")
+        log(f"Обновление Power Query ST: {os.path.basename(pq_file)}...")
         from promodate_functions import refresh_file
         ok = refresh_file(pq_file, log, stop_event)
         if ok:
-            log("✅ Power Query обновлён")
+            log("✅ Power Query ST обновлён")
         else:
-            log("⚠ Не удалось обновить Power Query")
+            log("⚠ Не удалось обновить Power Query ST")
+
+    # ── Обновление Power Query NU (если указан файл) ──────────────────────────
+    if pq_file_nu and os.path.isfile(pq_file_nu):
+        log(f"Обновление Power Query NU: {os.path.basename(pq_file_nu)}...")
+        from promodate_functions import refresh_file
+        ok = refresh_file(pq_file_nu, log, stop_event)
+        if ok:
+            log("✅ Power Query NU обновлён")
+        else:
+            log("⚠ Не удалось обновить Power Query NU")
 
     messagebox.showinfo("Готово", "Обработка Nielsen завершена!")

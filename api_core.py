@@ -157,3 +157,12 @@ class ApiCoreMixin:
         if folder and os.path.isdir(folder):
             return len(list(Path(folder).glob("*.csv")))
         return 0
+    
+    def get_networks(self):
+        """Возвращает список уникальных сетей из файлов в папке Скаченное."""
+        from promodate_functions import get_available_networks, DOWNLOAD_FOLDER
+        try:
+            return get_available_networks(DOWNLOAD_FOLDER)
+        except Exception as e:
+            self._log(f"⚠ get_networks: {e}")
+            return []

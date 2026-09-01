@@ -94,9 +94,6 @@ def load_config() -> dict:
         "sku_ref_path": "",
         "sku_csv_folder": "",
         "dl_mode": "range",
-        # ── Парсинг ЖДСК ──
-        "parsing_output": "",   # папка для Excel по сетям
-        "parsing_keys": {},     # {ИМЯ_ПЕРЕМЕННОЙ: API-ключ}
         "dates_list": "",
     }
     for k, v in SCHEDULER_DEFAULTS.items():
@@ -116,27 +113,9 @@ def load_config() -> dict:
 
 
 def save_config_data(data: dict):
-    """
-    Сохраняет настройки, дополняя уже записанные, а не заменяя их целиком.
-
-    Раньше сюда приходил словарь с главного экрана и затирал разделы,
-    которых в нём не было, — например, настройки вкладки парсинга.
-    """
     try:
-        current = {}
-        if os.path.exists(CONFIG_FILE):
-            try:
-                with open(CONFIG_FILE, "r", encoding="utf-8") as f:
-                    current = json.load(f)
-                if not isinstance(current, dict):
-                    current = {}
-            except Exception as e:
-                logging.warning(f"Config read before save: {e}")
-
-        current.update(data or {})
-
         with open(CONFIG_FILE, "w", encoding="utf-8") as f:
-            json.dump(current, f, ensure_ascii=False, indent=2)
+            json.dump(data, f, ensure_ascii=False, indent=2)
     except Exception as e:
         logging.error(f"Config save error: {e}")
 

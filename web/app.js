@@ -43,6 +43,7 @@ window.__pyEvent = function(payload) {
     case 'log':           addLog(data); break;
     case 'progress':      updateProgress(data.done, data.total); break;
     case 'hide_progress': hideProgress(); break;
+    case 'done':          hideProgress(); break;
     case 'set_title':     setStatus(data); break;
     case 'toast':         showToast(data.type, data.message); break;
     case 'sku_log':       skuLog(data); break;
@@ -289,6 +290,7 @@ async function runAction() {
       output_folder:getField('output_folder'), category:getField('category'),
       pq_file1:getField('pq_file1'), pq_file2:getField('pq_file2'),
       macro1:getField('macro1'), macro2:getField('macro2'),
+      networks: getSelectedNetworks(),
     };
     if (S.stage==='all')    await pywebview.api.start_process(p);
     else if (S.stage==='query1') await pywebview.api.run_stage_q1(p);
@@ -297,13 +299,17 @@ async function runAction() {
   } else if (S.page==='competitors') {
     await pywebview.api.run_competitors({olap_file:getField('olap_file'),competitors_file:getField('competitors_file')});
   } else if (S.page==='nielsen') {
-    await pywebview.api.run_nielsen({input_file:getField('nielsen_input'),input_file2:getField('nielsen_input2'),output_dir:getField('nielsen_output'),output_dir2:getField('nielsen_output2'),format:getField('nielsen_format'),category:getField('nielsen_category'),sprav_path:getField('nielsen_sprav_path'),pq_file:getField('nielsen_pq_file')});
+    await pywebview.api.run_nielsen({input_file:getField('nielsen_input'),input_file2:getField('nielsen_input2'),output_dir:getField('nielsen_output'),output_dir2:getField('nielsen_output2'),format:getField('nielsen_format'),category:getField('nielsen_category'),sprav_path:getField('nielsen_sprav_path'),pq_file:getField('nielsen_pq_file'),pq_file_nu:getField('nielsen_pq_file_nu'),arch_input:getField('nielsen_arch_input'),arch_input2:getField('nielsen_arch_input2'),arch_enabled:document.getElementById('nielsen_arch_enabled')?.checked||false});
+    // Снимаем галочку архива после запуска — однократный прогон
+    const archCb = document.getElementById('nielsen_arch_enabled');
+    if (archCb) { archCb.checked = false; autoSave(); }
   } else if (S.page==='query_refresh') {
     await pywebview.api.run_query_refresh({file:getField('query_refresh_file')});
   } else if (S.page==='production') {
     const monthLabel = getField('prod_month');
     await pywebview.api.run_production({
-      svod_folder:getField('prod_svod_folder'),  // файл СВОД npk_file:getField('prod_npk_file'),
+      svod_folder:getField('prod_svod_folder'),
+      npk_file:getField('prod_npk_file'),
       tolyatti_folder:getField('prod_tolyatti'), target_file:getField('prod_target'),
       mapping_file:getField('prod_mapping'), month_str:monthLabel.split(' - ')[0],
       year:getField('prod_year'),
@@ -311,6 +317,103 @@ async function runAction() {
   }
 }
 function stopAction() { pywebview.api.stop(); hideProgress(); }
+
+// ── Фильтр по сетям (модальное окно) ─────────────────────────────────────────
+function openNetworksModal() {
+  const overlay = document.getElementById('networks-modal-overlay');
+  overlay.style.display = 'flex';
+  // Если список ещё не загружен — загружаем автоматически
+  const list = document.getElementById('network-filter-list');
+  if (!list.querySelector('.net-chk')) loadNetworks();
+}
+
+function closeNetworksModal() {
+  document.getElementById('networks-modal-overlay').style.display = 'none';
+  _updateNetworksBtnLabel();
+}
+
+function _updateNetworksBtnLabel() {
+  const checks  = document.querySelectorAll('#network-filter-list .net-chk');
+  const checked = document.querySelectorAll('#network-filter-list .net-chk:checked');
+  const label   = document.getElementById('networks-btn-label');
+  const count   = document.getElementById('networks-count-label');
+  if (!checks.length) {
+    if (label) label.textContent = 'Все по умолчанию';
+    if (count) count.textContent = '';
+    return;
+  }
+  if (checked.length === checks.length) {
+    if (label) label.textContent = `Все сети (${checks.length})`;
+  } else {
+    if (label) label.textContent = `Выбрано: ${checked.length} из ${checks.length}`;
+  }
+  if (count) count.textContent = `Выбрано ${checked.length} из ${checks.length} сетей`;
+}
+
+async function loadNetworks() {
+  const btn = document.getElementById('load-networks-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
+  try {
+    const nets = await pywebview.api.get_networks();
+    const container = document.getElementById('network-filter-list');
+    if (!container) return;
+    container.innerHTML = '';
+    nets.forEach(n => {
+      const label = document.createElement('label');
+      label.className = 'network-filter-item';
+      label.dataset.name = n.toLowerCase();
+      label.style.cssText = 'display:flex;align-items:center;gap:6px;padding:6px 10px;background:var(--input-bg);border-radius:6px;cursor:pointer;font-size:13px;user-select:none';
+      const chk = document.createElement('input');
+      chk.type = 'checkbox';
+      chk.className = 'net-chk';
+      chk.value = n;
+      chk.checked = true;
+      chk.onchange = _updateNetworksBtnLabel;
+      label.appendChild(chk);
+      label.appendChild(document.createTextNode(n));
+      container.appendChild(label);
+    });
+    _updateNetworksBtnLabel();
+  } catch(e) {
+    showToast('error', 'Не удалось загрузить список сетей');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '↻ Загрузить'; }
+  }
+}
+
+function filterNetworksList() {
+  const q = (document.getElementById('networks-search')?.value || '').toLowerCase();
+  document.querySelectorAll('#network-filter-list .network-filter-item').forEach(el => {
+    el.style.display = el.dataset.name?.includes(q) ? '' : 'none';
+  });
+}
+
+function getSelectedNetworks() {
+  const checks  = document.querySelectorAll('#network-filter-list .net-chk');
+  if (!checks.length) return null;
+  const selected = Array.from(checks).filter(c => c.checked).map(c => c.value);
+  if (selected.length === checks.length) return null;
+  return selected.length ? selected : null;
+}
+
+function toggleAllNetworks(checked) {
+  document.querySelectorAll('#network-filter-list .net-chk').forEach(c => c.checked = checked);
+  _updateNetworksBtnLabel();
+}
+
+function resetNetworksToDefault() {
+  document.getElementById('network-filter-list').innerHTML =
+    '<span style="color:var(--text-muted);font-size:12px;grid-column:1/-1">Список сброшен — используется фильтр по умолчанию</span>';
+  const label = document.getElementById('networks-btn-label');
+  if (label) label.textContent = 'Все по умолчанию';
+  const count = document.getElementById('networks-count-label');
+  if (count) count.textContent = '';
+}
+
+// Закрытие по клику на оверлей
+document.addEventListener('click', e => {
+  if (e.target.id === 'networks-modal-overlay') closeNetworksModal();
+});
 
 async function doDownload() {
   showProgress();
@@ -447,6 +550,7 @@ function closeSkuIfBg(e)   { if(e.target===document.getElementById('sku-overlay'
 function skuSetMode(mode) {
   S.skuMode = mode;
   document.getElementById('sku-mode-ml').classList.toggle('active', mode === 'ml');
+  document.getElementById('sku-mode-ensemble').classList.toggle('active', mode === 'ensemble');
   document.getElementById('sku-mode-classic').classList.toggle('active', mode === 'classic');
 }
 async function skuPickRef() {
@@ -564,7 +668,19 @@ function skuDisplayRows(rows){
   });
 }
 function skuToggleRow(tr,idx){
-  if(S.skuSelected.has(idx))S.skuSelected.delete(idx);else S.skuSelected.add(idx);
+  const wasSelected = S.skuSelected.has(idx);
+  if(wasSelected) {
+    S.skuSelected.delete(idx);
+    // Пользователь снял галочку — запоминаем отклонение
+    const r = S.skuAllResults[idx];
+    if(r) pywebview.api.save_sku_rejection({
+      query:   r['Наименование SKU'] || '',
+      ref_raw: r['Совпало с'] || '',
+      ref_path: S.skuRefPath,
+    }).catch(()=>{});
+  } else {
+    S.skuSelected.add(idx);
+  }
   tr.classList.toggle('selected',S.skuSelected.has(idx));
   tr.querySelector('.sku-chk').className=`sku-chk ${S.skuSelected.has(idx)?'on':''}`;
   tr.querySelector('.sku-chk').textContent=S.skuSelected.has(idx)?'●':'○';
