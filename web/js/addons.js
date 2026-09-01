@@ -2,8 +2,8 @@
  * addons.js — надстройка интерфейса EFKO FlowManager
  *
  * Подключается ОДНОЙ строкой в конце web/index.html, сразу после app.js:
- *     <script src="app.js"></script>
- *     <script src="addons.js"></script>   ← добавить эту
+ *     <script src="js/app.js"></script>
+ *     <script src="js/addons.js"></script>   ← добавить эту
  *
  * Сам дорисовывает в существующий интерфейс:
  *   • кнопку «⚙️ Сделать CSV» на главном экране (только обработка xlsx → CSV);
