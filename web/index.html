@@ -4,9 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>EFKO FlowManager</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap">
 <link rel="stylesheet" href="styles/style.css">
 </head>
 <body>
+<div id="mesh"><i class="m1"></i><i class="m2"></i><i class="m3"></i><i class="m4"></i></div>
 <div id="app">
 
   <!-- ══════════ SIDEBAR ══════════ -->
@@ -892,7 +895,7 @@
         <div style="display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--border)">
           <button id="win-task-create" onclick="winTaskCreate()"
             style="padding:9px 6px;border:none;background:none;cursor:pointer;
-                   font-size:11px;font-weight:600;color:#1e8c42;
+                   font-size:11px;font-weight:600;color:var(--green-dark);
                    border-right:1px solid var(--border);transition:background .15s"
             onmouseover="this.style.background='var(--green-muted)'"
             onmouseout="this.style.background='none'">
@@ -915,7 +918,7 @@
                font-size:11px;color:var(--text3);cursor:pointer;
                display:flex;align-items:center;justify-content:center;gap:6px;
                transition:border-color .15s,color .15s"
-        onmouseover="this.style.borderColor='#1e8c42';this.style.color='#1e8c42'"
+        onmouseover="this.style.borderColor='var(--green)';this.style.color='var(--green-dark)'"
         onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text3)'">
         📆 Экспортировать в Календарь Windows (.ics)
       </button>
@@ -1033,7 +1036,7 @@
   <div style="padding:14px 16px;border-top:1px solid var(--border);flex-shrink:0;display:flex;gap:8px">
     <button onclick="schedRunNow()" style="
       flex:1;height:40px;border-radius:10px;border:none;
-      background:#1e8c42;color:#fff;font-size:13px;font-weight:600;
+      background:var(--green);color:#fff;font-size:13px;font-weight:600;
       cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;
       transition:background .15s">
       ▶ Запустить сейчас
@@ -1097,10 +1100,27 @@
       <input type="color" id="tc-text" oninput="themeCustomPreview()">
     </div>
 
+    <div style="font-size:11.5px;font-weight:600;color:var(--text3);margin:18px 0 8px">Цвета фонового градиента</div>
+    <div class="theme-picker-row">
+      <span class="theme-picker-swatch" id="tc-mesh-coral-sw"></span>
+      <label>Коралл</label>
+      <input type="color" id="tc-mesh-coral" oninput="themeCustomPreview()">
+    </div>
+    <div class="theme-picker-row">
+      <span class="theme-picker-swatch" id="tc-mesh-sky-sw"></span>
+      <label>Небо</label>
+      <input type="color" id="tc-mesh-sky" oninput="themeCustomPreview()">
+    </div>
+    <div class="theme-picker-row">
+      <span class="theme-picker-swatch" id="tc-mesh-mint-sw"></span>
+      <label>Мята</label>
+      <input type="color" id="tc-mesh-mint" oninput="themeCustomPreview()">
+    </div>
+
     <div style="font-size:11.5px;font-weight:600;color:var(--text3);margin:18px 0 8px">Скругление углов</div>
     <div style="display:flex;align-items:center;gap:10px">
       <input type="range" id="tc-radius" min="4" max="28" step="2" style="flex:1" oninput="themeCustomPreview()">
-      <span id="tc-radius-val" style="font-size:11.5px;color:var(--text2);width:34px;text-align:right">20px</span>
+      <span id="tc-radius-val" style="font-size:11.5px;color:var(--text2);width:34px;text-align:right">22px</span>
     </div>
   </div>
 

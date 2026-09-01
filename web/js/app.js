@@ -1197,9 +1197,9 @@ let THEME_CUSTOM = null; // {light:{accent,bg,surface,text}, dark:{...}, radius}
 let _themeDrawerOpen = false;
 
 const THEME_PRESETS = [
+  { name: 'Фиолетовый', accent: '#8B34EA' },
   { name: 'Зелёный',    accent: '#0E6B3C' },
   { name: 'Синий',      accent: '#0A56C4' },
-  { name: 'Фиолетовый', accent: '#6B3FA0' },
   { name: 'Оранжевый',  accent: '#B5680A' },
   { name: 'Розовый',    accent: '#C93B7A' },
   { name: 'Бирюзовый',  accent: '#0A8A82' },
@@ -1258,12 +1258,16 @@ function _shade(hex, dl, ds) {
 
 function _defaultThemeSet(isDark) {
   return isDark
-    ? { accent: '#33D874', bg: '#0A0B0A', surface: '#1A1B1E', text: '#F3F2EC' }
-    : { accent: '#0E6B3C', bg: '#F2F0EA', surface: '#FFFFFF', text: '#16160F' };
+    ? { accent: '#A855F7', bg: '#151119', surface: '#1E1926', text: '#F3F1F6' }
+    : { accent: '#8B34EA', bg: '#FAF7F9', surface: '#FFFFFF', text: '#1B1720' };
+}
+function _defaultMesh() {
+  return { coral: '#FF8A65', sky: '#6FB7FF', mint: '#5CE8C6' };
 }
 
 function getThemeCustom() {
-  if (!THEME_CUSTOM) THEME_CUSTOM = { light: _defaultThemeSet(false), dark: _defaultThemeSet(true), radius: 20 };
+  if (!THEME_CUSTOM) THEME_CUSTOM = { light: _defaultThemeSet(false), dark: _defaultThemeSet(true), radius: 22, mesh: _defaultMesh() };
+  if (!THEME_CUSTOM.mesh) THEME_CUSTOM.mesh = _defaultMesh();
   return THEME_CUSTOM;
 }
 
@@ -1277,6 +1281,7 @@ function applyCustomTheme() {
   root.setProperty('--green-hover', _shade(t.accent, isDark ? +6  : -7));
   root.setProperty('--green-muted', isDark ? _shade(t.accent, -28, -20) : _shade(t.accent, +42, -20));
   root.setProperty('--green-dim',   isDark ? _shade(t.accent, -12, -10) : _shade(t.accent, +25, -10));
+  root.setProperty('--green-rgb', _hexToRgb(t.accent).join(','));
   root.setProperty('--bg', t.bg);
   root.setProperty('--surface', t.surface);
   root.setProperty('--surface2', _shade(t.surface, isDark ? +7 : -4));
@@ -1285,9 +1290,13 @@ function applyCustomTheme() {
   root.setProperty('--text3', _shade(t.text, isDark ? -42 : +58));
   root.setProperty('--border', _shade(t.surface, isDark ? +10 : -8));
   root.setProperty('--border2', _shade(t.surface, isDark ? +18 : -16));
-  const radius = store.radius || 20;
+  const radius = store.radius || 22;
   root.setProperty('--radius', radius + 'px');
   root.setProperty('--radius-sm', Math.max(6, Math.round(radius * 0.6)) + 'px');
+  const mesh = store.mesh || _defaultMesh();
+  root.setProperty('--mesh-coral', mesh.coral);
+  root.setProperty('--mesh-sky', mesh.sky);
+  root.setProperty('--mesh-mint', mesh.mint);
 }
 
 function themeCustomPersist() {
@@ -1307,9 +1316,16 @@ function syncThemeDrawerInputs() {
   document.getElementById('tc-bg-sw').style.background = t.bg;
   document.getElementById('tc-surface-sw').style.background = t.surface;
   document.getElementById('tc-text-sw').style.background = t.text;
-  const radius = store.radius || 20;
+  const radius = store.radius || 22;
   document.getElementById('tc-radius').value = radius;
   document.getElementById('tc-radius-val').textContent = radius + 'px';
+  const mesh = store.mesh || _defaultMesh();
+  document.getElementById('tc-mesh-coral').value = mesh.coral;
+  document.getElementById('tc-mesh-sky').value = mesh.sky;
+  document.getElementById('tc-mesh-mint').value = mesh.mint;
+  document.getElementById('tc-mesh-coral-sw').style.background = mesh.coral;
+  document.getElementById('tc-mesh-sky-sw').style.background = mesh.sky;
+  document.getElementById('tc-mesh-mint-sw').style.background = mesh.mint;
   renderThemePresets();
 }
 
@@ -1348,10 +1364,17 @@ function themeCustomPreview() {
   t.bg      = document.getElementById('tc-bg').value;
   t.surface = document.getElementById('tc-surface').value;
   t.text    = document.getElementById('tc-text').value;
-  store.radius = parseInt(document.getElementById('tc-radius').value, 10) || 20;
+  store.radius = parseInt(document.getElementById('tc-radius').value, 10) || 22;
   document.getElementById('tc-radius-val').textContent = store.radius + 'px';
+  store.mesh = store.mesh || _defaultMesh();
+  store.mesh.coral = document.getElementById('tc-mesh-coral').value;
+  store.mesh.sky   = document.getElementById('tc-mesh-sky').value;
+  store.mesh.mint  = document.getElementById('tc-mesh-mint').value;
   ['accent', 'bg', 'surface', 'text'].forEach(k => {
     document.getElementById('tc-' + k + '-sw').style.background = t[k];
+  });
+  ['coral', 'sky', 'mint'].forEach(k => {
+    document.getElementById('tc-mesh-' + k + '-sw').style.background = store.mesh[k];
   });
   applyCustomTheme();
   renderThemePresets();
@@ -1359,7 +1382,7 @@ function themeCustomPreview() {
 }
 
 function themeCustomReset() {
-  THEME_CUSTOM = { light: _defaultThemeSet(false), dark: _defaultThemeSet(true), radius: 20 };
+  THEME_CUSTOM = { light: _defaultThemeSet(false), dark: _defaultThemeSet(true), radius: 22, mesh: _defaultMesh() };
   applyCustomTheme();
   syncThemeDrawerInputs();
   themeCustomPersist();
