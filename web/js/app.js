@@ -156,6 +156,15 @@ function applyConfig(cfg) {
       if (cnt) document.getElementById('sku-csv-count').textContent = `${cnt} файлов CSV`;
     });
   }
+  // Отчёт без OOS — Кетчуп
+  const need2026Cb = document.getElementById('oos-ketchup-need-2026');
+  if (need2026Cb) {
+    need2026Cb.checked = cfg.oos_ketchup_need_2026 !== '';
+    document.getElementById('oos-ketchup-2026-row').style.opacity = need2026Cb.checked ? '1' : '.4';
+  }
+  if (cfg.oos_ketchup_folder) {
+    pywebview.api.scan_ketchup_folder(cfg.oos_ketchup_folder).then(oosKetchupRenderScan);
+  }
 }
 
 function autoSave() {
@@ -171,6 +180,7 @@ function collectFormConfig() {
 
 // ── OOS Report ────────────────────────────────────────────────────────────
 let _oosLastFile = '';
+let _oosCategory = 'Майонез';
 
 const OOS_REPORT_FIELDS = {
   sloboda:    'oos-report-sloboda',
@@ -180,19 +190,24 @@ const OOS_REPORT_FIELDS = {
 
 function oosSetCategory(cat, btn) {
   document.querySelectorAll('#pane-oos .seg-btn[onclick*="oosSetCategory"]').forEach(b => b.classList.toggle('active', b===btn));
+  _oosCategory = cat;
+  const isKetchup = cat === 'Кетчуп';
+  document.getElementById('oos-mayo-fields').style.display = isKetchup ? 'none' : '';
+  document.getElementById('oos-ketchup-fields').style.display = isKetchup ? '' : 'none';
 }
 
 async function oosPickFile(inputId, fieldKey) {
   const path = await pywebview.api.browse_file();
   if (!path) return;
   document.getElementById(inputId).value = path;
-  const cfg = collectConfig();
+  const cfg = collectFormConfig();
   cfg[fieldKey] = path;
   pywebview.api.save_config(cfg);
   S[fieldKey] = path;
 }
 
 async function oosRunAll() {
+  if (_oosCategory === 'Кетчуп') { await oosKetchupRunAll(); return; }
   const kub = document.getElementById('oos-kub-file').value.trim();
   const elt = document.getElementById('oos-elt-file').value.trim();
   if (!kub || !elt) { addLog('⚠️ Укажите КУБ-файл и ELT-файл'); return; }
@@ -209,6 +224,53 @@ async function oosRunAll() {
 
 function oosOpenFolder() {
   if (_oosLastFile) pywebview.api.open_oos_folder(_oosLastFile);
+}
+
+// ── OOS Report — Кетчуп (обновление через query, папка с кубами) ──────────
+async function oosKetchupPickFolder() {
+  const path = await pywebview.api.browse_folder();
+  if (!path) return;
+  document.getElementById('oos-ketchup-folder').value = path;
+  const cfg = collectFormConfig();
+  cfg.oos_ketchup_folder = path;
+  pywebview.api.save_config(cfg);
+  const scan = await pywebview.api.scan_ketchup_folder(path);
+  oosKetchupRenderScan(scan);
+}
+
+function oosKetchupRenderScan(scan) {
+  const el = document.getElementById('oos-ketchup-scan');
+  if (!el) return;
+  const entries = Object.entries(scan || {});
+  if (!entries.length) { el.textContent = ''; return; }
+  el.innerHTML = entries.map(([role, name]) =>
+    name ? `✅ ${role}: ${name}` : `⚠️ ${role}: не найден`
+  ).join('<br>');
+}
+
+function oosKetchupSaveNeed2026() {
+  const checked = document.getElementById('oos-ketchup-need-2026').checked;
+  document.getElementById('oos-ketchup-2026-row').style.opacity = checked ? '1' : '.4';
+  const cfg = collectFormConfig();
+  cfg.oos_ketchup_need_2026 = checked ? '1' : '';
+  pywebview.api.save_config(cfg);
+}
+
+async function oosKetchupRunAll() {
+  const folder = document.getElementById('oos-ketchup-folder').value.trim();
+  if (!folder) { addLog('⚠️ Укажите папку с кубами'); return; }
+  const need2026 = document.getElementById('oos-ketchup-need-2026').checked;
+  const report2026 = document.getElementById('oos-ketchup-report-2026').value.trim();
+  const report20242026 = document.getElementById('oos-ketchup-report-2024-2026').value.trim();
+  if (need2026 && !report2026) addLog('⚠️ Файл отчёта 2026 не указан — этот шаг будет пропущен');
+  if (!report20242026) addLog('⚠️ Файл отчёта 2024-2026 не указан — этот шаг будет пропущен');
+  document.getElementById('oos-open-btn').style.display = 'none';
+  await pywebview.api.run_oos_ketchup({
+    kub_folder: folder,
+    report_2026: report2026,
+    report_2024_2026: report20242026,
+    need_2026: need2026,
+  });
 }
 
 window.__pyEvent = window.__pyEvent || function(){};
