@@ -169,6 +169,7 @@ function applyConfig(cfg) {
     document.querySelectorAll('#oos-layout-switch .layout-btn').forEach(b =>
       b.classList.toggle('active', b.dataset.layout === '2col'));
   }
+  restorePageLayouts(cfg);
   if (cfg.oos_ketchup_folder) {
     pywebview.api.scan_ketchup_folder(
       cfg.oos_ketchup_folder,
@@ -1379,11 +1380,39 @@ function themeDrawerClose() {
   ov.style.background = 'rgba(0,0,0,0)';
 }
 
-// ── Раскладка вкладки «Отчёт без OOS» (пилотный пример 1/2 колонки) ────────
+// ── Раскладка «Отчёт без OOS» (свой toggle — карточки внутри обёрток) ──────
 function oosSetLayout(mode, btn) {
   document.querySelectorAll('#oos-layout-switch .layout-btn').forEach(b => b.classList.toggle('active', b === btn));
   document.getElementById('pane-oos').classList.toggle('layout-2col', mode === '2col');
   pywebview.api.save_config({ oos_layout: mode });
+}
+
+// ── Раскладка 1/2 колонки — остальные вкладки (общий механизм) ────────────
+// Промодата по умолчанию в 2 колонки (класс layout-1col форсирует 1);
+// все прочие вкладки по умолчанию в 1 колонку (класс layout-2col включает 2).
+function pageSetLayout(page, mode, btn) {
+  const switchEl = btn.closest('.page-hero-layout');
+  if (switchEl) switchEl.querySelectorAll('.layout-btn').forEach(b => b.classList.toggle('active', b === btn));
+  const pane = document.getElementById('pane-' + page);
+  if (!pane) return;
+  if (page === 'promodate') pane.classList.toggle('layout-1col', mode === '1col');
+  else pane.classList.toggle('layout-2col', mode === '2col');
+  pywebview.api.save_config({ ['layout_' + page]: mode });
+}
+
+function restorePageLayouts(cfg) {
+  document.querySelectorAll('.page-hero-layout').forEach(sw => {
+    const pane = sw.closest('.pane');
+    if (!pane) return;
+    const page = pane.id.replace('pane-', '');
+    if (page === 'oos') return; // у OOS свой отдельный toggle/ключ (oos_layout)
+    const saved = cfg['layout_' + page];
+    const defaultMode = page === 'promodate' ? '2col' : '1col';
+    const mode = saved || defaultMode;
+    if (page === 'promodate') pane.classList.toggle('layout-1col', mode === '1col');
+    else pane.classList.toggle('layout-2col', mode === '2col');
+    sw.querySelectorAll('.layout-btn').forEach(b => b.classList.toggle('active', b.dataset.layout === mode));
+  });
 }
 
   // ══════════════════════════════════════════════════════════════════════

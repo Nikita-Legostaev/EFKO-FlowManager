@@ -209,7 +209,9 @@ body.dark .nav-item.active { box-shadow: 0 6px 18px -6px rgba(51,216,116,.4); }
   display: grid; grid-template-columns: 1fr 1fr;
   gap: 14px; align-items: start;
 }
-#pane-promodate.active > .card-wide { grid-column: 1 / -1; }
+#pane-promodate.active > .card-wide,
+#pane-promodate.active > .page-hero,
+#pane-promodate.active > .page-profile-bar { grid-column: 1 / -1; }
 
 /* ── Hero-баннер вкладки ──────────────────────────────────────────────────── */
 .page-hero {
@@ -241,10 +243,24 @@ body.dark .nav-item.active { box-shadow: 0 6px 18px -6px rgba(51,216,116,.4); }
 .layout-btn:hover { background: rgba(255,255,255,.22); }
 .layout-btn.active { background: rgba(255,255,255,.34); box-shadow: 0 0 0 1px rgba(255,255,255,.5) inset; }
 
+/* ── Раскладка 1/2 колонки: обобщённо для всех вкладок ──────────────────────── */
 #pane-oos.layout-2col #oos-mayo-fields,
 #pane-oos.layout-2col #oos-ketchup-fields {
   display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start;
 }
+.pane.active.layout-2col {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start;
+}
+.pane.active.layout-2col > .page-hero,
+.pane.active.layout-2col > .page-profile-bar,
+.pane.active.layout-2col > .card-wide {
+  grid-column: 1 / -1;
+}
+/* OOS сам раскладывает карточки внутри своих обёрток (см. выше) — внешний
+   grid ему не нужен и будет конфликтовать с внутренним. */
+#pane-oos.active.layout-2col { display: block; }
+/* Промодата по умолчанию — 2 колонки; «1col» форсирует обычный поток. */
+#pane-promodate.active.layout-1col { display: block; }
 
 /* ── Конструктор дизайна (theme drawer) ─────────────────────────────────────── */
 .theme-picker-row {

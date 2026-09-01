@@ -70,6 +70,9 @@ def load_config() -> dict:
         # ── Конструктор дизайна ──
         "theme_custom": {},
         "oos_layout": "1col",
+        "layout_promodate": "",
+        "layout_nielsen": "",
+        "layout_production": "",
         "dark_theme": False,
         "sku_ref_path": "",
         "sku_csv_folder": "",
