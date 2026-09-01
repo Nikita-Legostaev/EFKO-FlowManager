@@ -329,6 +329,42 @@ function refreshOpenFile() {
   if (f) pywebview.api.open_file(f);
 }
 
+// ── Универсальная модалка вместо window.prompt()/confirm() ────────────────
+let _appModalResolveFn = null;
+let _appModalMode = 'prompt';
+
+function _appModal({ title, message, defaultValue, placeholder, okLabel, danger }) {
+  return new Promise(resolve => {
+    _appModalResolveFn = resolve;
+    _appModalMode = (defaultValue !== undefined) ? 'prompt' : 'confirm';
+    document.getElementById('app-modal-title').textContent = title || '';
+    const msgEl = document.getElementById('app-modal-message');
+    const inputEl = document.getElementById('app-modal-input');
+    if (_appModalMode === 'prompt') {
+      msgEl.style.display = 'none';
+      inputEl.style.display = '';
+      inputEl.value = defaultValue || '';
+      inputEl.placeholder = placeholder || '';
+    } else {
+      msgEl.style.display = '';
+      msgEl.textContent = message || '';
+      inputEl.style.display = 'none';
+    }
+    const okBtn = document.getElementById('app-modal-ok-btn');
+    okBtn.textContent = okLabel || 'OK';
+    okBtn.className = 'btn ' + (danger ? 'btn-danger' : 'btn-primary');
+    document.getElementById('app-modal-overlay').style.display = 'flex';
+    if (_appModalMode === 'prompt') setTimeout(() => { inputEl.focus(); inputEl.select(); }, 30);
+  });
+}
+function _appModalResolve(value) {
+  document.getElementById('app-modal-overlay').style.display = 'none';
+  if (_appModalResolveFn) { const fn = _appModalResolveFn; _appModalResolveFn = null; fn(value); }
+}
+function _appModalSubmit() {
+  _appModalResolve(_appModalMode === 'prompt' ? document.getElementById('app-modal-input').value : true);
+}
+
 // ── Page profiles («под-страницы» 1/2/3 с разными наборами данных) ────────
 // Каждая вкладка может хранить несколько именованных наборов значений всех
 // [data-field]/чекбоксов внутри своей #pane-<page>. Переключение наборов не
@@ -492,8 +528,9 @@ function pageProfileSwitch(page, name) {
   pageProfilesPersist();
 }
 
-function pageProfileAdd(page) {
-  const name = (prompt('Название нового набора данных:') || '').trim();
+async function pageProfileAdd(page) {
+  const raw = await _appModal({ title: 'Новый набор данных', defaultValue: '', placeholder: 'Например «Кетчуп 2025»' });
+  const name = (raw || '').trim();
   if (!name) return;
   const store = pageProfileStore(page);
   if (store.profiles[name]) { showToast('warning', 'Набор с таким названием уже есть'); return; }
@@ -506,10 +543,11 @@ function pageProfileAdd(page) {
   showToast('success', `Создан набор «${name}» — заполните поля новыми данными`);
 }
 
-function pageProfileRename(page) {
+async function pageProfileRename(page) {
   const store = pageProfileStore(page);
   const oldName = store.active;
-  const newName = (prompt('Новое название набора:', oldName) || '').trim();
+  const raw = await _appModal({ title: 'Переименовать набор', defaultValue: oldName });
+  const newName = (raw || '').trim();
   if (!newName || newName === oldName) return;
   if (store.profiles[newName]) { showToast('warning', 'Набор с таким названием уже есть'); return; }
   store.profiles[newName] = store.profiles[oldName];
@@ -519,11 +557,16 @@ function pageProfileRename(page) {
   pageProfilesPersist();
 }
 
-function pageProfileDelete(page) {
+async function pageProfileDelete(page) {
   const store = pageProfileStore(page);
   const names = Object.keys(store.profiles);
   if (names.length <= 1) return;
-  if (!confirm(`Удалить набор «${store.active}»? Данные в нём будут потеряны.`)) return;
+  const ok = await _appModal({
+    title: 'Удалить набор данных',
+    message: `Удалить набор «${store.active}»? Данные в нём будут потеряны.`,
+    okLabel: 'Удалить', danger: true,
+  });
+  if (!ok) return;
   delete store.profiles[store.active];
   store.active = Object.keys(store.profiles)[0];
   pageProfileApply(page, store.profiles[store.active]);
