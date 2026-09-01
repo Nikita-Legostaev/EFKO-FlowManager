@@ -45,6 +45,10 @@ class ApiCompetitorsMixin:
                 input_file2=p.get("input_file2") or None,
                 output_dir2=p.get("output_dir2") or None,
                 pq_file=p.get("pq_file") or None,
+                pq_file_nu=p.get("pq_file_nu") or None,
+                arch_input=p.get("arch_input") or None,
+                arch_input2=p.get("arch_input2") or None,
+                arch_enabled=p.get("arch_enabled", False),
             )
             self._emit("set_title", "")
         threading.Thread(target=_w, daemon=True).start()
