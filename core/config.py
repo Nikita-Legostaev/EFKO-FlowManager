@@ -59,6 +59,9 @@ def load_config() -> dict:
         "sku_ref_path": "",
         "sku_csv_folder": "",
         "dl_mode": "range",
+        # ── Режимы промодаты ──
+        "promodata_mode": "co",
+        "promodata_output_folders": {"co": "", "monitoring": "", "extra": ""},
         # ── Парсинг ЖДСК ──
         "parsing_output": "",   # папка для Excel по сетям
         "parsing_keys": {},     # {ИМЯ_ПЕРЕМЕННОЙ: API-ключ}

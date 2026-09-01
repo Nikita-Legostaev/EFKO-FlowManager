@@ -85,6 +85,7 @@ window.addEventListener('pywebviewready', async () => {
     el.addEventListener('change', autoSave);
   });
   dlCalInit(cfg);
+  syncPromoModeUI(cfg.promodata_mode || 'co');
   navigate('promodate');
   schedLoad();
   _hideSplash();
@@ -277,6 +278,24 @@ function getField(field) {
   return el ? el.value : '';
 }
 
+// ── Режим промодаты (ЦО / Мониторинг цен / Дополнительно) ──────────────────
+function syncPromoModeUI(mode) {
+  document.querySelectorAll('#promo-mode-ctrl .seg-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.mode === mode);
+  });
+  const hidden = document.getElementById('sel-promodata-mode');
+  if (hidden) hidden.value = mode;
+}
+
+async function promoSetMode(mode) {
+  const cfg = await pywebview.api.set_promodata_mode(mode);
+  syncPromoModeUI(cfg.promodata_mode);
+  const out = document.querySelector('[data-field="output_folder"]');
+  if (out) out.value = cfg.output_folder || '';
+  const label = document.querySelector(`#promo-mode-ctrl .seg-btn[data-mode="${cfg.promodata_mode}"]`);
+  showToast('success', `Режим: ${label ? label.textContent : cfg.promodata_mode}`);
+}
+
 // ── Run action ────────────────────────────────────────────────────────────
 async function runAction() {
   showProgress();
@@ -291,6 +310,7 @@ async function runAction() {
       pq_file1:getField('pq_file1'), pq_file2:getField('pq_file2'),
       macro1:getField('macro1'), macro2:getField('macro2'),
       networks: getSelectedNetworks(),
+      promodata_mode: getField('promodata_mode'),
     };
     if (S.stage==='all')    await pywebview.api.start_process(p);
     else if (S.stage==='query1') await pywebview.api.run_stage_q1(p);
@@ -423,9 +443,10 @@ async function doDownload() {
     date_from:   _dlMode === 'multi' ? null : (_dlFrom ? _dateKey(_dlFrom) : null),
     date_to:     _dlMode === 'multi' ? null : (_dlTo   ? _dateKey(_dlTo)   : null),
     dates_list:  _dlMode === 'multi' ? [..._dlDates].sort() : null,
+    promodata_mode: getField('promodata_mode'),
   });
 }
-function confirmClearDownloads() { if(confirm('Удалить все файлы из папки «Скаченное»?')) pywebview.api.clear_downloads(); }
+function confirmClearDownloads() { if(confirm('Удалить все файлы из папки скачивания текущего режима?')) pywebview.api.clear_downloads(); }
 function confirmClearOutput() {
   const p=getField('output_folder');
   if(!p){showToast('warning','Папка сохранения не задана');return;}

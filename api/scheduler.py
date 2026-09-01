@@ -15,6 +15,7 @@ from services.promodate import (
     run_stage_query1,
     run_stage_query2,
     run_stage_macros,
+    download_folder_for_mode,
 )
 from services.scheduler import SCHEDULER_DEFAULTS
 
@@ -41,6 +42,8 @@ class ApiSchedulerMixin:
             or (cfg.get("category") or "").strip() \
             or "Масло"
         self._log(f"ℹ Категория пайплайна: «{category}»")
+        mode = cfg.get("promodata_mode", "co")
+        dl_folder = download_folder_for_mode(mode)
         output_folder = cfg.get("output_folder", "")
         pq_file1 = cfg.get("pq_file1", "")
         pq_file2 = cfg.get("pq_file2", "")
@@ -63,6 +66,7 @@ class ApiSchedulerMixin:
                     mb,
                     date_from_str=date_from,
                     date_to_str=date_to,
+                    download_folder=dl_folder,
                 )
             except Exception as e:
                 self._log(f"⚠️ Ошибка скачивания: {e}")
@@ -82,6 +86,7 @@ class ApiSchedulerMixin:
                     _SV(pq_file2),
                     _SV(macro1),
                     _SV(macro2),
+                    download_folder=dl_folder,
                 )
             except Exception as e:
                 self._log(f"⚠️ Ошибка обработки: {e}")
@@ -504,6 +509,7 @@ END:VCALENDAR"""
     def start_download(self, p):
         """Только скачивание файлов с FTP. Вызывается кнопкой «⬇ Скачать»."""
         self._stop_event.clear()
+        mode = p.get("promodata_mode") or load_config().get("promodata_mode", "co")
 
         def _worker():
             download_files_thread(
@@ -518,6 +524,7 @@ END:VCALENDAR"""
                 date_from_str=p.get("date_from"),
                 date_to_str=p.get("date_to"),
                 dates_list=p.get("dates_list"),
+                download_folder=download_folder_for_mode(mode),
             )
             self._emit("done")
 
@@ -527,6 +534,8 @@ END:VCALENDAR"""
     def start_process(self, p):
         """Полный пайплайн: скачивание → обработка → query1 → query2 → макросы."""
         self._stop_event.clear()
+        mode = p.get("promodata_mode") or load_config().get("promodata_mode", "co")
+        dl_folder = download_folder_for_mode(mode)
 
         def _worker():
             download_files_thread(
@@ -541,6 +550,7 @@ END:VCALENDAR"""
                 date_from_str=p.get("date_from"),
                 date_to_str=p.get("date_to"),
                 dates_list=p.get("dates_list"),
+                download_folder=dl_folder,
             )
             if self._stop_event.is_set():
                 return
@@ -559,6 +569,7 @@ END:VCALENDAR"""
                 progress_callback=self._progress,
                 set_title=self._set_title,
                 networks=p.get("networks") or None,
+                download_folder=dl_folder,
             )
             self._emit("done")
 
@@ -572,6 +583,7 @@ END:VCALENDAR"""
         Вызывается кнопкой «⚙️ Сделать CSV» на главном экране.
         """
         self._stop_event.clear()
+        mode = p.get("promodata_mode") or load_config().get("promodata_mode", "co")
 
         def _worker():
             try:
@@ -590,6 +602,7 @@ END:VCALENDAR"""
                     progress_callback=self._progress,
                     set_title=self._set_title,
                     networks=p.get("networks") or None,
+                    download_folder=download_folder_for_mode(mode),
                 )
             except Exception as e:
                 self._log(f"⚠️ Ошибка обработки: {e}")

@@ -131,8 +131,12 @@ class ApiCoreMixin:
         return True
 
     def clear_downloads(self):
+        from services.promodate import download_folder_for_mode
+        mode = load_config().get("promodata_mode", "co")
         threading.Thread(
-            target=clear_download_folder, args=(self._log, self._mb), daemon=True
+            target=clear_download_folder,
+            args=(self._log, self._mb, download_folder_for_mode(mode)),
+            daemon=True,
         ).start()
         return True
 
@@ -159,10 +163,11 @@ class ApiCoreMixin:
         return 0
     
     def get_networks(self):
-        """Возвращает список уникальных сетей из файлов в папке Скаченное."""
-        from services.promodate import get_available_networks, DOWNLOAD_FOLDER
+        """Возвращает список уникальных сетей из файлов в папке скачивания текущего режима."""
+        from services.promodate import get_available_networks, download_folder_for_mode
         try:
-            return get_available_networks(DOWNLOAD_FOLDER)
+            mode = load_config().get("promodata_mode", "co")
+            return get_available_networks(download_folder_for_mode(mode))
         except Exception as e:
             self._log(f"⚠ get_networks: {e}")
             return []
