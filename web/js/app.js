@@ -287,11 +287,15 @@ function syncPromoModeUI(mode) {
   if (hidden) hidden.value = mode;
 }
 
+const PROMO_MODE_FIELDS = ['output_folder', 'pq_file1', 'pq_file2', 'macro1', 'macro2'];
+
 async function promoSetMode(mode) {
   const cfg = await pywebview.api.set_promodata_mode(mode);
   syncPromoModeUI(cfg.promodata_mode);
-  const out = document.querySelector('[data-field="output_folder"]');
-  if (out) out.value = cfg.output_folder || '';
+  PROMO_MODE_FIELDS.forEach(field => {
+    const el = document.querySelector(`[data-field="${field}"]`);
+    if (el) el.value = cfg[field] || '';
+  });
   const label = document.querySelector(`#promo-mode-ctrl .seg-btn[data-mode="${cfg.promodata_mode}"]`);
   showToast('success', `Режим: ${label ? label.textContent : cfg.promodata_mode}`);
 }

@@ -60,8 +60,23 @@ def load_config() -> dict:
         "sku_csv_folder": "",
         "dl_mode": "range",
         # ── Режимы промодаты ──
+        # На каждый режим — своя папка сохранения CSV и свои файлы/макросы
+        # Power Query, чтобы «Мониторинг цен» не путался с «ЦО» и т.п.
         "promodata_mode": "co",
-        "promodata_output_folders": {"co": "", "monitoring": "", "extra": ""},
+        "promodata_mode_settings": {
+            "co": {
+                "output_folder": "", "pq_file1": "", "pq_file2": "",
+                "macro1": "ExtendDatesAndFormulas", "macro2": "ExtendDatesAndFormulas_MNZ",
+            },
+            "monitoring": {
+                "output_folder": "", "pq_file1": "", "pq_file2": "",
+                "macro1": "ExtendDatesAndFormulas", "macro2": "ExtendDatesAndFormulas_MNZ",
+            },
+            "extra": {
+                "output_folder": "", "pq_file1": "", "pq_file2": "",
+                "macro1": "ExtendDatesAndFormulas", "macro2": "ExtendDatesAndFormulas_MNZ",
+            },
+        },
         # ── Парсинг ЖДСК ──
         "parsing_output": "",   # папка для Excel по сетям
         "parsing_keys": {},     # {ИМЯ_ПЕРЕМЕННОЙ: API-ключ}
