@@ -175,7 +175,10 @@ class ApiSchedulerMixin:
             headless = os.path.join(app_root(), "promodate_headless.exe")
             if os.path.exists(headless):
                 return headless
-        pythonw = os.path.join(app_root(), "pythonw.exe")
+        # pythonw.exe живёт рядом с текущим интерпретатором (venv/установкой
+        # Python), а не в корне репозитория — app_root() здесь не подходит.
+        base = os.path.dirname(_sys.executable)
+        pythonw = os.path.join(base, "pythonw.exe")
         return pythonw if os.path.exists(pythonw) else _sys.executable
 
     def _get_script_path(self) -> str:

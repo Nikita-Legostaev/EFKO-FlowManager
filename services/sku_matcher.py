@@ -654,8 +654,8 @@ def run_matching(ref_path, csv_folder, threshold, on_progress, on_done, mode="ml
 
         all_skus = pd.concat(frames).drop_duplicates("pd_sku")
 
-        truly_new = [row for _, row in all_skus.iterrows() if str(row["pd_sku"]) not in existing]
-        new_skus  = pd.DataFrame(truly_new) if truly_new else pd.DataFrame(columns=all_skus.columns)
+        is_new   = ~all_skus["pd_sku"].astype(str).isin(existing)
+        new_skus = all_skus[is_new]
         on_progress(f"Новых SKU для матчинга: {len(new_skus)}")
 
         all_new_skus = (
