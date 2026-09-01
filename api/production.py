@@ -11,8 +11,9 @@ class ApiProductionMixin:
 
     def run_production(self, p):
         self._stop_event.clear()
-        threading.Thread(
-            target=lambda: (
+
+        def _worker():
+            try:
                 run_production(
                     p["svod_folder"],
                     p["npk_file"],
@@ -24,11 +25,14 @@ class ApiProductionMixin:
                     self._log,
                     self._mb,
                     self._stop_event,
-                ),
-                self._emit("set_title", ""),
-            ),
-            daemon=True,
-        ).start()
+                )
+            except Exception as e:
+                self._log(f"⚠️ Ошибка обработки производства: {e}")
+                self._emit("toast", {"type": "error", "message": f"Ошибка обработки: {e}"})
+            finally:
+                self._emit("set_title", "")
+
+        threading.Thread(target=_worker, daemon=True).start()
         return True
 
     def run_sku_matching(self, p):
