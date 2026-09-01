@@ -14,26 +14,26 @@ Power Query, подтягивающий данные из кубов, поэто
 и есть «вставка новых данных из кубов».
 """
 
-import re
 from pathlib import Path
 
 from services.competitors import refresh_file
 
-_RE_REPORT = re.compile(r"отч[её]т|report", re.IGNORECASE)
 
-
-def find_ketchup_files(folder) -> list:
+def find_ketchup_files(folder, exclude=None) -> list:
     """
     Возвращает список всех xlsx-файлов кубов в папке (сортировка по имени),
-    кроме самих файлов отчётов («Отчет по кетчупу...») и временных ~$-файлов.
+    кроме временных ~$-файлов и файлов из `exclude` (пути к уже выбранным
+    файлам отчётов — сравнение по имени файла, а не по маске в названии,
+    т.к. сами кубы часто содержат слово «отчёт(а)» в имени).
     """
     folder = Path(folder)
     if not folder.is_dir():
         return []
+    exclude_names = {Path(p).name for p in (exclude or ()) if p}
     return [
         f
         for f in sorted(folder.glob("*.xlsx"))
-        if not f.name.startswith("~$") and not _RE_REPORT.search(f.name)
+        if not f.name.startswith("~$") and f.name not in exclude_names
     ]
 
 
@@ -57,7 +57,9 @@ def run_ketchup_report(
         if stop_event.is_set():
             raise InterruptedError("Остановлено пользователем")
 
-    cube_paths = find_ketchup_files(kub_folder)
+    cube_paths = find_ketchup_files(
+        kub_folder, exclude=(report_2026_file, report_2024_2026_file)
+    )
     if not cube_paths:
         raise ValueError("В указанной папке не найдено ни одного файла куба")
 

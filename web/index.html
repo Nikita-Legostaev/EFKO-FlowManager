@@ -527,7 +527,7 @@
                 <button class="form-btn-pick" onclick="oosKetchupPickFolder()">Выбрать</button>
                 <button class="form-btn-clear" onclick="clearField(this); oosKetchupRenderScan([])">Очистить</button>
               </div>
-              <div id="oos-ketchup-scan" style="font-size:12px;color:var(--text3);margin-top:4px"></div>
+              <div id="oos-ketchup-scan"></div>
             </div>
           </div>
 
@@ -549,15 +549,15 @@
                 <label class="form-label" style="min-width:120px">2026:</label>
                 <input class="form-input" type="text" readonly id="oos-ketchup-report-2026" data-field="oos_ketchup_report_2026"
                        placeholder="Отчет по кетчупу в ФС без OOS (Query) 2026.xlsx">
-                <button class="form-btn-pick" onclick="oosPickFile('oos-ketchup-report-2026','oos_ketchup_report_2026')">Выбрать</button>
-                <button class="form-btn-clear" onclick="clearField(this)" title="Очистить">✕</button>
+                <button class="form-btn-pick" onclick="oosKetchupPickReportFile('oos-ketchup-report-2026','oos_ketchup_report_2026')">Выбрать</button>
+                <button class="form-btn-clear" onclick="clearField(this); oosKetchupRescan()" title="Очистить">✕</button>
               </div>
               <div class="form-row">
                 <label class="form-label" style="min-width:120px">2024-2026:</label>
                 <input class="form-input" type="text" readonly id="oos-ketchup-report-2024-2026" data-field="oos_ketchup_report_2024_2026"
                        placeholder="Отчет по кетчупу в ФС без OOS (Query) 2024-2026.xlsx">
-                <button class="form-btn-pick" onclick="oosPickFile('oos-ketchup-report-2024-2026','oos_ketchup_report_2024_2026')">Выбрать</button>
-                <button class="form-btn-clear" onclick="clearField(this)" title="Очистить">✕</button>
+                <button class="form-btn-pick" onclick="oosKetchupPickReportFile('oos-ketchup-report-2024-2026','oos_ketchup_report_2024_2026')">Выбрать</button>
+                <button class="form-btn-clear" onclick="clearField(this); oosKetchupRescan()" title="Очистить">✕</button>
               </div>
             </div>
           </div>
