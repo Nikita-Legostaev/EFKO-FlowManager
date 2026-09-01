@@ -76,6 +76,7 @@
         <input type="hidden" data-field="year_from"  id="sel-year-from">
         <input type="hidden" data-field="month_to"   id="sel-month-to">
         <input type="hidden" data-field="year_to"    id="sel-year-to">
+        <input type="hidden" data-field="promodata_mode" id="sel-promodata-mode" value="co">
 
         <div class="card">
           <div class="card-section">
@@ -122,6 +123,14 @@
         <div class="card">
           <div class="card-section"><span class="card-section-icon">⚙️</span><span class="card-section-title">Параметры обработки</span></div>
           <div class="card-body">
+            <div class="opts-row">
+              <span class="opts-label">Режим:</span>
+              <div class="segment-ctrl" id="promo-mode-ctrl">
+                <button class="seg-btn active" data-mode="co" onclick="promoSetMode('co')">ЦО</button>
+                <button class="seg-btn" data-mode="monitoring" onclick="promoSetMode('monitoring')">Мониторинг цен</button>
+                <button class="seg-btn" data-mode="extra" onclick="promoSetMode('extra')">Дополнительно</button>
+              </div>
+            </div>
             <div class="opts-row">
               <span class="opts-label">Категория:</span>
               <select class="form-select" data-field="category" style="width:240px" id="sel-category"></select>

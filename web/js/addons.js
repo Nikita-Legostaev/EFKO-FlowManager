@@ -288,6 +288,7 @@
         output_folder: out,
         category: cat,
         networks: (typeof getSelectedNetworks === 'function') ? getSelectedNetworks() : null,
+        promodata_mode: getField('promodata_mode'),
       });
     } catch (e) {
       toast('error', 'Не удалось запустить обработку: ' + e);
