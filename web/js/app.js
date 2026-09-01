@@ -163,7 +163,11 @@ function applyConfig(cfg) {
     document.getElementById('oos-ketchup-2026-row').style.opacity = need2026Cb.checked ? '1' : '.4';
   }
   if (cfg.oos_ketchup_folder) {
-    pywebview.api.scan_ketchup_folder(cfg.oos_ketchup_folder).then(oosKetchupRenderScan);
+    pywebview.api.scan_ketchup_folder(
+      cfg.oos_ketchup_folder,
+      cfg.oos_ketchup_report_2026 || '',
+      cfg.oos_ketchup_report_2024_2026 || ''
+    ).then(oosKetchupRenderScan);
   }
 }
 
@@ -234,7 +238,15 @@ async function oosKetchupPickFolder() {
   const cfg = collectFormConfig();
   cfg.oos_ketchup_folder = path;
   pywebview.api.save_config(cfg);
-  const scan = await pywebview.api.scan_ketchup_folder(path);
+  await oosKetchupRescan();
+}
+
+async function oosKetchupRescan() {
+  const folder = document.getElementById('oos-ketchup-folder').value.trim();
+  if (!folder) { oosKetchupRenderScan([]); return; }
+  const report2026 = document.getElementById('oos-ketchup-report-2026').value.trim();
+  const report20242026 = document.getElementById('oos-ketchup-report-2024-2026').value.trim();
+  const scan = await pywebview.api.scan_ketchup_folder(folder, report2026, report20242026);
   oosKetchupRenderScan(scan);
 }
 
@@ -242,9 +254,12 @@ function oosKetchupRenderScan(files) {
   const el = document.getElementById('oos-ketchup-scan');
   if (!el) return;
   files = files || [];
-  if (!files.length) { el.textContent = ''; return; }
-  el.innerHTML = `Найдено файлов кубов: ${files.length}<br>` +
-    files.map(name => `📄 ${name}`).join('<br>');
+  if (!files.length) { el.innerHTML = ''; return; }
+  el.innerHTML =
+    `<div class="ketchup-scan-count">Найдено кубов: ${files.length}</div>` +
+    `<ul class="ketchup-scan-list">` +
+    files.map(name => `<li class="ketchup-scan-item">📄 <span>${name}</span></li>`).join('') +
+    `</ul>`;
 }
 
 function oosKetchupSaveNeed2026() {
@@ -253,6 +268,11 @@ function oosKetchupSaveNeed2026() {
   const cfg = collectFormConfig();
   cfg.oos_ketchup_need_2026 = checked ? '1' : '';
   pywebview.api.save_config(cfg);
+}
+
+async function oosKetchupPickReportFile(inputId, fieldKey) {
+  await oosPickFile(inputId, fieldKey);
+  await oosKetchupRescan();
 }
 
 async function oosKetchupRunAll() {

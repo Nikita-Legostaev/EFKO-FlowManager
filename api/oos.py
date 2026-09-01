@@ -58,12 +58,17 @@ class ApiOosMixin:
         folder = str(Path(path).parent) if path else ""
         return self.open_folder(folder)
 
-    def scan_ketchup_folder(self, folder):
-        """Возвращает список имён xlsx-файлов кубов в папке — для предпросмотра на фронте."""
+    def scan_ketchup_folder(self, folder, report_2026=None, report_2024_2026=None):
+        """Возвращает список имён xlsx-файлов кубов в папке — для предпросмотра на фронте.
+        Файлы, уже выбранные как отчёты (report_2026/report_2024_2026), в список кубов не входят.
+        """
         from services.oos_ketchup import find_ketchup_files
         if not folder:
             return []
-        return [p.name for p in find_ketchup_files(folder)]
+        return [
+            p.name
+            for p in find_ketchup_files(folder, exclude=(report_2026, report_2024_2026))
+        ]
 
     def run_oos_ketchup(self, p):
         """
