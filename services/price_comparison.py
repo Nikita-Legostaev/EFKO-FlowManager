@@ -215,12 +215,27 @@ def run_comparison(
     fuzzy_map = {}
     total = len(kuper_skus)
 
+    # normalize()/extract_weight() гоняют по несколько regex-подстановок —
+    # раньше пересчитывались для каждого ref на каждой итерации внешнего
+    # цикла (O(n×m) regex-проходов). Считаем токены и вес один раз на ref
+    # и один раз на kp, дальше в двойном цикле — только сравнение множеств.
+    ref_tokens = [set(normalize(ref).split()) for ref in ref_names]
+    ref_weights = [extract_weight(ref) for ref in ref_names]
+
     for i, kp in enumerate(kuper_skus):
         if stopped():
             return 0
+        kp_tokens = set(normalize(kp).split())
+        kp_weight = extract_weight(kp)
+
         best_score, best_ref = 0.0, None
-        for ref in ref_names:
-            s = jaccard(kp, ref)
+        for ref, r_tokens, r_weight in zip(ref_names, ref_tokens, ref_weights):
+            if kp_weight is not None and r_weight is not None:
+                if abs(kp_weight - r_weight) / max(kp_weight, r_weight) > 0.10:
+                    continue
+            if not kp_tokens or not r_tokens:
+                continue
+            s = len(kp_tokens & r_tokens) / len(kp_tokens | r_tokens)
             if s > best_score:
                 best_score, best_ref = s, ref
         if best_score >= threshold:
@@ -285,6 +300,7 @@ def _write_excel(matched, output_file):
         bottom=Side(style="thin", color="BBBBBB"),
     )
     H_FONT = Font(name="Arial", bold=True, color="FFFFFF", size=9)
+    DATA_FONT = Font(name="Arial", size=9)
     C = Alignment(horizontal="center", vertical="center", wrap_text=True)
     L = Alignment(horizontal="left", vertical="center", wrap_text=True)
     R = Alignment(horizontal="right", vertical="center")
@@ -366,7 +382,7 @@ def _write_excel(matched, output_file):
             if pd.isna(val):
                 val = None
             cell = ws.cell(row=er, column=ci, value=val)
-            cell.font = Font(name="Arial", size=9)
+            cell.font = DATA_FONT
             cell.border = THIN
             if ci in PRICE_COLS:
                 cell.alignment = R
