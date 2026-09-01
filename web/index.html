@@ -517,7 +517,7 @@
             <div class="card-section">
               <span class="card-section-icon">📂</span>
               <span class="card-section-title">Папка с кубами</span>
-              <span style="margin-left:8px;font-size:11px;color:var(--text3)">(КУБ, Конкуренты, Конкуренты 300, ELT — определяются автоматически)</span>
+              <span style="margin-left:8px;font-size:11px;color:var(--text3)">(обновляются все xlsx-файлы кубов в папке)</span>
             </div>
             <div class="card-body">
               <div class="form-row">
@@ -525,7 +525,7 @@
                 <input class="form-input" type="text" readonly id="oos-ketchup-folder" data-field="oos_ketchup_folder"
                        placeholder="Данные по отчёту без OOS / Кетчуп">
                 <button class="form-btn-pick" onclick="oosKetchupPickFolder()">Выбрать</button>
-                <button class="form-btn-clear" onclick="clearField(this); oosKetchupRenderScan({})">Очистить</button>
+                <button class="form-btn-clear" onclick="clearField(this); oosKetchupRenderScan([])">Очистить</button>
               </div>
               <div id="oos-ketchup-scan" style="font-size:12px;color:var(--text3);margin-top:4px"></div>
             </div>
