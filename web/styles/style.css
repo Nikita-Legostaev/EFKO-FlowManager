@@ -6,6 +6,7 @@
 
 /* ── Variables — Light ──────────────────────────────────────────────────── */
 :root {
+  --green-rgb:    14,107,60;
   --green:        #0E6B3C;
   --green-dark:   #0A4E2C;
   --green-hover:  #0C5A34;
@@ -38,6 +39,7 @@
 }
 /* ── Variables — Dark ───────────────────────────────────────────────────── */
 body.dark {
+  --green-rgb:    51,216,116;
   --green:        #33D874;
   --green-dark:   #24B65E;
   --green-hover:  #43E786;
@@ -150,6 +152,13 @@ input, select { font-family: inherit; }
 }
 body.dark .nav-item.active { box-shadow: 0 6px 18px -6px rgba(51,216,116,.4); }
 .nav-item.active .nav-icon { filter: none; }
+.nav-icon {
+  width: 27px; height: 27px; border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--surface2); flex-shrink: 0; transition: background .15s;
+}
+.nav-item.active .nav-icon { background: rgba(255,255,255,.2); }
+.nav-item.wip.active .nav-icon { background: rgba(255,255,255,.2); }
 /* Специальный стиль для "в разработке" */
 .nav-item.wip { opacity: .8; position: relative; }
 .nav-item.wip:hover { background: var(--surface2); color: var(--purple); }
@@ -166,7 +175,12 @@ body.dark .nav-item.active { box-shadow: 0 6px 18px -6px rgba(51,216,116,.4); }
 .sb-footer .nav-item { color: var(--text3); font-size: 12px; height: 38px; }
 
 /* ── Content area ────────────────────────────────────────────────────────── */
-#content { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: var(--bg); }
+#content {
+  flex: 1; display: flex; flex-direction: column; overflow: hidden;
+  background:
+    radial-gradient(1100px 520px at 100% -8%, rgba(var(--green-rgb),.08) 0%, rgba(var(--green-rgb),0) 60%),
+    var(--bg);
+}
 #page-header {
   height: var(--hdr-h); flex-shrink: 0;
   background: var(--surface-glass);
@@ -188,16 +202,26 @@ body.dark .nav-item.active { box-shadow: 0 6px 18px -6px rgba(51,216,116,.4); }
   border: 1px solid var(--border); display: none;
 }
 #page-status.visible { display: block; }
-#scroll-area { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 24px 24px 0; }
+#scroll-area { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 24px 24px 0; counter-reset: sec; }
+
+/* ── Промодата: editorial-сетка вместо сплошной колонки ─────────────────── */
+#pane-promodate.active {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 14px; align-items: start;
+}
+#pane-promodate.active > .card-wide { grid-column: 1 / -1; }
 
 /* ── Cards ───────────────────────────────────────────────────────────────── */
 .card {
   background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
   box-shadow: var(--shadow); margin-bottom: 14px; overflow: hidden;
+  animation: cardIn .32s cubic-bezier(.2,.7,.3,1) both;
 }
+@keyframes cardIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 .card-section {
   display: flex; align-items: center; gap: 10px;
   padding: 16px 20px 12px; border-bottom: 1px solid var(--border);
+  counter-increment: sec;
 }
 .card-section-icon {
   font-size: 13px; width: 26px; height: 26px; border-radius: 8px;
@@ -208,6 +232,11 @@ body.dark .nav-item.active { box-shadow: 0 6px 18px -6px rgba(51,216,116,.4); }
   font-size: 11.5px; font-weight: 700; color: var(--text2);
   letter-spacing: .8px; text-transform: uppercase;
 }
+.card-section-title::before {
+  content: counter(sec, decimal-leading-zero) "\00a0\00a0—\00a0\00a0";
+  color: var(--green); font-weight: 800; letter-spacing: 0;
+}
+body.dark .card-section-title::before { color: var(--green); }
 .card-body { padding: 8px 0 12px; }
 
 /* ── Form rows ───────────────────────────────────────────────────────────── */
