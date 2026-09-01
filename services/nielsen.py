@@ -1,4 +1,4 @@
-# nielsen_functions.py
+# services/nielsen.py
 """
 Обработчик выгрузок Nielsen.
 Полностью открыт для расширения: никаких хардкодов имён листов,
@@ -11,13 +11,15 @@ import re
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
+from core.paths import app_root
+
 # Паттерн даты в заголовках Nielsen ("MAR 21", "APR 22", "Mar 2023", "Apr 2024")
 _DATE_COL_RE = re.compile(r"^[A-Z]{3}\s+\d{2,4}$", re.IGNORECASE)
 
 # ── Путь к папке со справочниками ─────────────────────────────────────────────
-# Папка рядом с nielsen_functions.py или рядом с exe после сборки.
+# Папка рядом с services/nielsen.py или рядом с exe после сборки.
 # Можно переопределить из конфига.
-СПРАВОЧНИКИ_FOLDER: str = str(Path(__file__).parent / "Справочники")
+СПРАВОЧНИКИ_FOLDER: str = str(Path(app_root()) / "Справочники")
 
 # ── Допустимые значения FACT ───────────────────────────────────────────────────
 valid_FACT = [
@@ -799,7 +801,7 @@ def process_nielsen(
     # ── Обновление Power Query ST (если указан файл) ──────────────────────────
     if pq_file and os.path.isfile(pq_file):
         log(f"Обновление Power Query ST: {os.path.basename(pq_file)}...")
-        from promodate_functions import refresh_file
+        from services.promodate import refresh_file
         ok = refresh_file(pq_file, log, stop_event)
         if ok:
             log("✅ Power Query ST обновлён")
@@ -809,7 +811,7 @@ def process_nielsen(
     # ── Обновление Power Query NU (если указан файл) ──────────────────────────
     if pq_file_nu and os.path.isfile(pq_file_nu):
         log(f"Обновление Power Query NU: {os.path.basename(pq_file_nu)}...")
-        from promodate_functions import refresh_file
+        from services.promodate import refresh_file
         ok = refresh_file(pq_file_nu, log, stop_event)
         if ok:
             log("✅ Power Query NU обновлён")

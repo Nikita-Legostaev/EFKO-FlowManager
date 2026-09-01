@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-parsing_functions.py — движок вкладки «Парсинг ЖДСК».
+services/parsing_runner.py — движок вкладки «Парсинг ЖДСК».
 
 Схема работы:
-  • сами скрипты (fixprice.py, bristol.py …) и реестр parsers.json лежат
-    ВНУТРИ сборки приложения, в папке parsing/ — вместе с приложением
+  • сами скрипты (fixprice.py, bristol.py …) и реестр registry.json лежат
+    ВНУТРИ сборки приложения, в папке parsers/ — вместе с приложением
     обновляются и вместе с ним раздаются;
   • результаты (Excel по каждой сети) пишутся в папку, которую пользователь
     выбирает во вкладке. На сетевой диск парсинг ничего не пишет;
@@ -31,8 +31,8 @@ import logging
 import threading
 import contextlib
 
-REGISTRY_NAME = "parsers.json"
-SCRIPTS_DIRNAME = "parsing"
+REGISTRY_NAME = "registry.json"
+SCRIPTS_DIRNAME = "parsers"
 
 # Утилиты, которые не показываем как парсеры сетей
 _HIDDEN_BY_DEFAULT = {"json_count.py", "mayak.py"}
@@ -48,19 +48,17 @@ def scripts_dir() -> str:
     Папка со скриптами внутри приложения.
 
     В собранном exe это распакованный ресурс (только чтение),
-    при запуске из исходников — ./parsing рядом с app.py.
+    при запуске из исходников — ./parsers рядом с main.py.
     """
+    from core.paths import _resource, app_root
     try:
-        from app_config import _resource
         path = _resource(SCRIPTS_DIRNAME)
         if os.path.isdir(path):
             return path
     except Exception:
         pass
 
-    base = (os.path.dirname(sys.executable) if getattr(sys, "frozen", False)
-            else os.path.dirname(os.path.abspath(__file__)))
-    return os.path.join(base, SCRIPTS_DIRNAME)
+    return os.path.join(app_root(), SCRIPTS_DIRNAME)
 
 
 # ── Реестр ───────────────────────────────────────────────────────────────────
@@ -133,7 +131,7 @@ def list_parsers() -> list:
             result.append({
                 "key": _slug(fn), "name": os.path.splitext(fn)[0], "script": fn,
                 "icon": "❔",
-                "help": ("Скрипт есть в сборке, но не описан в parsers.json.\n"
+                "help": ("Скрипт есть в сборке, но не описан в registry.json.\n"
                          "Добавьте его в реестр, чтобы задать название, "
                          "имя файла результата и инструкцию."),
                 "outputs": [], "needs_key": False, "env_key": "",
@@ -435,7 +433,7 @@ def run_parser(output_folder: str, key: str, log, stop_event=None,
         stream.flush()
         missing = getattr(e, "filename", "") or str(e)
         log(f"❌ {parser['name']} — нет исходного файла «{missing}»")
-        log("   Он должен лежать в папке parsing/ внутри приложения и "
+        log("   Он должен лежать в папке parsers/ внутри приложения и "
             "копироваться в папку результатов при запуске")
         return {"ok": False, "msg": f"нет файла {missing}", "outputs": []}
 

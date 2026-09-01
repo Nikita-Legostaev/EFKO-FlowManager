@@ -1,5 +1,5 @@
 """
-api_core.py — базовый миксин API:
+api/core.py — базовый миксин API:
   __init__, push-события, конфиг, файловые диалоги, утилиты, стоп/очистка.
 """
 
@@ -10,11 +10,11 @@ import threading
 import webview  # pyright: ignore[reportMissingImports]
 from pathlib import Path
 
-from app_config import load_config, save_config_data, _SV, _MB
-from promodate_functions import FILTER_OPTIONS
-from production_functions import MONTH_LABELS
-from scheduler_functions import PromodateScheduler
-from promodate_functions import clear_download_folder, clear_output_folder
+from core.config import load_config, save_config_data, _SV, _MB
+from services.promodate import FILTER_OPTIONS
+from services.production import MONTH_LABELS
+from services.scheduler import PromodateScheduler
+from services.promodate import clear_download_folder, clear_output_folder
 
 
 class ApiCoreMixin:
@@ -160,7 +160,7 @@ class ApiCoreMixin:
     
     def get_networks(self):
         """Возвращает список уникальных сетей из файлов в папке Скаченное."""
-        from promodate_functions import get_available_networks, DOWNLOAD_FOLDER
+        from services.promodate import get_available_networks, DOWNLOAD_FOLDER
         try:
             return get_available_networks(DOWNLOAD_FOLDER)
         except Exception as e:

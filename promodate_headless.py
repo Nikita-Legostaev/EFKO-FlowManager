@@ -96,7 +96,7 @@ class _MB:
 
 def run_pipeline(cfg: dict, steps: list[str], month: int, year: int):
     """Запускает выбранные шаги промодаты."""
-    from promodate_functions import (
+    from services.promodate import (
         FILTER_OPTIONS,
         download_files_thread,
         process_files_thread,

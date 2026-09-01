@@ -1,11 +1,11 @@
 """
-api_competitors.py — миксин: конкуренты, Nielsen, обновление квери.
+api/competitors.py — миксин: конкуренты, Nielsen, обновление квери.
 """
 
 import threading
 import os
-from competitors_functions import refresh_competitors_pipeline
-from nielsen_functions import process_nielsen
+from services.competitors import refresh_competitors_pipeline
+from services.nielsen import process_nielsen
 
 
 class ApiCompetitorsMixin:
@@ -58,7 +58,7 @@ class ApiCompetitorsMixin:
         self._stop_event.clear()
 
         def _w():
-            from competitors_functions import refresh_file
+            from services.competitors import refresh_file
 
             ok = refresh_file(
                 p["file"], self._log, self._stop_event, timeout_minutes=90
@@ -78,6 +78,6 @@ class ApiCompetitorsMixin:
 
     # ── внутренний хелпер (используется в run_competitors) ───────────────────
     def _sv(self, v):
-        from app_config import _SV
+        from core.config import _SV
 
         return _SV(v)

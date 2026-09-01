@@ -50,7 +50,7 @@ def _base_dir() -> str:
     """Папка, где живёт приложение: рядом с exe или рядом с исходниками."""
     if IS_FROZEN:
         return os.path.dirname(sys.executable)
-    return os.path.dirname(os.path.abspath(__file__))
+    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 def _is_onefile() -> bool:

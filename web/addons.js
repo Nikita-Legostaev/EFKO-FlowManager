@@ -445,7 +445,7 @@
       list.innerHTML =
         '<span style="color:var(--text3);font-size:12px;grid-column:1/-1">' +
         'Скрипты парсинга не найдены в сборке приложения. ' +
-        'Проверьте, что папка parsing/ попала в сборку.</span>';
+        'Проверьте, что папка parsers/ попала в сборку.</span>';
       return;
     }
     list.innerHTML = '';

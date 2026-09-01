@@ -1,4 +1,4 @@
-# competitors_functions.py
+# services/competitors.py
 import os
 import gc
 
@@ -104,7 +104,7 @@ def refresh_competitors_pipeline(
     log,
     messagebox,
     stop_event,
-    on_file_updated=None,  # callback(path) → app.py обновит свой last_updated_competitors_file
+    on_file_updated=None,  # callback(path) → api/competitors.py обновит свой last_updated_competitors_file
 ):
     olap_path = olap_file.get()
     competitors_path = competitors_file.get()
@@ -119,7 +119,7 @@ def refresh_competitors_pipeline(
         return
 
     log("=== ЗАПУСК ПАЙПЛАЙНА «ПОЛОЖЕНИЕ КОНКУРЕНТОВ» ===")
-    # Исправлено: убран stop_event.clear() — app.py делает это сам перед запуском
+    # Исправлено: убран stop_event.clear() — api/competitors.py делает это сам перед запуском
 
     if not refresh_file(olap_path, log, stop_event):
         if not stop_event.is_set():
@@ -133,7 +133,7 @@ def refresh_competitors_pipeline(
     success = refresh_file(competitors_path, log, stop_event)
 
     if success and not stop_event.is_set():
-        # Исправлено: сообщаем app.py через callback вместо своего глобала
+        # Исправлено: сообщаем api/competitors.py через callback вместо своего глобала
         if on_file_updated:
             on_file_updated(competitors_path)
         log("✅ Положение конкурентов успешно обновлено!")

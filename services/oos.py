@@ -1,5 +1,5 @@
 """
-oos_functions.py — модуль «Отчёт без OOS» для EFKO FlowManager.
+services/oos.py — модуль «Отчёт без OOS» для EFKO FlowManager.
 Поддерживает три вида майонезного отчёта:
   'sloboda'    — Слобода  200/400/800
   'provansale' — Провансаль 200/400/800 + конкуренты
