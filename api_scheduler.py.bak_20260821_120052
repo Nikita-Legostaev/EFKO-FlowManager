@@ -37,10 +37,7 @@ class ApiSchedulerMixin:
         stop_event = threading.Event()
         mb = self._mb
 
-        category = (cfg.get("scheduler_category") or "").strip() \
-            or (cfg.get("category") or "").strip() \
-            or "Масло"
-        self._log(f"ℹ Категория пайплайна: «{category}»")
+        category = cfg.get("scheduler_category") or cfg.get("category", "Масло")
         output_folder = cfg.get("output_folder", "")
         pq_file1 = cfg.get("pq_file1", "")
         pq_file2 = cfg.get("pq_file2", "")
@@ -560,39 +557,6 @@ END:VCALENDAR"""
                 set_title=self._set_title,
                 networks=p.get("networks") or None,
             )
-            self._emit("done")
-
-        threading.Thread(target=_worker, daemon=True).start()
-        return True
-
-    def start_process_csv(self, p):
-        """
-        Только обработка: xlsx из «Скаченное» → CSV в папку сохранения.
-        Без скачивания с FTP, без Power Query и без макросов.
-        Вызывается кнопкой «⚙️ Сделать CSV» на главном экране.
-        """
-        self._stop_event.clear()
-
-        def _worker():
-            try:
-                process_files_thread(
-                    _SV(p.get("output_folder")),
-                    _SV(p.get("category")),
-                    FILTER_OPTIONS,
-                    self._log,
-                    self._mb,
-                    self._stop_event,
-                    lambda *a, **kw: None,   # Power Query намеренно не трогаем
-                    _SV(""),
-                    _SV(""),
-                    "",
-                    "",
-                    progress_callback=self._progress,
-                    set_title=self._set_title,
-                    networks=p.get("networks") or None,
-                )
-            except Exception as e:
-                self._log(f"⚠️ Ошибка обработки: {e}")
             self._emit("done")
 
         threading.Thread(target=_worker, daemon=True).start()

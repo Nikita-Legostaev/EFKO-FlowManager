@@ -165,8 +165,8 @@ input, select { font-family: inherit; }
 
 /* ── Form rows ───────────────────────────────────────────────────────────── */
 .form-row {
-  display: grid; grid-template-columns: 230px 1fr auto;
-  align-items: center; padding: 5px 18px; gap: 12px; min-height: 44px;
+  display: grid; grid-template-columns: 230px 1fr auto auto;
+  align-items: center; padding: 5px 18px; gap: 8px; min-height: 44px;
 }
 .form-label { font-size: 12px; color: var(--text2); text-align: right; user-select: none; }
 .form-input {
@@ -186,6 +186,14 @@ input, select { font-family: inherit; }
   transition: background .12s;
 }
 .form-btn-pick:hover { background: #d1f0dc; }
+.form-btn-clear {
+  height: 30px; width: 28px; border-radius: 8px; border: 1px solid var(--border2);
+  background: transparent; color: var(--text3);
+  font-size: 14px; cursor: pointer; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .12s, color .12s, border-color .12s;
+}
+.form-btn-clear:hover { background: #fee2e2; color: #c53030; border-color: #fc8181; }
 .form-row.no-btn { grid-template-columns: 230px 1fr; }
 .opts-row { display: flex; align-items: center; gap: 8px; padding: 8px 18px; }
 .opts-label { font-size: 12px; color: var(--text2); min-width: 90px; }
@@ -365,6 +373,28 @@ body.dark .pc-wip-banner {
 .thresh-slider { width: 100%; height: 20px; cursor: pointer; accent-color: var(--blue); margin-bottom: 6px; }
 .thresh-hint { font-size: 10.5px; color: var(--text3); line-height: 1.6; }
 .sku-divider { height: 1px; background: var(--border); margin: 12px 0; }
+/* Переключатель режима */
+.sku-mode-toggle {
+  display: flex; gap: 6px; margin-bottom: 4px;
+}
+.sku-mode-btn {
+  flex: 1; height: 32px; border-radius: 8px; font-size: 11px; font-weight: 600;
+  border: 1px solid var(--border2); background: var(--surface2);
+  color: var(--text2); cursor: pointer; transition: all .15s;
+  display: flex; align-items: center; justify-content: center; gap: 4px;
+}
+.sku-mode-btn:hover { border-color: var(--blue); color: var(--blue); }
+.sku-mode-btn.active {
+  background: rgba(0,122,255,.1); border-color: var(--blue);
+  color: var(--blue);
+}
+.sku-mode-badge {
+  font-size: 9px; font-weight: 700; padding: 1px 5px;
+  background: rgba(255,159,10,.18); color: #c07800;
+  border-radius: 4px; text-transform: uppercase; letter-spacing: .4px;
+}
+/* Авто-бейдж для строк добавленных по бренду/категории */
+.conf-auto { background: #e0eaff; color: #2255bb; }
 #sku-stat { font-size: 11px; color: var(--text3); line-height: 1.7; }
 #sku-sel-stat { font-size: 12px; font-weight: 600; color: var(--blue); margin-top: 4px; }
 #sku-right { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
@@ -378,7 +408,28 @@ body.dark .pc-wip-banner {
   font-size: 12px; color: var(--text); background: var(--surface2); outline: none;
 }
 .sku-search:focus { border-color: var(--blue); }
+/* ── SKU вкладки ── */
+.sku-tabs {
+  display: flex; gap: 0; background: var(--surface2);
+  border-bottom: 1px solid var(--border); flex-shrink: 0; padding: 0 12px;
+}
+.sku-tab {
+  height: 36px; padding: 0 16px; font-size: 12px; font-weight: 500;
+  color: var(--text2); background: transparent; border: none; cursor: pointer;
+  border-bottom: 2px solid transparent; margin-bottom: -1px;
+  transition: color .15s, border-color .15s;
+}
+.sku-tab:hover { color: var(--text); }
+.sku-tab.active { color: var(--blue); border-bottom-color: var(--blue); }
+.sku-tab-cnt {
+  display: inline-block; min-width: 18px; padding: 0 5px; height: 16px;
+  line-height: 16px; border-radius: 8px; background: var(--border2);
+  color: var(--text3); font-size: 10px; font-weight: 700; text-align: center;
+  margin-left: 5px; vertical-align: middle;
+}
+.sku-tab.active .sku-tab-cnt { background: rgba(0,122,255,.15); color: var(--blue); }
 #sku-table-wrap { flex: 1; overflow: auto; }
+#new-sku-wrap { flex: 1; overflow: auto; }
 .sku-table { width: 100%; border-collapse: collapse; font-size: 12px; }
 .sku-table th {
   position: sticky; top: 0; z-index: 2; background: var(--surface2);
@@ -503,6 +554,11 @@ body.dark .pc-wip-banner {
     .cal-day.range-start.range-end { border-radius:6px !important }
     .cal-day:disabled { color:var(--text3);cursor:default;opacity:.4 }
     .cal-day.other-month { color:var(--text3);opacity:.5 }
+    .cal-day.day-picked {
+      background:#1e8c42 !important;color:#fff !important;
+      border-radius:6px !important;font-weight:700;
+    }
+    .cal-day.day-picked.today { color:#fff !important; }
     .cal-preset {
       padding:4px 10px;border-radius:20px;border:1px solid var(--border);
       background:var(--surface2);color:var(--text2);font-size:11px;font-weight:500;

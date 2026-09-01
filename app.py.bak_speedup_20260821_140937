@@ -55,16 +55,10 @@ def _cleanup_orphans():
         logging.info(f"Очищены зависшие процессы: {', '.join(killed)}")
 
 
-def _cleanup_orphans_bg():
-    """Обход списка процессов через psutil — не держим им старт окна."""
-    try:
-        _cleanup_orphans()
-    except Exception:
-        pass
-
-
-import threading as _th
-_th.Thread(target=_cleanup_orphans_bg, daemon=True).start()
+try:
+    _cleanup_orphans()
+except Exception:
+    pass
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -179,19 +173,69 @@ from api_competitors import ApiCompetitorsMixin
 _step("api_competitors OK")
 
 _step("import api_production ...")
+_step("  → production_functions...")
+try:
+    from production_functions import run_production
+    _step("  ✓ production_functions")
+except Exception as e:
+    _step(f"  ✗ production_functions: {e}")
+_step("  → sku_matcher_functions...")
+# Покажем что реально лежит в файле
+try:
+    import importlib.util as _ilu
+    _spec = _ilu.find_spec("sku_matcher_functions")
+    if _spec:
+        _step(f"  файл: {_spec.origin}")
+        with open(_spec.origin, encoding="utf-8") as _ff:
+            _lines = [l.rstrip() for l in _ff.readlines()[:25]]
+        _step("  первые строки файла:")
+        for _l in _lines:
+            if _l.strip():
+                _step(f"    {_l}")
+except Exception as _e:
+    _step(f"  не удалось прочитать: {_e}")
+try:
+    from sku_matcher_functions import run_matching, save_to_reference, RejectionStore
+    _step("  ✓ sku_matcher_functions")
+except Exception as e:
+    _step(f"  ✗ sku_matcher_functions: {e}")
 _step("  → ApiProductionMixin...")
 from api_production import ApiProductionMixin
 _step("✓ api_production")
 
 _step("import api_price ...")
+_step("  → price_comparison_functions...")
+try:
+    import price_comparison_functions as _pcf
+    _step("  ✓ price_comparison_functions")
+except Exception as e:
+    _step(f"  ✗ price_comparison_functions: {e}")
 from api_price import ApiPriceMixin
 _step("✓ api_price")
 
 _step("import api_scheduler ...")
+_step("  → scheduler_functions...")
+try:
+    import scheduler_functions as _sf
+    _step("  ✓ scheduler_functions")
+except Exception as e:
+    _step(f"  ✗ scheduler_functions: {e}")
+_step("  → promodate_functions...")
+try:
+    import promodate_functions as _pf
+    _step("  ✓ promodate_functions")
+except Exception as e:
+    _step(f"  ✗ promodate_functions: {e}")
 from api_scheduler import ApiSchedulerMixin
 _step("✓ api_scheduler")
 
 _step("import api_oos ...")
+_step("  → oos_functions...")
+try:
+    import oos_functions as _oof
+    _step("  ✓ oos_functions")
+except Exception as e:
+    _step(f"  ✗ oos_functions: {e}")
 from api_oos import ApiOosMixin
 _step("import api_parsing ...")
 from api_parsing import ApiParsingMixin
@@ -269,11 +313,7 @@ threading.Thread(target=_bring_to_front, daemon=True).start()
 def _preload_heavy_modules():
     import time
     time.sleep(1.5)
-    # прогрев тяжёлых модулей: подгружаем в фоне, чтобы первое нажатие
-    # «Сравнение цен» / «Отчёт без OOS» не ждало импорта
-    for lib in ["pandas", "polars", "openpyxl", "openpyxl.styles",
-                "rapidfuzz", "rapidfuzz.fuzz",
-                "price_comparison_functions", "oos_functions"]:
+    for lib in ["pandas", "polars", "openpyxl", "openpyxl.styles", "rapidfuzz", "rapidfuzz.fuzz"]:
         try:
             __import__(lib)
         except Exception:
