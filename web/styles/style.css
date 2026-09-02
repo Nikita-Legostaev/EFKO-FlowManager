@@ -697,12 +697,12 @@ body.dark .pc-wip-banner { color: #F0B94E; }
 }
 
 #splash-icon-wrap {
-  width: 84px; height: 84px; background: rgba(255,255,255,.16); border-radius: 24px;
+  width: 208px; height: 76px; background: rgba(255,255,255,.16); border-radius: 20px;
   border: 1px solid rgba(255,255,255,.25);
   display: flex; align-items: center; justify-content: center; margin-bottom: 26px;
   box-shadow: 0 16px 40px rgba(0,0,0,.22); backdrop-filter: blur(6px);
 }
-#splash-icon-wrap img, #splash-icon-wrap svg.brand-logo { width: 56px; height: 56px; object-fit: contain; }
+#splash-icon-wrap img, #splash-icon-wrap svg.brand-logo { width: 168px; height: auto; object-fit: contain; }
 #splash-brand { font-size: 40px; letter-spacing: -.8px; line-height: 1; margin-bottom: 9px; }
 #splash-flow { font-weight: 800; color: #fff; }
 #splash-mgr  { font-weight: 300; color: rgba(255,255,255,.62); }
