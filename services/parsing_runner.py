@@ -307,6 +307,30 @@ class _LogStream(io.TextIOBase):
         return False
 
 
+class _LogHandler(logging.Handler):
+    """
+    Пробрасывает logging.info()/warning() скрипта в log() интерфейса.
+
+    Часть парсеров (fixprice.py, kb.py) пишут прогресс через logging, а не
+    print(). contextlib.redirect_stdout/stderr их не ловит — а собственный
+    logging.basicConfig() скрипта не срабатывает, потому что к моменту
+    запуска парсера у root-логгера уже есть обработчики от setup_logger()
+    приложения (basicConfig — no-op, если у root уже есть handlers). Без
+    этого перехвата пользователь не видит вообще никакого прогресса на
+    время долгого парсинга и решает, что приложение зависло.
+    """
+
+    def __init__(self, log_fn, prefix=""):
+        super().__init__()
+        self._log_fn, self._prefix = log_fn, prefix
+
+    def emit(self, record):
+        try:
+            self._log_fn(f"{self._prefix}{self.format(record)}")
+        except Exception:
+            pass
+
+
 # ── Запуск ───────────────────────────────────────────────────────────────────
 
 _run_lock = threading.Lock()
@@ -389,8 +413,14 @@ def run_parser(output_folder: str, key: str, log, stop_event=None,
             args += [str(a) for a in extra_args]
         sys.argv = [script_path] + args
 
-        with contextlib.redirect_stdout(stream), contextlib.redirect_stderr(stream):
-            runpy.run_path(script_path, run_name="__main__")
+        log_handler = _LogHandler(log, prefix="   ")
+        root_logger = logging.getLogger()
+        root_logger.addHandler(log_handler)
+        try:
+            with contextlib.redirect_stdout(stream), contextlib.redirect_stderr(stream):
+                runpy.run_path(script_path, run_name="__main__")
+        finally:
+            root_logger.removeHandler(log_handler)
         stream.flush()
 
         outputs = []
