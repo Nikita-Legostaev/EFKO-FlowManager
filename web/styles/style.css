@@ -671,20 +671,38 @@ body.dark .pc-wip-banner { color: #F0B94E; }
 
 /* ── Splash ──────────────────────────────────────────────────────────────── */
 #splash {
-  position: fixed; inset: 0; z-index: 9999;
+  position: fixed; inset: 0; z-index: 9999; overflow: hidden;
   background: radial-gradient(120% 140% at 20% 10%, #A855F7 0%, #8B34EA 45%, #6D28D9 100%);
   display: flex; align-items: center; justify-content: center;
-  transition: opacity .4s ease, visibility .4s;
+  transition: opacity .5s cubic-bezier(.4,0,.2,1), visibility .5s;
 }
-#splash.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
-#splash-card { display: flex; flex-direction: column; align-items: center; gap: 0; animation: splashIn .45s cubic-bezier(.2,.8,.2,1); }
-@keyframes splashIn { from { opacity:0; transform:translateY(18px) scale(.96); } to { opacity:1; transform:none; } }
+/* Плавный выезд всей заставки вверх при закрытии, а не просто fade */
+#splash.hidden { opacity: 0; visibility: hidden; pointer-events: none; transform: translateY(-36px); }
+#splash-card { display: flex; flex-direction: column; align-items: center; gap: 0; }
+
+/* Каждый элемент выезжает по очереди снизу вверх — заставка «собирается» */
+#splash-icon-wrap, #splash-brand, #splash-sub, #splash-progress, #splash-hint {
+  opacity: 0; transform: translateY(22px);
+  animation: splashPartIn .6s cubic-bezier(.2,.85,.25,1.15) forwards;
+}
+#splash-icon-wrap { animation-delay: .05s; }
+#splash-brand     { animation-delay: .16s; }
+#splash-sub        { animation-delay: .25s; }
+#splash-progress   { animation-delay: .34s; }
+#splash-hint        { animation-delay: .42s; }
+@keyframes splashPartIn { to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  #splash-icon-wrap, #splash-brand, #splash-sub, #splash-progress, #splash-hint { animation: none; opacity: 1; transform: none; }
+  #splash.hidden { transform: none; }
+}
+
 #splash-icon-wrap {
   width: 84px; height: 84px; background: rgba(255,255,255,.16); border-radius: 24px;
   border: 1px solid rgba(255,255,255,.25);
   display: flex; align-items: center; justify-content: center; margin-bottom: 26px;
   box-shadow: 0 16px 40px rgba(0,0,0,.22); backdrop-filter: blur(6px);
 }
+#splash-icon-wrap img, #splash-icon-wrap svg.brand-logo { width: 56px; height: 56px; object-fit: contain; }
 #splash-brand { font-size: 40px; letter-spacing: -.8px; line-height: 1; margin-bottom: 9px; }
 #splash-flow { font-weight: 800; color: #fff; }
 #splash-mgr  { font-weight: 300; color: rgba(255,255,255,.62); }

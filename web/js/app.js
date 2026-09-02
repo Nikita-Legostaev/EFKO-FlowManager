@@ -3,6 +3,8 @@ const _splashSteps = [
   [10,'Загрузка интерфейса…'],[30,'Подключение компонентов…'],
   [55,'Загрузка конфигурации…'],[75,'Инициализация модулей…'],[90,'Почти готово…'],
 ];
+const _SPLASH_MIN_MS = 1800; // не закрывать раньше — даже если всё загрузилось мгновенно
+const _splashShownAt = Date.now();
 let _splashTimer = null;
 function _splashProgress(pct, hint) {
   const fill = document.getElementById('splash-fill');
@@ -19,11 +21,13 @@ function _startSplashAnim() {
 }
 function _hideSplash() {
   clearInterval(_splashTimer); _splashProgress(100, 'Готово!');
+  const elapsed = Date.now() - _splashShownAt;
+  const wait = Math.max(0, _SPLASH_MIN_MS - elapsed);
   setTimeout(() => {
     const s = document.getElementById('splash');
     if (s) s.classList.add('hidden');
-    setTimeout(() => { if (s) s.remove(); }, 450);
-  }, 350);
+    setTimeout(() => { if (s) s.remove(); }, 500);
+  }, wait + 350);
 }
 _startSplashAnim();
 
