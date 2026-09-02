@@ -295,25 +295,50 @@ def _chromium_executable_path() -> str:
         return ""
 
 
-def _run_playwright_install(log, force: bool) -> None:
-    import playwright.__main__ as pw_main
+def _run_playwright_install(log, force: bool) -> bool:
+    """
+    Качает Chromium, вызывая Node-драйвер Playwright напрямую — в обход
+    playwright.__main__.main().
 
-    old_argv = sys.argv
-    stream = _LogStream(log, prefix="   ")
+    main() внутри делает `subprocess.run([driver, cli, *argv])` БЕЗ
+    stdout=/stderr= — дочерний процесс пишет прямо в унаследованные
+    файловые дескрипторы, а не в sys.stdout/stderr. Наш
+    contextlib.redirect_stdout(stream) в принципе не мог это увидеть:
+    он подменяет только атрибут sys.stdout самого Python-процесса, а не
+    файловые дескрипторы, которые достаются дочернему. В окружении без
+    консоли (собранное приложение, console=False) это означало, что
+    реальная причина ошибки (например, сеть/прокси) просто терялась —
+    пользователь не видел вообще ничего между «скачиваю» и «не удалось».
+    """
     try:
-        args = ["playwright", "install", "chromium"]
-        if force:
-            args.append("--force")
-        sys.argv = args
-        with contextlib.redirect_stdout(stream), contextlib.redirect_stderr(stream):
-            pw_main.main()
-    except SystemExit:
-        pass  # код выхода не показателен — реальную готовность проверяем по файлу
+        from playwright._impl._driver import compute_driver_executable, get_driver_env
     except Exception as e:
-        log(f"   ❌ Ошибка установки Chromium: {e}")
-    finally:
-        stream.flush()
-        sys.argv = old_argv
+        log(f"   ❌ Не удалось найти драйвер Playwright: {e}")
+        return False
+
+    driver_executable, driver_cli = compute_driver_executable()
+    args = [driver_executable, driver_cli, "install", "chromium"]
+    if force:
+        args.append("--force")
+
+    try:
+        result = subprocess.run(
+            args, env=get_driver_env(),
+            capture_output=True, text=True, timeout=600,
+        )
+    except subprocess.TimeoutExpired:
+        log("   ❌ Установка Chromium не уложилась в 10 минут — похоже, зависла сеть")
+        return False
+    except Exception as e:
+        log(f"   ❌ Не удалось запустить установщик Chromium: {e}")
+        return False
+
+    output = (result.stdout or "") + (result.stderr or "")
+    for line in output.splitlines():
+        if line.strip():
+            log(f"   {line.rstrip()}")
+
+    return result.returncode == 0
 
 
 def ensure_chromium(log) -> bool:
