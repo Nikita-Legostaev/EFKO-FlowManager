@@ -71,11 +71,24 @@ _step("✓ Api() init OK")
 from app.window import create_main_window, bring_to_front_bg, preload_heavy_modules_bg
 
 window = create_main_window(api)
-bring_to_front_bg()
 preload_heavy_modules_bg()
 
 _splash_set(100, "Готово!")
-_splash_close()
+
+# webview.create_window() только регистрирует окно — реально оно появляется
+# позже, внутри webview.start(). Раньше сплэш закрывался и окно поднималось
+# на передний план сразу здесь, ДО того как окно физически создано — отсюда
+# видимый разрыв (сплэш уже погас, а приложения ещё нет) и то, что
+# bring_to_front_bg() часто не находил окно (гонка). Обе операции теперь
+# висят на events.shown — реальном моменте показа окна. pywebview сам
+# исполняет обработчики events.* в отдельном потоке, так что блокирующий
+# time.sleep() внутри _splash_close() не подвесит показ окна.
+def _on_window_shown():
+    bring_to_front_bg()
+    _splash_close()
+
+
+window.events.shown += _on_window_shown
 
 from updater import check_for_updates
 
