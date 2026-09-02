@@ -13,7 +13,6 @@ def make_splash():
     W, H = 420, 240
     root = tk.Tk()
     root.overrideredirect(True)
-    root.attributes("-topmost", True)
     sw, sh = root.winfo_screenwidth(), root.winfo_screenheight()
     root.geometry(f"{W}x{H}+{(sw-W)//2}+{(sh-H)//2}")
     root.configure(bg="#8B34EA")
@@ -34,31 +33,30 @@ def make_splash():
         logo_img = tk.PhotoImage(file=_resource(os.path.join("icon", "logo_white.png")))
         # PhotoImage не умеет плавно даунскейлить — .png уже 440×80 (2x под 220×40)
         logo_img = logo_img.subsample(2, 2)
-        c.create_image(W // 2, 82, image=logo_img)
+        c.create_image(W // 2, H // 2, image=logo_img)
         c._logo_img_ref = logo_img  # без этого tkinter соберёт картинку и она пропадёт с канваса
     except Exception:
-        c.create_text(W // 2, 82, text="FlowManager", font=("Segoe UI", 24, "bold"), fill="#ffffff")
+        c.create_text(W // 2, H // 2, text="FlowManager", font=("Segoe UI", 24, "bold"), fill="#ffffff")
 
-    c.create_text(W // 2, 118, text="EFKO  ·  v3.0", font=("Segoe UI", 9), fill="#E6D6FA")
-
-    bx1, by1, bx2, by2 = 60, 168, W - 60, 173
-    # tkinter не понимает 8-значный hex с альфой — берём сплошной тёмный оттенок трека
-    c.create_rectangle(bx1, by1, bx2, by2, fill="#5C2499", outline="")
-    bar = c.create_rectangle(bx1, by1, bx1, by2, fill="white", outline="")
-    hint = c.create_text(W // 2, 192, text="Запуск…", font=("Segoe UI", 9), fill="#E6D6FA")
-
+    # ── Гарантируем показ поверх всех окон, а не «в фоне» ──────────────────
+    # overrideredirect-окно на Windows иногда не забирает фокус с первого
+    # раза (особенно если запуск идёт из IDE/консоли, которая держит фокус
+    # на себе) — топмост переустанавливаем ещё раз через мгновение после
+    # первой отрисовки.
+    root.attributes("-topmost", True)
     root.lift()
     root.focus_force()
+    root.update()
+    root.after(60, lambda: (root.attributes("-topmost", True), root.lift()))
     root.update()
 
     started_at = time.time()
 
     def set_progress(pct, text=""):
+        # Бар убран — просто держим tk-цикл живым, чтобы окно не «зависало»
+        # и оставалось поверх остальных на всё время инициализации.
         try:
-            w = (bx2 - bx1) * min(pct, 100) / 100
-            c.coords(bar, bx1, by1, bx1 + w, by2)
-            if text:
-                c.itemconfigure(hint, text=text)
+            root.attributes("-topmost", True)
             root.update()
         except Exception:
             pass

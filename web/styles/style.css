@@ -681,18 +681,16 @@ body.dark .pc-wip-banner { color: #F0B94E; }
 #splash-card { display: flex; flex-direction: column; align-items: center; gap: 0; }
 
 /* Каждый элемент выезжает по очереди снизу вверх — заставка «собирается» */
-#splash-icon-wrap, #splash-brand, #splash-sub, #splash-progress, #splash-hint {
+#splash-icon-wrap, #splash-brand, #splash-sub {
   opacity: 0; transform: translateY(22px);
   animation: splashPartIn .6s cubic-bezier(.2,.85,.25,1.15) forwards;
 }
 #splash-icon-wrap { animation-delay: .05s; }
 #splash-brand     { animation-delay: .16s; }
 #splash-sub        { animation-delay: .25s; }
-#splash-progress   { animation-delay: .34s; }
-#splash-hint        { animation-delay: .42s; }
 @keyframes splashPartIn { to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) {
-  #splash-icon-wrap, #splash-brand, #splash-sub, #splash-progress, #splash-hint { animation: none; opacity: 1; transform: none; }
+  #splash-icon-wrap, #splash-brand, #splash-sub { animation: none; opacity: 1; transform: none; }
   #splash.hidden { transform: none; }
 }
 
@@ -703,10 +701,7 @@ body.dark .pc-wip-banner { color: #F0B94E; }
 #splash-brand { font-size: 40px; letter-spacing: -.8px; line-height: 1; margin-bottom: 9px; }
 #splash-flow { font-weight: 800; color: #fff; }
 #splash-mgr  { font-weight: 300; color: rgba(255,255,255,.62); }
-#splash-sub  { font-size: 11.5px; color: rgba(255,255,255,.6); letter-spacing: 1.4px; text-transform: uppercase; margin-bottom: 42px; }
-#splash-progress { width: 220px; height: 3px; background: rgba(255,255,255,.22); border-radius: 2px; overflow: hidden; margin-bottom: 15px; }
-#splash-fill { height: 100%; width: 0%; background: #fff; border-radius: 2px; transition: width .35s ease; }
-#splash-hint { font-size: 12px; color: rgba(255,255,255,.58); letter-spacing: .2px; min-height: 18px; }
+#splash-sub  { font-size: 11.5px; color: rgba(255,255,255,.6); letter-spacing: 1.4px; text-transform: uppercase; }
 
 /* ── Toast ───────────────────────────────────────────────────────────────── */
 #toast-wrap {
