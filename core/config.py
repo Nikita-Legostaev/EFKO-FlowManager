@@ -6,6 +6,7 @@ core/config.py — конфиг и вспомогательные классы.
 import os
 import json
 import logging
+import threading
 from datetime import datetime
 
 from services.production import MONTH_LABELS
@@ -13,6 +14,11 @@ from services.scheduler import SCHEDULER_DEFAULTS
 from core.paths import _resource
 
 CONFIG_FILE = _resource("config.json", writable=True)
+
+# pywebview может вызывать методы api.* из разных потоков одновременно —
+# без лока параллельные read-modify-write в config.json теряют часть
+# изменений (классическая гонка lost update).
+_CONFIG_LOCK = threading.Lock()
 
 
 # ── Конфиг ────────────────────────────────────────────────────────────────────
@@ -110,7 +116,7 @@ def load_config() -> dict:
     if not os.path.exists(CONFIG_FILE):
         return defaults
     try:
-        with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+        with _CONFIG_LOCK, open(CONFIG_FILE, "r", encoding="utf-8") as f:
             data = json.load(f)
         for k in defaults:
             if k in data:
@@ -128,20 +134,21 @@ def save_config_data(data: dict):
     которых в нём не было, — например, настройки вкладки парсинга.
     """
     try:
-        current = {}
-        if os.path.exists(CONFIG_FILE):
-            try:
-                with open(CONFIG_FILE, "r", encoding="utf-8") as f:
-                    current = json.load(f)
-                if not isinstance(current, dict):
-                    current = {}
-            except Exception as e:
-                logging.warning(f"Config read before save: {e}")
+        with _CONFIG_LOCK:
+            current = {}
+            if os.path.exists(CONFIG_FILE):
+                try:
+                    with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+                        current = json.load(f)
+                    if not isinstance(current, dict):
+                        current = {}
+                except Exception as e:
+                    logging.warning(f"Config read before save: {e}")
 
-        current.update(data or {})
+            current.update(data or {})
 
-        with open(CONFIG_FILE, "w", encoding="utf-8") as f:
-            json.dump(current, f, ensure_ascii=False, indent=2)
+            with open(CONFIG_FILE, "w", encoding="utf-8") as f:
+                json.dump(current, f, ensure_ascii=False, indent=2)
     except Exception as e:
         logging.error(f"Config save error: {e}")
 

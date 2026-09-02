@@ -183,9 +183,29 @@ function applyConfig(cfg) {
   }
 }
 
+// Сохранение полей debounce'нуто (иначе oninput на каждой набранной букве
+// шлёт отдельный RPC-вызов в Python) и отслеживается через _autoSavePending,
+// чтобы действия, которые сами читают config.json (например переключение
+// режима промодаты), могли дождаться реальной записи на диск — иначе гонка
+// чтения теряет то, что только что напечатано.
+let _autoSaveTimer = null;
+let _autoSavePending = null;
+
 function autoSave() {
-  pywebview.api.save_config(collectFormConfig());
+  if (_autoSaveTimer) clearTimeout(_autoSaveTimer);
+  _autoSaveTimer = setTimeout(_autoSaveNow, 400);
+}
+
+function _autoSaveNow() {
+  _autoSaveTimer = null;
+  _autoSavePending = Promise.resolve(pywebview.api.save_config(collectFormConfig()));
   pageProfileSyncActive(S.page);
+  return _autoSavePending;
+}
+
+async function flushAutoSave() {
+  if (_autoSaveTimer) { clearTimeout(_autoSaveTimer); _autoSaveNow(); }
+  if (_autoSavePending) { try { await _autoSavePending; } catch (e) { /* см. Python-лог */ } }
 }
 
 function collectFormConfig() {
@@ -671,6 +691,7 @@ function syncPromoModeUI(mode) {
 const PROMO_MODE_FIELDS = ['output_folder', 'pq_file1', 'pq_file2', 'macro1', 'macro2'];
 
 async function promoSetMode(mode) {
+  await flushAutoSave();
   const cfg = await pywebview.api.set_promodata_mode(mode);
   syncPromoModeUI(cfg.promodata_mode);
   PROMO_MODE_FIELDS.forEach(field => {
