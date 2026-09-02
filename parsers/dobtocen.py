@@ -107,14 +107,8 @@ async def scrape_cities(cities, city_dict):
 
     print("  Запускаю драйвер Playwright…")
     async with async_playwright() as pw:
-        print("  Драйвер готов, запускаю браузер (системный Edge)…")
-        # channel="msedge" — уже установленный в системе Edge, а не
-        # отдельно скачиваемый Playwright-Chromium: в сетях с закрытым
-        # доступом к серверам загрузки Microsoft/Google playwright install
-        # chromium не может докачаться даже вручную, а Edge на Windows
-        # есть практически всегда из коробки.
+        print("  Драйвер готов, запускаю браузер Chromium…")
         browser = await pw.chromium.launch(
-            channel="msedge",
             headless=False,
         )
         print("  Браузер запущен")

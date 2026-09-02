@@ -273,6 +273,123 @@ def ensure_chrome_cdp(log, port: int = CDP_PORT, wait: float = 20.0) -> bool:
     return False
 
 
+# ── Собственный Chromium Playwright ──────────────────────────────────────────
+
+def _chromium_executable_path() -> str:
+    """
+    Путь к chrome.exe, который реально будет использован при chromium.launch().
+
+    `playwright install` иногда завершается кодом 0 (и наш ensure_chromium
+    считал это успехом), даже если браузер не скачался целиком — например,
+    от прошлой прерванной попытки осталась папка chromium-XXXX без
+    chrome.exe внутри, и установщик посчитал её «уже установленной».
+    Поэтому единственный надёжный способ проверить готовность — спросить
+    у самого Playwright путь, который он будет использовать, и убедиться,
+    что файл на диске реально есть.
+    """
+    try:
+        from playwright.sync_api import sync_playwright
+        with sync_playwright() as p:
+            return p.chromium.executable_path or ""
+    except Exception:
+        return ""
+
+
+def _run_playwright_install(log, force: bool) -> bool:
+    """
+    Качает Chromium, вызывая Node-драйвер Playwright напрямую — в обход
+    playwright.__main__.main().
+
+    main() внутри делает `subprocess.run([driver, cli, *argv])` БЕЗ
+    stdout=/stderr= — дочерний процесс пишет прямо в унаследованные
+    файловые дескрипторы, а не в sys.stdout/stderr. Наш
+    contextlib.redirect_stdout(stream) в принципе не мог это увидеть:
+    он подменяет только атрибут sys.stdout самого Python-процесса, а не
+    файловые дескрипторы, которые достаются дочернему. В окружении без
+    консоли (собранное приложение, console=False) это означало, что
+    реальная причина ошибки (например, сеть/прокси) просто терялась —
+    пользователь не видел вообще ничего между «скачиваю» и «не удалось».
+    """
+    try:
+        from playwright._impl._driver import compute_driver_executable, get_driver_env
+    except Exception as e:
+        log(f"   ❌ Не удалось найти драйвер Playwright: {e}")
+        return False
+
+    driver_executable, driver_cli = compute_driver_executable()
+    args = [driver_executable, driver_cli, "install", "chromium"]
+    if force:
+        args.append("--force")
+
+    try:
+        result = subprocess.run(
+            args, env=get_driver_env(),
+            capture_output=True, text=True, timeout=600,
+        )
+    except subprocess.TimeoutExpired:
+        log("   ❌ Установка Chromium не уложилась в 10 минут — похоже, зависла сеть")
+        return False
+    except Exception as e:
+        log(f"   ❌ Не удалось запустить установщик Chromium: {e}")
+        return False
+
+    output = (result.stdout or "") + (result.stderr or "")
+    for line in output.splitlines():
+        if line.strip():
+            log(f"   {line.rstrip()}")
+
+    return result.returncode == 0
+
+
+def ensure_chromium(log) -> bool:
+    """
+    Скачивает браузер Chromium для Playwright, если он ещё не установлен.
+
+    `pip install playwright` ставит только Python-обёртку — сам браузер
+    (~150-300 МБ) отдельно качается командой `playwright install chromium`.
+    Без него парсеры вроде Fix Price/Доброцен падают на первой же строке
+    (browser.launch), ничего не открыв, — выглядит так, будто приложение
+    просто не отреагировало на клик. Делаем это автоматически при первом
+    запуске такого парсера, вместо того чтобы требовать от пользователя
+    руками открывать консоль.
+    """
+    try:
+        import playwright  # проверяем, что пакет вообще есть
+        del playwright
+    except Exception as e:
+        log(f"   ❌ Не хватает библиотеки «playwright»: {e}")
+        log("   Установите: pip install playwright")
+        return False
+
+    exe = _chromium_executable_path()
+    if exe and os.path.isfile(exe):
+        return True
+
+    log("   ⬇ Браузер Chromium для Playwright не найден — скачиваю "
+        "(один раз, может занять пару минут)…")
+    _run_playwright_install(log, force=False)
+
+    exe = _chromium_executable_path()
+    if exe and os.path.isfile(exe):
+        log("   ✅ Браузер готов")
+        return True
+
+    # Обычная причина: от прошлой прерванной попытки осталась неполная
+    # папка, и install посчитал её готовой, ничего не докачав. --force
+    # игнорирует такую папку и качает заново.
+    log("   ⚠ Похоже, прошлая установка была неполной — переустанавливаю…")
+    _run_playwright_install(log, force=True)
+
+    exe = _chromium_executable_path()
+    if exe and os.path.isfile(exe):
+        log("   ✅ Браузер готов")
+        return True
+
+    log("   ❌ Не удалось подготовить Chromium — проверьте интернет/прокси "
+        "или запустите вручную: playwright install chromium --force")
+    return False
+
+
 # ── Перехват вывода ──────────────────────────────────────────────────────────
 
 class _LogStream(io.TextIOBase):
@@ -414,16 +531,11 @@ def run_parser(output_folder: str, key: str, log, stop_event=None,
                         "msg": "Не удалось подготовить браузер с отладочным портом",
                         "outputs": []}
         elif parser.get("needs_browser"):
-            # Fix Price/Доброцен запускают playwright.chromium.launch с
-            # channel="msedge" — используют уже установленный в системе
-            # Edge, а не отдельно скачиваемый Playwright-Chromium (в сетях
-            # с закрытым доступом к серверам загрузки Microsoft/Google его
-            # не докачать даже вручную — сам Node-драйвер Playwright при
-            # этом работает нормально, это отдельная сеть/CDN).
-            if not _find_chrome():
-                log("   ❌ Не найден Chrome или Edge — установите один из них")
+            # needs_chrome_cdp подключается к уже установленному системному
+            # Chrome/Edge — в этом случае свой Chromium Playwright не нужен.
+            if not ensure_chromium(log):
                 return {"ok": False,
-                        "msg": "Нет системного браузера (Chrome/Edge)",
+                        "msg": "Не удалось подготовить браузер Chromium",
                         "outputs": []}
 
         if env_name and env_value:
