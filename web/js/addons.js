@@ -652,6 +652,10 @@
           return;
         }
         if (payload && payload.type === 'parse_started') {
+          // Иначе лог копит вывод всех прошлых попыток подряд — одна и та
+          // же строка «нашёл кэш» повторяется на весь экран и создаёт
+          // впечатление, будто что-то не так, хотя это просто старый вывод.
+          if (typeof clearLog === 'function') clearLog();
           setRunning(true, 'идёт сбор данных…');
           if (typeof showProgress === 'function') showProgress();
           return;
