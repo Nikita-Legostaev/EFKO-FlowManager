@@ -74,7 +74,7 @@ a = Analysis(
         'pytz', 'dateutil', 'dateutil.tz', 'dateutil.zoneinfo',
         # ── пакеты проекта (core/api/services/app/updater) ──
         'core', 'core.paths', 'core.logging', 'core.config',
-        'app', 'app.splash', 'app.orphans', 'app.window',
+        'app', 'app.orphans', 'app.window',
         'api', 'api.core', 'api.promodate', 'api.competitors',
         'api.production', 'api.price', 'api.scheduler', 'api.oos',
         'api.parsing',
