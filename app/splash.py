@@ -7,36 +7,34 @@ import tkinter as tk
 from core.paths import _resource
 
 _MIN_SHOW_SECONDS = 5.0
+_TRANSPARENT_KEY = "#FE01FE"  # маловероятный цвет — им ничего в логотипе не покрашено
 
 
 def make_splash():
-    W, H = 420, 240
+    W, H = 300, 120
     root = tk.Tk()
     root.overrideredirect(True)
     sw, sh = root.winfo_screenwidth(), root.winfo_screenheight()
     root.geometry(f"{W}x{H}+{(sw-W)//2}+{(sh-H)//2}")
-    root.configure(bg="#8B34EA")
+    root.configure(bg=_TRANSPARENT_KEY)
+    try:
+        # Windows-only: делает фон окна прозрачным, остаётся только сам
+        # логотип, без прямоугольной подложки вокруг него.
+        root.attributes("-transparentcolor", _TRANSPARENT_KEY)
+    except tk.TclError:
+        pass  # не Windows / не поддерживается — останется сплошной фон ключевого цвета
 
-    c = tk.Canvas(root, width=W, height=H, bg="#8B34EA", highlightthickness=0)
+    c = tk.Canvas(root, width=W, height=H, bg=_TRANSPARENT_KEY, highlightthickness=0)
     c.pack(fill="both", expand=True)
 
-    # Фиолетовый градиент (светлый → тёмный), в тон остальному интерфейсу
-    for i in range(48):
-        t = i / 48
-        r = int(0xA8 + (0x6D - 0xA8) * t)
-        g = int(0x55 + (0x28 - 0x55) * t)
-        b = int(0xF7 + (0xD9 - 0xF7) * t)
-        y0, y1 = int(H * i / 48), int(H * (i + 1) / 48) + 1
-        c.create_rectangle(0, y0, W, y1, fill=f"#{r:02x}{g:02x}{b:02x}", outline="")
-
     try:
-        logo_img = tk.PhotoImage(file=_resource(os.path.join("icon", "logo_white.png")))
+        logo_img = tk.PhotoImage(file=_resource(os.path.join("icon", "logo_blue.png")))
         # PhotoImage не умеет плавно даунскейлить — .png уже 440×80 (2x под 220×40)
         logo_img = logo_img.subsample(2, 2)
         c.create_image(W // 2, H // 2, image=logo_img)
         c._logo_img_ref = logo_img  # без этого tkinter соберёт картинку и она пропадёт с канваса
     except Exception:
-        c.create_text(W // 2, H // 2, text="FlowManager", font=("Segoe UI", 24, "bold"), fill="#ffffff")
+        c.create_text(W // 2, H // 2, text="FlowManager", font=("Segoe UI", 22, "bold"), fill="#002BE5")
 
     # ── Гарантируем показ поверх всех окон, а не «в фоне» ──────────────────
     # overrideredirect-окно на Windows иногда не забирает фокус с первого
