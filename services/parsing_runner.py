@@ -275,6 +275,47 @@ def ensure_chrome_cdp(log, port: int = CDP_PORT, wait: float = 20.0) -> bool:
 
 # ── Собственный Chromium Playwright ──────────────────────────────────────────
 
+def _chromium_executable_path() -> str:
+    """
+    Путь к chrome.exe, который реально будет использован при chromium.launch().
+
+    `playwright install` иногда завершается кодом 0 (и наш ensure_chromium
+    считал это успехом), даже если браузер не скачался целиком — например,
+    от прошлой прерванной попытки осталась папка chromium-XXXX без
+    chrome.exe внутри, и установщик посчитал её «уже установленной».
+    Поэтому единственный надёжный способ проверить готовность — спросить
+    у самого Playwright путь, который он будет использовать, и убедиться,
+    что файл на диске реально есть.
+    """
+    try:
+        from playwright.sync_api import sync_playwright
+        with sync_playwright() as p:
+            return p.chromium.executable_path or ""
+    except Exception:
+        return ""
+
+
+def _run_playwright_install(log, force: bool) -> None:
+    import playwright.__main__ as pw_main
+
+    old_argv = sys.argv
+    stream = _LogStream(log, prefix="   ")
+    try:
+        args = ["playwright", "install", "chromium"]
+        if force:
+            args.append("--force")
+        sys.argv = args
+        with contextlib.redirect_stdout(stream), contextlib.redirect_stderr(stream):
+            pw_main.main()
+    except SystemExit:
+        pass  # код выхода не показателен — реальную готовность проверяем по файлу
+    except Exception as e:
+        log(f"   ❌ Ошибка установки Chromium: {e}")
+    finally:
+        stream.flush()
+        sys.argv = old_argv
+
+
 def ensure_chromium(log) -> bool:
     """
     Скачивает браузер Chromium для Playwright, если он ещё не установлен.
@@ -288,38 +329,40 @@ def ensure_chromium(log) -> bool:
     руками открывать консоль.
     """
     try:
-        import playwright.__main__ as pw_main
+        import playwright  # проверяем, что пакет вообще есть
+        del playwright
     except Exception as e:
         log(f"   ❌ Не хватает библиотеки «playwright»: {e}")
         log("   Установите: pip install playwright")
         return False
 
-    log("   🌐 Проверяю браузер Chromium для Playwright…")
-    old_argv = sys.argv
-    stream = _LogStream(log, prefix="   ")
-    ok = True
-    try:
-        sys.argv = ["playwright", "install", "chromium"]
-        with contextlib.redirect_stdout(stream), contextlib.redirect_stderr(stream):
-            pw_main.main()
-    except SystemExit as e:
-        code = getattr(e, "code", 0) or 0
-        if code not in (0, None):
-            ok = False
-    except Exception as e:
-        stream.flush()
-        log(f"   ❌ Ошибка установки Chromium: {e}")
-        ok = False
-    finally:
-        stream.flush()
-        sys.argv = old_argv
+    exe = _chromium_executable_path()
+    if exe and os.path.isfile(exe):
+        return True
 
-    if ok:
+    log("   ⬇ Браузер Chromium для Playwright не найден — скачиваю "
+        "(один раз, может занять пару минут)…")
+    _run_playwright_install(log, force=False)
+
+    exe = _chromium_executable_path()
+    if exe and os.path.isfile(exe):
         log("   ✅ Браузер готов")
-    else:
-        log("   ❌ Не удалось подготовить Chromium — запустите вручную: "
-            "playwright install chromium")
-    return ok
+        return True
+
+    # Обычная причина: от прошлой прерванной попытки осталась неполная
+    # папка, и install посчитал её готовой, ничего не докачав. --force
+    # игнорирует такую папку и качает заново.
+    log("   ⚠ Похоже, прошлая установка была неполной — переустанавливаю…")
+    _run_playwright_install(log, force=True)
+
+    exe = _chromium_executable_path()
+    if exe and os.path.isfile(exe):
+        log("   ✅ Браузер готов")
+        return True
+
+    log("   ❌ Не удалось подготовить Chromium — проверьте интернет/прокси "
+        "или запустите вручную: playwright install chromium --force")
+    return False
 
 
 # ── Перехват вывода ──────────────────────────────────────────────────────────
@@ -367,17 +410,29 @@ class _LogHandler(logging.Handler):
     приложения (basicConfig — no-op, если у root уже есть handlers). Без
     этого перехвата пользователь не видит вообще никакого прогресса на
     время долгого парсинга и решает, что приложение зависло.
+
+    ВАЖНО: log_fn (Api._log) сам вызывает logging.info() — без защиты от
+    реентерабельности это создаёт бесконечную рекурсию (emit -> log_fn ->
+    logging.info -> тот же root-логгер -> тот же handler -> emit -> ...),
+    которая забивает лог тысячами дублей с нарастающим отступом и в итоге
+    падает по превышению глубины рекурсии.
     """
 
     def __init__(self, log_fn, prefix=""):
         super().__init__()
         self._log_fn, self._prefix = log_fn, prefix
+        self._in_emit = False
 
     def emit(self, record):
+        if self._in_emit:
+            return
+        self._in_emit = True
         try:
             self._log_fn(f"{self._prefix}{self.format(record)}")
         except Exception:
             pass
+        finally:
+            self._in_emit = False
 
 
 # ── Запуск ───────────────────────────────────────────────────────────────────
