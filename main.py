@@ -11,6 +11,7 @@ import sys
 
 if sys.platform == "win32":
     import asyncio
+    import subprocess
     # Парсеры (Fix Price, Доброцен) используют Playwright, который на
     # старте спавнит свой Node-драйвер через asyncio-подпроцесс — на
     # Windows это работает только с ProactorEventLoop. Она и так дефолтная
@@ -19,6 +20,24 @@ if sys.platform == "win32":
     # нас, запуск браузера у парсера тихо зависает навсегда без единой
     # ошибки в логе.
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+
+    # Приложение оконное (console=False, без своей консоли). Любой
+    # консольный подпроцесс, запущенный из такого процесса без явного
+    # CREATE_NO_WINDOW, заставляет Windows на лету открыть для него новое
+    # консольное окно — оно мелькает и закрывается вместе с подпроцессом.
+    # Playwright именно так спавнит свой Node-драйвер (и процесс
+    # `playwright install`) — мы не можем поправить точечно внутри самого
+    # Playwright, поэтому подмешиваем флаг глобально на уровне
+    # subprocess.Popen: asyncio на Windows тоже создаёт подпроцессы через
+    # него, так что фикс закрывает сразу оба случая. На GUI-процессы
+    # (сам Chrome/Edge) флаг не влияет — у них и так нет консоли.
+    _orig_popen_init = subprocess.Popen.__init__
+
+    def _popen_init_no_window(self, *args, **kwargs):
+        kwargs["creationflags"] = kwargs.get("creationflags", 0) | subprocess.CREATE_NO_WINDOW
+        _orig_popen_init(self, *args, **kwargs)
+
+    subprocess.Popen.__init__ = _popen_init_no_window
 
 from app.orphans import cleanup_orphans_bg
 
