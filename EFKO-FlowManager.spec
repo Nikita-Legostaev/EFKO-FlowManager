@@ -40,6 +40,10 @@ _optional = [
     'bs4', 'soupsieve', 'lxml', 'lxml.etree', 'lxml._elementpath',
     'html5lib', 'fake_useragent',
     'playwright', 'playwright.async_api', 'playwright.sync_api',
+    'aiohttp', 'aiohappyeyeballs', 'aiosignal', 'multidict', 'yarl',
+    'frozenlist', 'attr', 'attrs',
+    'dadata',
+    'geopy', 'geographiclib',
 ]
 _parser_libs = []
 for _mod in _optional:
