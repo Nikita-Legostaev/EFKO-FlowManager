@@ -116,3 +116,17 @@ coll = COLLECT(
     upx=False,
     name='EFKO-FlowManager',
 )
+
+# Кроме копии внутри _internal/web (через datas выше) — та же папка ещё
+# и прямо рядом с exe. core/paths.py::_resource() ищет ресурсы сначала
+# рядом с exe и только потом в _internal, так что эта копия и будет
+# реально использоваться приложением — можно править HTML/CSS/JS на
+# месте, без пересборки, и сразу видеть изменения при перезапуске.
+import shutil
+
+_dist_web = os.path.join(DISTPATH, 'EFKO-FlowManager', 'web')
+try:
+    shutil.copytree(os.path.join(PROJECT_DIR, 'web'), _dist_web, dirs_exist_ok=True)
+    print(f'[spec] web/ скопирована рядом с exe: {_dist_web}')
+except Exception as e:
+    print(f'[spec] ВНИМАНИЕ: не удалось скопировать web/ рядом с exe: {e}')
