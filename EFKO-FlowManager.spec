@@ -14,7 +14,7 @@ except ImportError:
 
 datas = [
     (os.path.join(PROJECT_DIR, 'web'),           'web'),
-    (os.path.join(PROJECT_DIR, 'icon', 'ico.ico'), 'icon'),
+    (os.path.join(PROJECT_DIR, 'icon'),          'icon'),
     (os.path.join(PROJECT_DIR, 'config.json'),   '.'),
     (os.path.join(PROJECT_DIR, 'version.txt'),   '.'),
 ]
