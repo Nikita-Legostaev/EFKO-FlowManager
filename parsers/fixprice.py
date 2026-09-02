@@ -188,8 +188,13 @@ def normalize(raw: dict) -> dict:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 async def collect_stores(playwright, cache: dict, city_cache: dict) -> list[dict]:
-    log.info("Запускаю браузер Chromium…")
-    browser = await playwright.chromium.launch(headless=False, slow_mo=120)
+    log.info("Запускаю браузер (системный Edge)…")
+    # channel="msedge" — запускает уже установленный в системе Edge, а не
+    # отдельно скачиваемый Playwright-Chromium: в сетях с закрытым доступом
+    # к серверам загрузки Microsoft/Google (частая ситуация в корпоративных
+    # сетях) playwright install chromium не может докачаться даже вручную,
+    # а Edge на Windows есть практически всегда из коробки.
+    browser = await playwright.chromium.launch(channel="msedge", headless=False, slow_mo=120)
     log.info("Браузер запущен, открываю страницу…")
     context = await browser.new_context(locale="ru-RU")
     page    = await context.new_page()
