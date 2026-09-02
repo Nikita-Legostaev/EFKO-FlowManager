@@ -99,7 +99,8 @@
         "dobrocen_shops.xlsx"
       ],
       "needs_key": false,
-      "help": "Сбор точек сети «Доброцен» (Playwright + Stealth).\n\nЧитает список городов из cities.html и справочник city_and_regions_Russia.xlsx — оба файла должны лежать в папке parsers/ внутри приложения, оттуда они копируются в папку результатов.\n\nОбратите внимание: файл скрипта называется dobtocen.py — опечатка в имени историческая.\n\nИтог — dobrocen_shops.xlsx."
+      "help": "Сбор точек сети «Доброцен» (Playwright + Stealth).\n\nЧитает список городов из cities.html и справочник city_and_regions_Russia.xlsx — оба файла должны лежать в папке parsers/ внутри приложения, оттуда они копируются в папку результатов.\n\nОбратите внимание: файл скрипта называется dobtocen.py — опечатка в имени историческая.\n\nИтог — dobrocen_shops.xlsx.",
+      "needs_browser": true
     },
     {
       "key": "smart",

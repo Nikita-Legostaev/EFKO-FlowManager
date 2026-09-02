@@ -273,6 +273,55 @@ def ensure_chrome_cdp(log, port: int = CDP_PORT, wait: float = 20.0) -> bool:
     return False
 
 
+# ── Собственный Chromium Playwright ──────────────────────────────────────────
+
+def ensure_chromium(log) -> bool:
+    """
+    Скачивает браузер Chromium для Playwright, если он ещё не установлен.
+
+    `pip install playwright` ставит только Python-обёртку — сам браузер
+    (~150-300 МБ) отдельно качается командой `playwright install chromium`.
+    Без него парсеры вроде Fix Price/Доброцен падают на первой же строке
+    (browser.launch), ничего не открыв, — выглядит так, будто приложение
+    просто не отреагировало на клик. Делаем это автоматически при первом
+    запуске такого парсера, вместо того чтобы требовать от пользователя
+    руками открывать консоль.
+    """
+    try:
+        import playwright.__main__ as pw_main
+    except Exception as e:
+        log(f"   ❌ Не хватает библиотеки «playwright»: {e}")
+        log("   Установите: pip install playwright")
+        return False
+
+    log("   🌐 Проверяю браузер Chromium для Playwright…")
+    old_argv = sys.argv
+    stream = _LogStream(log, prefix="   ")
+    ok = True
+    try:
+        sys.argv = ["playwright", "install", "chromium"]
+        with contextlib.redirect_stdout(stream), contextlib.redirect_stderr(stream):
+            pw_main.main()
+    except SystemExit as e:
+        code = getattr(e, "code", 0) or 0
+        if code not in (0, None):
+            ok = False
+    except Exception as e:
+        stream.flush()
+        log(f"   ❌ Ошибка установки Chromium: {e}")
+        ok = False
+    finally:
+        stream.flush()
+        sys.argv = old_argv
+
+    if ok:
+        log("   ✅ Браузер готов")
+    else:
+        log("   ❌ Не удалось подготовить Chromium — запустите вручную: "
+            "playwright install chromium")
+    return ok
+
+
 # ── Перехват вывода ──────────────────────────────────────────────────────────
 
 class _LogStream(io.TextIOBase):
@@ -400,6 +449,13 @@ def run_parser(output_folder: str, key: str, log, stop_event=None,
             if not ensure_chrome_cdp(log, int(parser.get("cdp_port") or CDP_PORT)):
                 return {"ok": False,
                         "msg": "Не удалось подготовить браузер с отладочным портом",
+                        "outputs": []}
+        elif parser.get("needs_browser"):
+            # needs_chrome_cdp подключается к уже установленному системному
+            # Chrome/Edge — в этом случае свой Chromium Playwright не нужен.
+            if not ensure_chromium(log):
+                return {"ok": False,
+                        "msg": "Не удалось подготовить браузер Chromium",
                         "outputs": []}
 
         if env_name and env_value:
