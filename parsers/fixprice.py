@@ -188,7 +188,9 @@ def normalize(raw: dict) -> dict:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 async def collect_stores(playwright, cache: dict, city_cache: dict) -> list[dict]:
+    log.info("Запускаю браузер Chromium…")
     browser = await playwright.chromium.launch(headless=False, slow_mo=120)
+    log.info("Браузер запущен, открываю страницу…")
     context = await browser.new_context(locale="ru-RU")
     page    = await context.new_page()
 
@@ -556,7 +558,9 @@ async def main_async(fresh: bool):
     if fresh and (CACHE_FILE.exists() or CITIES_CACHE_FILE.exists()):
         log.info("--fresh: игнорируем существующий кэш (файлы не удаляются, будут перезаписаны)")
 
+    log.info("Запускаю драйвер Playwright…")
     async with async_playwright() as playwright:
+        log.info("Драйвер Playwright готов")
         rows = await collect_stores(playwright, cache, city_cache)
 
     if not rows:

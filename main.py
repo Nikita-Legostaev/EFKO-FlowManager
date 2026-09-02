@@ -9,6 +9,17 @@ main.py — EFKO FlowManager, точка входа.
 import os
 import sys
 
+if sys.platform == "win32":
+    import asyncio
+    # Парсеры (Fix Price, Доброцен) используют Playwright, который на
+    # старте спавнит свой Node-драйвер через asyncio-подпроцесс — на
+    # Windows это работает только с ProactorEventLoop. Она и так дефолтная
+    # с Python 3.8+, но фиксируем явно: иначе, если что-то в стеке
+    # pywebview/его зависимостей успеет выставить SelectorEventLoop раньше
+    # нас, запуск браузера у парсера тихо зависает навсегда без единой
+    # ошибки в логе.
+    asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+
 from app.orphans import cleanup_orphans_bg
 
 cleanup_orphans_bg()

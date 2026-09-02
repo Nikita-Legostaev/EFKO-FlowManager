@@ -105,10 +105,13 @@ async def scrape_cities(cities, city_dict):
     rows = []
     total = len(cities)
 
+    print("  Запускаю драйвер Playwright…")
     async with async_playwright() as pw:
+        print("  Драйвер готов, запускаю браузер Chromium…")
         browser = await pw.chromium.launch(
             headless=False,
         )
+        print("  Браузер запущен")
         ctx = await browser.new_context(
             user_agent=(
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
