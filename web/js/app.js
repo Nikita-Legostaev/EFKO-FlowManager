@@ -147,9 +147,9 @@ function applyConfig(cfg) {
   // Устанавливаем значения без триггера input-событий
   document.querySelectorAll('[data-field]').forEach(el => {
     const key = el.dataset.field;
-    if (cfg[key] !== undefined && cfg[key] !== null && cfg[key] !== '') {
-      el.value = cfg[key];
-    }
+    if (cfg[key] === undefined || cfg[key] === null) return;
+    if (el.type === 'checkbox') el.checked = !!cfg[key];
+    else if (cfg[key] !== '') el.value = cfg[key];
   });
   // Восстанавливаем пути SKU Matcher
   if (cfg.sku_ref_path) {
@@ -190,7 +190,9 @@ function autoSave() {
 
 function collectFormConfig() {
   const cfg = {};
-  document.querySelectorAll('[data-field]').forEach(el => { cfg[el.dataset.field] = el.value; });
+  document.querySelectorAll('[data-field]').forEach(el => {
+    cfg[el.dataset.field] = (el.type === 'checkbox') ? el.checked : el.value;
+  });
   cfg.dark_theme = document.body.classList.contains('dark');
   return cfg;
 }
