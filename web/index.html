@@ -93,7 +93,6 @@
           <div class="page-hero-icon">📊</div>
           <div class="page-hero-text">
             <div class="page-hero-title">Промодата</div>
-            <div class="page-hero-sub">Скачивание и обработка промо-данных и цен по сетям</div>
           </div>
           <div class="page-hero-layout">
             <button class="layout-btn" data-layout="1col" onclick="pageSetLayout('promodate','1col',this)" title="1 колонка">▤</button>
@@ -273,7 +272,6 @@
           <div class="page-hero-icon">🏪</div>
           <div class="page-hero-text">
             <div class="page-hero-title">Конкуренты</div>
-            <div class="page-hero-sub">Обновление OLAP и положения конкурентов через query</div>
           </div>
         </div>
         <div class="card">
@@ -301,7 +299,6 @@
           <div class="page-hero-icon">📈</div>
           <div class="page-hero-text">
             <div class="page-hero-title">Nielsen</div>
-            <div class="page-hero-sub">Обработка исходных данных Nielsen по категориям</div>
           </div>
           <div class="page-hero-layout">
             <button class="layout-btn active" data-layout="1col" onclick="pageSetLayout('nielsen','1col',this)" title="1 колонка">▤</button>
@@ -407,7 +404,6 @@
           <div class="page-hero-icon">🔄</div>
           <div class="page-hero-text">
             <div class="page-hero-title">Обновить квери</div>
-            <div class="page-hero-sub">Обновление одного Excel-файла через Power Query</div>
           </div>
         </div>
         <div class="card">
@@ -429,7 +425,6 @@
           <div class="page-hero-icon">🏭</div>
           <div class="page-hero-text">
             <div class="page-hero-title">Производство</div>
-            <div class="page-hero-sub">Свод по производству: СВОД, НПК, Тольятти</div>
           </div>
           <div class="page-hero-layout">
             <button class="layout-btn active" data-layout="1col" onclick="pageSetLayout('production','1col',this)" title="1 колонка">▤</button>
@@ -498,7 +493,6 @@
           <div class="page-hero-icon">📉</div>
           <div class="page-hero-text">
             <div class="page-hero-title">Отчёт без OOS</div>
-            <div class="page-hero-sub">Майонез · Кетчуп — обновление кубов и отчётов через query</div>
           </div>
           <div class="page-hero-layout" id="oos-layout-switch">
             <button class="layout-btn active" data-layout="1col" onclick="oosSetLayout('1col',this)" title="1 колонка">▤</button>
@@ -650,7 +644,6 @@
           <div class="page-hero-icon">📦</div>
           <div class="page-hero-text">
             <div class="page-hero-title">Дистрибуция конкурентов</div>
-            <div class="page-hero-sub">Обновление отчёта по дистрибуции основных конкурентов через query</div>
           </div>
         </div>
         <div class="card">
@@ -678,7 +671,6 @@
           <div class="page-hero-icon">🗺️</div>
           <div class="page-hero-text">
             <div class="page-hero-title">Доли рынка по территориям</div>
-            <div class="page-hero-sub">Динамика долей рынка производителей и ТМ в разрезе территорий</div>
           </div>
         </div>
         <div class="card">
@@ -706,7 +698,6 @@
           <div class="page-hero-icon">🏷️</div>
           <div class="page-hero-text">
             <div class="page-hero-title">Доли рынка брендов</div>
-            <div class="page-hero-sub">Файл 1 и файл 2 обновляются первыми, затем — файл 3</div>
           </div>
         </div>
         <div class="card">
@@ -795,7 +786,7 @@
       </div>
       <div id="bar-refresh" class="bar-group" style="display:none;align-items:center;gap:8px;width:100%">
         <div class="action-spacer"></div>
-        <button class="btn btn-ghost" id="refresh-open-btn" style="display:none" onclick="refreshOpenFile()">📂 Открыть файл</button>
+        <button class="btn btn-ghost" id="refresh-open-btn" onclick="refreshOpenFile()">📂 Открыть файл</button>
         <button class="btn btn-primary" onclick="runAction()">▶ Запустить</button>
         <button class="btn btn-danger"  onclick="stopAction()">■ Стоп</button>
       </div>
