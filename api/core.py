@@ -24,6 +24,11 @@ class ApiCoreMixin:
         self._stop_event = threading.Event()
         self._mb = _MB(self)
         self._last_competitors_file = None
+        # Одна операция за раз: почти все они гоняют Excel через COM, а
+        # _stop_event один на всех — параллельный запуск ломал и то, и
+        # другое (см. _run_bg).
+        self._busy_lock = threading.Lock()
+        self._busy_name = ""
         self._scheduler = PromodateScheduler(
             get_config_fn=load_config,
             save_config_fn=save_config_data,
@@ -31,6 +36,70 @@ class ApiCoreMixin:
             emit_fn=self._emit,
         )
         self._scheduler.start()
+
+    # ── Фоновые операции ─────────────────────────────────────────────────────
+
+    def _run_bg(self, title, work, *, name="", on_error=None):
+        """
+        Запускает work() в фоновом потоке — единообразно для всех вкладок.
+
+        Раньше каждый run_*-метод писал это руками, и у девяти из них не
+        было try/except вокруг работы. Любое исключение (недоступная
+        сетевая папка, занятый Excel, обрыв FTP) убивало поток молча:
+        событий «done»/«hide_progress» не приходило, заголовок оставался
+        «⏳ …», прогресс-бар крутился вечно — со стороны выглядело как
+        зависшее приложение, хотя ошибка просто некуда было показать.
+
+        Здесь это закрыто раз и навсегда:
+          • ошибка → запись в лог с трассировкой, тост и строка в логе
+            интерфейса, а не тишина;
+          • finally → заголовок и прогресс сбрасываются всегда, чем бы
+            операция ни закончилась;
+          • блокировка занятости → вторая операция не стартует поверх
+            первой. Это не только про COM: _stop_event общий, и старый
+            код в начале каждого запуска делал _stop_event.clear() —
+            то есть запуск второй операции незаметно отменял «Стоп»,
+            нажатый для первой.
+
+        title — текст в шапке на время работы ("" — не трогать).
+        work  — функция без аргументов, сама операция.
+        name  — имя для сообщения «уже выполняется».
+        """
+        if not self._busy_lock.acquire(blocking=False):
+            self._emit("toast", {
+                "type": "warning",
+                "message": f"Уже выполняется: {self._busy_name} — дождитесь завершения",
+            })
+            return False
+
+        self._busy_name = name or title or "операция"
+        self._stop_event.clear()
+        if title:
+            self._emit("set_title", title)
+
+        def _worker():
+            try:
+                work()
+            except InterruptedError:
+                self._emit("toast", {"type": "warning", "message": "Остановлено"})
+            except Exception as e:
+                logging.exception(f"[{self._busy_name}] ошибка")
+                self._log(f"❌ Ошибка: {e}")
+                if on_error is not None:
+                    try:
+                        on_error(e)
+                    except Exception:
+                        logging.exception("on_error")
+                self._emit("toast", {"type": "error", "message": f"Ошибка: {e}"})
+            finally:
+                self._emit("set_title", "")
+                self._emit("hide_progress")
+                self._emit("done")
+                self._busy_name = ""
+                self._busy_lock.release()
+
+        threading.Thread(target=_worker, daemon=True).start()
+        return True
 
     # ── Push events ──────────────────────────────────────────────────────────
 

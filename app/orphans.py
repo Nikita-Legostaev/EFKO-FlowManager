@@ -5,6 +5,44 @@ import logging
 import threading
 
 
+def _has_visible_window(pid: int) -> bool:
+    """
+    Есть ли у процесса хоть одно видимое окно верхнего уровня.
+
+    Раньше здесь был FindWindowA(b'XLMAIN', None) — он ищет ПЕРВОЕ окно
+    Excel во всей системе и никак не связан с конкретным процессом. То
+    есть если у одного (любого) экземпляра Excel окно оказывалось
+    скрытым, приложение убивало ВСЕ excel.exe разом — вместе с открытыми
+    у человека книгами и несохранёнными правками. Здесь окна
+    сопоставляются с PID явно.
+    """
+    try:
+        import ctypes
+        from ctypes import wintypes
+    except Exception:
+        return True  # не Windows — считаем, что окно есть, и не трогаем процесс
+
+    try:
+        user32 = ctypes.windll.user32
+        visible = []
+
+        @ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
+        def _on_window(hwnd, _lparam):
+            wnd_pid = wintypes.DWORD()
+            user32.GetWindowThreadProcessId(hwnd, ctypes.byref(wnd_pid))
+            if wnd_pid.value == pid and user32.IsWindowVisible(hwnd):
+                visible.append(hwnd)
+                return False  # нашли — дальше можно не искать
+            return True
+
+        user32.EnumWindows(_on_window, 0)
+        return bool(visible)
+    except Exception:
+        # Не смогли проверить — считаем, что окно есть: лучше оставить
+        # лишний процесс, чем убить чужую работу.
+        return True
+
+
 def _cleanup_orphans():
     """Убивает только невидимый Excel и другие экземпляры нашего приложения."""
     try:
@@ -29,16 +67,11 @@ def _cleanup_orphans():
                     proc.kill()
                     killed.append(f"EFKO-FlowManager (PID {pid})")
 
-                # Невидимый Excel — зависший от COM автоматизации
-                elif name == 'excel.exe':
-                    try:
-                        import ctypes as _ct
-                        hwnd = _ct.windll.user32.FindWindowA(b'XLMAIN', None)
-                        if hwnd and not _ct.windll.user32.IsWindowVisible(hwnd):
-                            proc.kill()
-                            killed.append(f"EXCEL.EXE невидимый (PID {pid})")
-                    except Exception:
-                        pass
+                # Excel без единого видимого окна — зависший от COM-автоматизации.
+                # У книги, открытой человеком, окно есть, её не трогаем.
+                elif name == 'excel.exe' and not _has_visible_window(pid):
+                    proc.kill()
+                    killed.append(f"EXCEL.EXE без окон (PID {pid})")
 
             except Exception:
                 continue

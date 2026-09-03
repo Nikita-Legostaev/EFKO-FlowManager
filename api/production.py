@@ -10,29 +10,21 @@ from services.sku_matcher import run_matching, save_to_reference, RejectionStore
 class ApiProductionMixin:
 
     def run_production(self, p):
-        self._stop_event.clear()
+        def _w():
+            run_production(
+                p["svod_folder"],
+                p["npk_file"],
+                p["tolyatti_folder"],
+                p["target_file"],
+                p["mapping_file"],
+                p["month_str"],
+                p["year"],
+                self._log,
+                self._mb,
+                self._stop_event,
+            )
 
-        def _worker():
-            try:
-                run_production(
-                    p["svod_folder"],
-                    p["npk_file"],
-                    p["tolyatti_folder"],
-                    p["target_file"],
-                    p["mapping_file"],
-                    p["month_str"],
-                    p["year"],
-                    self._log,
-                    self._mb,
-                    self._stop_event,
-                )
-            except Exception as e:
-                self._log(f"⚠️ Ошибка обработки производства: {e}")
-                self._emit("toast", {"type": "error", "message": f"Ошибка обработки: {e}"})
-            finally:
-                self._emit("set_title", "")
-
-        threading.Thread(target=_worker, daemon=True).start()
+        self._run_bg("⏳ Производство…", _w, name="Производство")
         return True
 
     def run_sku_matching(self, p):

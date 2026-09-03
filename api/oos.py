@@ -3,7 +3,6 @@ api/oos.py — миксин: отчёт без OOS (Слобода / Прова�
 """
 
 import logging
-import threading
 from pathlib import Path
 # services.oos импортируется лениво, внутри рабочего потока:
 # его загрузка занимает ~5 секунд и раньше происходила при каждом старте
@@ -16,11 +15,8 @@ class ApiOosMixin:
         p: {kub_file, elt_file, tasks: [{report_type, report_file}, ...]}
         Запускает все задачи последовательно в одном потоке.
         """
-        self._stop_event.clear()
-
         def _w():
             from services.oos import run_oos_report as _run_oos_report
-            self._emit("set_title", "⏳ Отчёт без OOS…")
             tasks = p.get("tasks", [])
             last_file = ""
             for i, task in enumerate(tasks, 1):
@@ -48,10 +44,8 @@ class ApiOosMixin:
                     self._emit("toast", {"type": "error", "message": f"❌ {rt}: {e}"})
             if last_file:
                 self._emit("oos_done", {"report_file": last_file})
-            self._emit("set_title", "")
-            self._emit("hide_progress")
 
-        threading.Thread(target=_w, daemon=True).start()
+        self._run_bg("⏳ Отчёт без OOS…", _w, name="Отчёт без OOS")
         return True
 
     def open_oos_folder(self, path):
@@ -75,31 +69,21 @@ class ApiOosMixin:
         p: {kub_folder, report_2026, report_2024_2026, need_2026}
         Обновляет отчёты кетчупа последовательно через query: кубы → 2026 → 2024-2026.
         """
-        self._stop_event.clear()
-
         def _w():
             from services.oos_ketchup import run_ketchup_report
-            self._emit("set_title", "⏳ Отчёт без OOS (Кетчуп)…")
-            try:
-                run_ketchup_report(
-                    kub_folder=p["kub_folder"],
-                    report_2026_file=p.get("report_2026", ""),
-                    report_2024_2026_file=p.get("report_2024_2026", ""),
-                    need_2026=bool(p.get("need_2026", True)),
-                    log=self._log,
-                    stop_event=self._stop_event,
-                )
-                last_file = p.get("report_2024_2026") or p.get("report_2026") or ""
-                self._emit("toast", {"type": "success", "message": "✅ Кетчуп: отчёты обновлены"})
-                if last_file:
-                    self._emit("oos_done", {"report_file": last_file})
-            except InterruptedError:
-                self._emit("toast", {"type": "warning", "message": "Остановлено"})
-            except Exception as e:
-                logging.error(f"OOS ketchup error: {e}")
-                self._emit("toast", {"type": "error", "message": f"❌ Кетчуп: {e}"})
-            self._emit("set_title", "")
-            self._emit("hide_progress")
 
-        threading.Thread(target=_w, daemon=True).start()
+            run_ketchup_report(
+                kub_folder=p["kub_folder"],
+                report_2026_file=p.get("report_2026", ""),
+                report_2024_2026_file=p.get("report_2024_2026", ""),
+                need_2026=bool(p.get("need_2026", True)),
+                log=self._log,
+                stop_event=self._stop_event,
+            )
+            last_file = p.get("report_2024_2026") or p.get("report_2026") or ""
+            self._emit("toast", {"type": "success", "message": "✅ Кетчуп: отчёты обновлены"})
+            if last_file:
+                self._emit("oos_done", {"report_file": last_file})
+
+        self._run_bg("⏳ Отчёт без OOS (Кетчуп)…", _w, name="Отчёт без OOS (Кетчуп)")
         return True
