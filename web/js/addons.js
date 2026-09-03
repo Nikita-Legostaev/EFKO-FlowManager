@@ -488,6 +488,16 @@
         card.appendChild(kb);
       }
 
+      if (p.needs_manual_browser) {
+        const db = document.createElement('button');
+        db.className = 'pz-mini';
+        db.textContent = '⬇';
+        db.title = 'Скачать браузер Chromium для этой сети';
+        db.disabled = P.running;
+        db.addEventListener('click', e => { e.stopPropagation(); downloadBrowser(p.key); });
+        card.appendChild(db);
+      }
+
       const hb = document.createElement('button');
       hb.className = 'pz-mini';
       hb.textContent = '?';
@@ -566,6 +576,11 @@
   }
 
   // ── Запуск ───────────────────────────────────────────────────────────
+
+  async function downloadBrowser(key) {
+    if (P.running) { toast('warning', 'Парсер уже выполняется'); return; }
+    await api().download_parser_browser({ key });
+  }
 
   async function runOne(key) {
     if (P.running) { toast('warning', 'Парсер уже выполняется'); return; }

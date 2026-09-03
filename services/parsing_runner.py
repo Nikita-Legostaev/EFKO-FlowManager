@@ -114,6 +114,7 @@ def list_parsers() -> list:
             "needs_chrome_cdp": bool(item.get("needs_chrome_cdp")),
             "cdp_port": item.get("cdp_port", CDP_PORT),
             "needs_browser": bool(item.get("needs_browser")),
+            "needs_manual_browser": bool(item.get("needs_manual_browser")),
             "hidden": bool(item.get("hidden")),
             "exists": bool(script) and os.path.isfile(os.path.join(folder, script)),
             "known": True,
