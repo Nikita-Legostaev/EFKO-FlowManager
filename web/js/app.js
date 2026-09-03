@@ -1063,6 +1063,7 @@ async function skuRun(){
   const thresh=parseFloat(document.querySelector('.thresh-slider').value);
   document.getElementById('sku-run-btn').textContent='⏳ Анализирую…';
   document.getElementById('sku-run-btn').disabled=true;
+  document.getElementById('sku-stop-btn').disabled=false;
   document.getElementById('sku-tbody').innerHTML='';
   document.getElementById('new-sku-tbody').innerHTML='';
   S.skuAllResults=[];S.skuSelected.clear();S.skuAllNew=[];S.skuNewSelected.clear();skuUpdateSel();
@@ -1070,7 +1071,12 @@ async function skuRun(){
   skuSwitchTab('match');
   await pywebview.api.run_sku_matching({ref_path:ref,csv_folder:folder,threshold:thresh,mode:S.skuMode});
 }
-function skuUnlock(){document.getElementById('sku-run-btn').textContent='▶ Запустить матчинг';document.getElementById('sku-run-btn').disabled=false;}
+function skuStop(){ pywebview.api.stop(); }
+function skuUnlock(){
+  document.getElementById('sku-run-btn').textContent='▶ Запустить матчинг';
+  document.getElementById('sku-run-btn').disabled=false;
+  document.getElementById('sku-stop-btn').disabled=true;
+}
 function skuRenderResults(results){
   skuUnlock();S.skuAllResults=results;S.skuSelected=new Set(results.map((_,i)=>i));
   skuDisplayRows(results);

@@ -588,7 +588,7 @@ class RejectionStore:
 
 
 def run_matching(ref_path, csv_folder, threshold, on_progress, on_done, mode="ml",
-                 rejection_store: "RejectionStore | None" = None):
+                 rejection_store: "RejectionStore | None" = None, stop_event=None):
     try:
         import polars as pl
         import pandas as pd
@@ -667,6 +667,10 @@ def run_matching(ref_path, csv_folder, threshold, on_progress, on_done, mode="ml
         total   = len(new_skus)
 
         for idx, (_, row) in enumerate(new_skus.iterrows()):
+            if stop_event is not None and stop_event.is_set():
+                on_progress("⛔ Остановлено пользователем")
+                on_done(results, all_new_skus=all_new_skus)
+                return
             csv_sku      = str(row["pd_sku"]).strip()
             csv_brand    = str(row.get("brand","")).strip()
             csv_category = str(row.get("category","")).strip()

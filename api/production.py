@@ -36,6 +36,8 @@ class ApiProductionMixin:
         return True
 
     def run_sku_matching(self, p):
+        self._stop_event.clear()
+
         def _prog(msg):
             self._emit("sku_log", msg)
 
@@ -54,7 +56,8 @@ class ApiProductionMixin:
         threading.Thread(
             target=run_matching,
             args=(ref_path, p["csv_folder"], float(p["threshold"]), _prog, _done),
-            kwargs={"mode": p.get("mode", "ml"), "rejection_store": store},
+            kwargs={"mode": p.get("mode", "ml"), "rejection_store": store,
+                    "stop_event": self._stop_event},
             daemon=True,
         ).start()
         return True
