@@ -187,11 +187,25 @@ def normalize(raw: dict) -> dict:
 # 1. СБОР
 # ═══════════════════════════════════════════════════════════════════════════════
 
+DEBUG_PORT = 9222
+
+
 async def collect_stores(playwright, cache: dict, city_cache: dict) -> list[dict]:
-    log.info("Запускаю браузер Chromium…")
-    browser = await playwright.chromium.launch(headless=False, slow_mo=120)
-    log.info("Браузер запущен, открываю страницу…")
-    context = await browser.new_context(locale="ru-RU")
+    # Подключаемся к уже запущенному системному Chrome/Edge через CDP —
+    # так же, как это делает bristol.py. Раньше здесь был
+    # playwright.chromium.launch() — отдельно скачиваемый Playwright-
+    # Chromium, но в сетях с закрытым доступом к серверам загрузки
+    # Microsoft/Google (частая ситуация в корпоративных сетях) его не
+    # докачать даже вручную. Приложение само поднимает Chrome/Edge с
+    # --remote-debugging-port перед запуском скрипта (см.
+    # services/parsing_runner.py::ensure_chrome_cdp), отдельно скачивать
+    # браузер для этого больше не нужно.
+    log.info(f"Подключаюсь к браузеру на порту {DEBUG_PORT}…")
+    browser = await playwright.chromium.connect_over_cdp(
+        f"http://127.0.0.1:{DEBUG_PORT}", slow_mo=120
+    )
+    log.info("Подключено, открываю страницу…")
+    context = browser.contexts[0] if browser.contexts else await browser.new_context(locale="ru-RU")
     page    = await context.new_page()
 
     all_stores: list[dict] = []

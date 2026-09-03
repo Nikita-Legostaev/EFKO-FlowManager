@@ -19,7 +19,6 @@ from services.parsing_runner import (
     run_parser,
     run_many,
     is_running,
-    ensure_chromium,
 )
 
 
@@ -168,38 +167,6 @@ class ApiParsingMixin:
                 "type": "success" if res["ok"] else "error",
                 "message": ("Парсинг завершён" if res["ok"]
                             else f"Ошибка парсинга: {res['msg']}"),
-            })
-            self._emit("done")
-
-        threading.Thread(target=_worker, daemon=True).start()
-        return {"ok": True}
-
-    def download_parser_browser(self, data: dict):
-        """
-        Ручное скачивание браузера Chromium для парсеров, у которых
-        needs_manual_browser=true (Fix Price) — по нажатию отдельной
-        кнопки «⬇», а не автоматически при каждом запуске: в сетях,
-        где сервер загрузки Microsoft/Google заблокирован, авто-попытка
-        на каждый клик «Запустить» только тратила время и раздражала.
-        """
-        if is_running():
-            self._emit("toast", {"type": "warning",
-                                 "message": "Парсер уже выполняется"})
-            return {"ok": False}
-
-        def _worker():
-            self._emit("parse_started", {"key": "__browser_install__"})
-            self._log("⬇ Скачиваю браузер Chromium для Playwright…")
-            try:
-                ok = ensure_chromium(self._log)
-            except Exception as e:
-                logging.exception("[api.parsing] download_parser_browser")
-                ok = False
-                self._log(f"❌ Ошибка: {e}")
-            self._emit("parse_done", {"key": "", "ok": ok, "outputs": []})
-            self._emit("toast", {
-                "type": "success" if ok else "error",
-                "message": "Браузер готов" if ok else "Не удалось скачать браузер — см. лог",
             })
             self._emit("done")
 
