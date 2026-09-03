@@ -101,17 +101,28 @@ def parse_html(html):
 # 4. PLAYWRIGHT + STEALTH
 # ═══════════════════════════════════════════════════════════════════════════════
 
+DEBUG_PORT = 9222
+
+
 async def scrape_cities(cities, city_dict):
     rows = []
     total = len(cities)
 
     print("  Запускаю драйвер Playwright…")
     async with async_playwright() as pw:
-        print("  Драйвер готов, запускаю браузер Chromium…")
-        browser = await pw.chromium.launch(
-            headless=False,
+        # Подключаемся к уже запущенному системному Chrome/Edge через CDP —
+        # так же, как bristol.py и fixprice.py. Раньше здесь был
+        # pw.chromium.launch() — отдельно скачиваемый Playwright-Chromium,
+        # но в сетях с закрытым доступом к серверам загрузки Microsoft/
+        # Google (частая ситуация в корпоративных сетях) его не докачать
+        # даже вручную. Приложение само поднимает Chrome/Edge с
+        # --remote-debugging-port перед запуском скрипта (см.
+        # services/parsing_runner.py::ensure_chrome_cdp).
+        print(f"  Подключаюсь к браузеру на порту {DEBUG_PORT}…")
+        browser = await pw.chromium.connect_over_cdp(
+            f"http://127.0.0.1:{DEBUG_PORT}"
         )
-        print("  Браузер запущен")
+        print("  Подключено")
         ctx = await browser.new_context(
             user_agent=(
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
