@@ -430,7 +430,14 @@ def run_parser(output_folder: str, key: str, log, stop_event=None,
         root_logger.addHandler(log_handler)
         try:
             with contextlib.redirect_stdout(stream), contextlib.redirect_stderr(stream):
-                runpy.run_path(script_path, run_name="__main__")
+                # STOP_EVENT — раньше stop_event вообще не передавался в
+                # сами скрипты (только между парсерами при пакетном
+                # запуске в run_many), так что кнопка «Стоп» никак не
+                # прерывала уже идущий парсинг. Скрипты сами проверяют
+                # STOP_EVENT.is_set() в своих главных циклах (город/
+                # регион) — см. _stopped() в начале каждого parsers/*.py.
+                runpy.run_path(script_path, run_name="__main__",
+                               init_globals={"STOP_EVENT": stop_event})
         finally:
             root_logger.removeHandler(log_handler)
         stream.flush()

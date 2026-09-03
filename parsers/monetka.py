@@ -36,6 +36,16 @@ PAGE_SIZE = 10
 # устойчиво к лишним пробелам между словами.
 NAME_PATTERN = re.compile(r"(?<!\w)ашан\s+сити(?!\w)", re.IGNORECASE)
 
+# При запуске из приложения (services/parsing_runner.py::run_parser) сюда
+# подставляется реальный threading.Event кнопки «Стоп» — без этого «Стоп»
+# не долетал до уже идущего парсинга, только до следующего в очереди.
+STOP_EVENT = globals().get("STOP_EVENT")
+
+
+def _stopped() -> bool:
+    return STOP_EVENT is not None and STOP_EVENT.is_set()
+
+
 # Полный список субъектов РФ (83 региона, международно признанные —
 # без Крыма/Севастополя и территорий 2022 года).
 REGIONS = [
@@ -146,6 +156,9 @@ def main():
     results = {}
     total_regions = len(REGIONS)
     for i, region in enumerate(REGIONS, 1):
+        if _stopped():
+            print("⛔ Остановлено пользователем")
+            break
         print(f"[{i}/{total_regions}] {region} ...", end=" ")
         info = count_shops(region)
         flag = ""

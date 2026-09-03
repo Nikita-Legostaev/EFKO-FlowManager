@@ -42,6 +42,15 @@ OUTPUT            = "fixprice_shops.xlsx"
 CACHE_FILE        = Path("fixprice_cache.json")         # {"Регион::Город": [row, ...]}
 CITIES_CACHE_FILE = Path("fixprice_cities_cache.json")  # {"Регион": ["Город1","Город2",...]}
 
+# При запуске из приложения (services/parsing_runner.py::run_parser) сюда
+# подставляется реальный threading.Event кнопки «Стоп» — без этого «Стоп»
+# не долетал до уже идущего парсинга, только до следующего в очереди.
+STOP_EVENT = globals().get("STOP_EVENT")
+
+
+def _stopped() -> bool:
+    return STOP_EVENT is not None and STOP_EVENT.is_set()
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Кэш на диске
@@ -285,6 +294,9 @@ async def collect_stores(playwright, cache: dict, city_cache: dict) -> list[dict
 
     # ── Перебираем Регион → Город ──────────────────────────────────────────────
     for reg_idx, region_name in enumerate(regions):
+        if _stopped():
+            log.info("⛔ Остановлено пользователем")
+            break
         visible = await r_items.first.is_visible()
         if not visible:
             await open_dropdown(region_dd)
@@ -340,6 +352,9 @@ async def collect_stores(playwright, cache: dict, city_cache: dict) -> list[dict
         save_city_cache(city_cache)
 
         for city_idx, city_name in enumerate(cities):
+            if _stopped():
+                log.info("⛔ Остановлено пользователем")
+                break
             key = cache_key(region_name, city_name)
 
             cv = await ci_items.first.is_visible()

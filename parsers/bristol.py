@@ -43,6 +43,15 @@ from playwright.async_api import async_playwright
 OUTPUT      = "bristol_shops.xlsx"
 CHECKPOINT  = Path("bristol_checkpoint.json")
 DEBUG_PORT  = 9222
+
+# При запуске из приложения (services/parsing_runner.py::run_parser) сюда
+# подставляется реальный threading.Event кнопки «Стоп» — без этого «Стоп»
+# не долетал до уже идущего парсинга, только до следующего в очереди.
+STOP_EVENT = globals().get("STOP_EVENT")
+
+
+def _stopped() -> bool:
+    return STOP_EVENT is not None and STOP_EVENT.is_set()
 API_HOST    = "api.mobile.bristol.ru"
 BASE_API    = f"https://{API_HOST}/api/v2"
 SHOPS_URL   = "https://bristol.ru/shops"
@@ -325,13 +334,18 @@ async def fetch_all_details(api_page, ctx, auth: ApiAuth,
         pass   # уже зарегистрирована (повторный запуск в той же вкладке)
 
     for pass_num in range(1, MAX_PASSES + 1):
-        if not remaining:
+        if not remaining or _stopped():
+            if _stopped():
+                print(f"  {ts()} ⛔ Остановлено пользователем")
             break
         if pass_num > 1:
             print(f"\n  Проход {pass_num}: добираем {len(remaining)} шт...")
 
         next_remaining = []
         for start in range(0, len(remaining), BATCH):
+            if _stopped():
+                print(f"  {ts()} ⛔ Остановлено пользователем")
+                break
             chunk = remaining[start:start + BATCH]
             out = await api_page.evaluate(JS_FETCH_MANY, {
                 "ids": chunk,

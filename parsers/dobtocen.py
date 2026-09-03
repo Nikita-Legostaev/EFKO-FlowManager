@@ -33,6 +33,15 @@ DICT_FILE      = "city_and_regions_Russia.xlsx"
 OUTPUT         = "dobrocen_shops.xlsx"
 CONTINUE_FLAG  = Path("dobrocen_continue.flag")
 
+# При запуске из приложения (services/parsing_runner.py::run_parser) сюда
+# подставляется реальный threading.Event кнопки «Стоп» — без этого «Стоп»
+# не долетал до уже идущего парсинга, только до следующего в очереди.
+STOP_EVENT = globals().get("STOP_EVENT")
+
+
+def _stopped() -> bool:
+    return STOP_EVENT is not None and STOP_EVENT.is_set()
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # 1. СПРАВОЧНИК
@@ -157,6 +166,9 @@ async def scrape_cities(cities, city_dict):
         except FileNotFoundError:
             pass
         while not CONTINUE_FLAG.exists():
+            if _stopped():
+                print("⛔ Остановлено пользователем")
+                return rows
             await asyncio.sleep(0.5)
         try:
             CONTINUE_FLAG.unlink()
@@ -165,6 +177,9 @@ async def scrape_cities(cities, city_dict):
         print("  Продолжаем...\n")
 
         for i, city in enumerate(cities, 1):
+            if _stopped():
+                print("⛔ Остановлено пользователем")
+                break
             print(f"  [{i:3}/{total}] {city['name']:<22}", end=" ", flush=True)
             region = resolve_region(city["name"], city_dict)
             shops = []
