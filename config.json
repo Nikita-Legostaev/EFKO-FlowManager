@@ -1,42 +1,212 @@
 {
+  "page_profiles": {
+    "promodate": {
+      "active": "Основной",
+      "profiles": {
+        "Основной": {
+          "df:month_from": "9",
+          "df:year_from": "2026",
+          "df:month_to": "9",
+          "df:year_to": "2026",
+          "df:promodata_mode": "co",
+          "df:category": "Масло",
+          "df:output_folder": "",
+          "df:pq_file1": "",
+          "df:pq_file2": "",
+          "df:macro1": "ExtendDatesAndFormulas",
+          "df:macro2": "ExtendDatesAndFormulas_MNZ",
+          "df:pc_kuper_file": "",
+          "df:pc_promo_file": "",
+          "df:pc_sprav_file": "",
+          "df:pc_output_file": "",
+          "df:pc_threshold": "0.5"
+        }
+      }
+    },
+    "competitors": {
+      "active": "Основной",
+      "profiles": {
+        "Основной": {
+          "df:olap_file": "21",
+          "df:competitors_file": ""
+        }
+      }
+    },
+    "nielsen": {
+      "active": "Основной",
+      "profiles": {
+        "Основной": {
+          "df:nielsen_input": "",
+          "df:nielsen_output": "",
+          "df:nielsen_input2": "",
+          "df:nielsen_output2": "",
+          "df:nielsen_sprav_path": "",
+          "df:nielsen_pq_file": "",
+          "df:nielsen_pq_file_nu": "",
+          "df:nielsen_format": "csv",
+          "df:nielsen_category": "Масло",
+          "df:nielsen_arch_enabled": false,
+          "df:nielsen_arch_input": "",
+          "df:nielsen_arch_input2": ""
+        }
+      }
+    },
+    "query_refresh": {
+      "active": "Основной",
+      "profiles": {
+        "Основной": {
+          "df:query_refresh_file": ""
+        }
+      }
+    },
+    "production": {
+      "active": "Основной",
+      "profiles": {
+        "Основной": {
+          "df:prod_svod_folder": "",
+          "df:prod_npk_file": "",
+          "df:prod_tolyatti": "",
+          "df:prod_target": "",
+          "df:prod_mapping": "",
+          "df:prod_month": "9 - Сентябрь",
+          "df:prod_year": "2026"
+        }
+      }
+    },
+    "oos": {
+      "active": "Основной",
+      "profiles": {
+        "Основной": {
+          "df:oos_kub_file": "",
+          "df:oos_elt_file": "",
+          "df:oos_report_sloboda": "",
+          "df:oos_report_provansale": "",
+          "df:oos_report_olive": "",
+          "df:oos_ketchup_folder": "",
+          "df:oos_ketchup_report_2026": "",
+          "df:oos_ketchup_report_2024_2026": "",
+          "id:oos-ketchup-need-2026": true,
+          "__custom": {
+            "category": "Майонез"
+          }
+        }
+      }
+    },
+    "dist_competitors": {
+      "active": "Основной",
+      "profiles": {
+        "Основной": {
+          "df:dist_competitors_file": ""
+        }
+      }
+    },
+    "market_share_territory": {
+      "active": "Основной",
+      "profiles": {
+        "Основной": {
+          "df:market_share_territory_file": ""
+        }
+      }
+    },
+    "market_share_brands": {
+      "active": "Основной",
+      "profiles": {
+        "Основной": {
+          "df:msb_file1": "",
+          "df:msb_file2": "",
+          "df:msb_file3": ""
+        }
+      }
+    },
+    "parsing": {
+      "active": "Основной",
+      "profiles": {
+        "Основной": {}
+      }
+    }
+  },
   "output_folder": "",
   "pq_file1": "",
   "pq_file2": "",
   "macro1": "ExtendDatesAndFormulas",
   "macro2": "ExtendDatesAndFormulas_MNZ",
-  "olap_file": "",
+  "olap_file": "21",
   "competitors_file": "",
   "nielsen_input": "",
-  "nielsen_output": "C:\\Users\\n.legostaev\\Desktop\\тест нильсн ст",
-  "nielsen_input2": "V:\\ОАР\\Внутренняя\\старый Коммон\\01_БАЗЫ ДАННЫХ\\4_НИЛЬСЕН\\2_НИЛЬСЕН_кетчуп\\Исходник\\KET_NT_Mar26.xlsx",
-  "nielsen_output2": "C:\\Users\\n.legostaev\\Desktop\\Новая папка\\Нисльсен ткст",
-  "nielsen_sprav_path": "V:\\ОАР\\Внутренняя\\старый Коммон\\01_БАЗЫ ДАННЫХ\\4_НИЛЬСЕН\\Справочники\\Справочник.xlsx",
-  "nielsen_pq_file": "V:\\ОАР\\Внутренняя\\старый Коммон\\01_БАЗЫ ДАННЫХ\\4_НИЛЬСЕН\\2_НИЛЬСЕН_кетчуп\\Кетчуп Nielsin NU.xlsx",
-  "nielsen_format": "excel",
-  "nielsen_category": "Кетчуп",
+  "nielsen_output": "",
+  "nielsen_input2": "",
+  "nielsen_output2": "",
+  "nielsen_sprav_path": "",
+  "nielsen_pq_file": "",
+  "nielsen_pq_file_nu": "",
+  "nielsen_arch_enabled": false,
+  "nielsen_arch_input": "",
+  "nielsen_arch_input2": "",
+  "nielsen_format": "csv",
+  "nielsen_category": "Масло",
   "query_refresh_file": "",
-  "prod_svod_folder": "V:\\ОАР\\Внутренняя\\старый Коммон\\01_БАЗЫ ДАННЫХ\\2_СОЮЗмаргаринПРОМ_производство по конкурентам\\19_Сводка от МЖС\\2026\\07_СВОД 2026.xlsx",
-  "prod_npk_file": "V:\\ОАР\\Внутренняя\\старый Коммон\\01_БАЗЫ ДАННЫХ\\2_СОЮЗмаргаринПРОМ_производство по конкурентам\\НПК\\Отчеты НПК Query.xlsx",
-  "prod_tolyatti": "V:\\ОАР\\Внутренняя\\старый Коммон\\01_БАЗЫ ДАННЫХ\\2_СОЮЗмаргаринПРОМ_производство по конкурентам\\Тольятти\\2026",
-  "prod_target": "V:\\ОАР\\Внутренняя\\старый Коммон\\01_БАЗЫ ДАННЫХ\\2_СОЮЗмаргаринПРОМ_производство по конкурентам\\Актуальные данные по производству\\2026\\2026_07_Производство масла, майонеза, кетчупа и жж.xlsx",
-  "prod_mapping": "C:/Users/n.legostaev/Downloads/маппинг (1).xlsx",
+  "prod_svod_folder": "",
+  "prod_npk_file": "",
+  "prod_tolyatti": "",
+  "prod_target": "",
+  "prod_mapping": "",
   "prod_year": "2026",
-  "prod_month": "6 - Июнь",
-  "pc_kuper_file": "C:\\Users\\n.legostaev\\Desktop\\УДАЛИТЬ ПОСЛЕ ИСПОЛЬЗОВАНИЯ.xlsx",
-  "pc_promo_file": "V:\\ОАР\\Внутренняя\\старый Коммон\\33_КОМИТЕТ ПО ЦЕНООБРАЗОВАНИЮ БП\\Полочные цены Promodata\\PromoData(авто).xlsx",
-  "pc_sprav_file": "V:\\ОАР\\Внутренняя\\старый Коммон\\33_КОМИТЕТ ПО ЦЕНООБРАЗОВАНИЮ БП\\Полочные цены Promodata\\справочник PromoData.xlsx",
-  "pc_output_file": "C:\\Users\\n.legostaev\\Desktop\\test\\kuper_vs_promo.xlsx",
-  "pc_threshold": "0.35",
+  "prod_month": "9 - Сентябрь",
+  "pc_kuper_file": "",
+  "pc_promo_file": "",
+  "pc_sprav_file": "",
+  "pc_output_file": "",
+  "pc_threshold": "0.5",
   "oos_category": "Майонез",
   "oos_kub_file": "",
   "oos_elt_file": "",
-  "oos_report_sloboda": "C:\\Users\\n.legostaev\\Documents\\Отчет по майонезу в ФС без OOS (Query) 2026 1.xlsx",
+  "oos_report_sloboda": "",
   "oos_report_provansale": "",
   "oos_report_olive": "",
-  "dark_theme": true,
-  "sku_ref_path": "V:\\ОАР\\Внутренняя\\старый Коммон\\33_КОМИТЕТ ПО ЦЕНООБРАЗОВАНИЮ БП\\Полочные цены Promodata\\справочник PromoData.xlsx",
-  "sku_csv_folder": "V:\\ОАР\\Внутренняя\\старый Коммон\\33_КОМИТЕТ ПО ЦЕНООБРАЗОВАНИЮ БП\\Полочные цены Promodata\\промо",
+  "oos_ketchup_folder": "",
+  "oos_ketchup_report_2026": "",
+  "oos_ketchup_report_2024_2026": "",
+  "oos_ketchup_need_2026": "1",
+  "dist_competitors_file": "",
+  "market_share_territory_file": "",
+  "msb_file1": "",
+  "msb_file2": "",
+  "msb_file3": "",
+  "theme_custom": {},
+  "oos_layout": "1col",
+  "layout_promodate": "2col",
+  "layout_nielsen": "",
+  "layout_production": "",
+  "dark_theme": false,
+  "sku_ref_path": "",
+  "sku_csv_folder": "",
   "dl_mode": "range",
+  "promodata_mode": "co",
+  "promodata_mode_settings": {
+    "co": {
+      "output_folder": "",
+      "pq_file1": "12321",
+      "pq_file2": "32123",
+      "macro1": "ExtendDatesAndFormulas",
+      "macro2": "ExtendDatesAndFormulas_MNZ"
+    },
+    "monitoring": {
+      "output_folder": "",
+      "pq_file1": "11",
+      "pq_file2": "11111",
+      "macro1": "ExtendDatesAndFormulas",
+      "macro2": "ExtendDatesAndFormulas_MNZ"
+    },
+    "extra": {
+      "output_folder": "",
+      "pq_file1": "",
+      "pq_file2": "",
+      "macro1": "ExtendDatesAndFormulas",
+      "macro2": "ExtendDatesAndFormulas_MNZ"
+    }
+  },
+  "parsing_output": "",
+  "parsing_keys": {},
   "dates_list": "",
   "scheduler_enabled": false,
   "scheduler_time": "08:00",
@@ -63,35 +233,9 @@
   "scheduler_win_task": false,
   "scheduler_last_run": "",
   "scheduler_last_status": "",
-  "parsing_output": "C:\\Users\\n.legostaev\\Desktop\\тест_пасинга_ждск",
-  "promodata_mode": "co",
-  "promodata_output_folders": {
-    "co": "C:\\Users\\n.legostaev\\Desktop\\Для мониторинга цен в ФС (с янв.26)",
-    "monitoring": "",
-    "extra": ""
-  },
-  "parsing_keys": {},
-  "promodata_mode_settings": {
-    "co": {
-      "output_folder": "",
-      "pq_file1": "",
-      "pq_file2": "",
-      "macro1": "ExtendDatesAndFormulas",
-      "macro2": "ExtendDatesAndFormulas_MNZ"
-    },
-    "monitoring": {
-      "output_folder": "",
-      "pq_file1": "V:\\ОАР\\Внутренняя\\старый Коммон\\33_КОМИТЕТ ПО ЦЕНООБРАЗОВАНИЮ БП\\Полочные цены Promodata\\PromoData(авто)(Частые).xlsx",
-      "pq_file2": "V:\\ОАР\\Внутренняя\\старый Коммон\\33_КОМИТЕТ ПО ЦЕНООБРАЗОВАНИЮ БП\\Полочные цены Promodata\\Отчет по полочным ценам (парсер)(авто)(Частые).xlsm",
-      "macro1": "ExtendDatesAndFormulas",
-      "macro2": ""
-    },
-    "extra": {
-      "output_folder": "",
-      "pq_file1": "",
-      "pq_file2": "",
-      "macro1": "ExtendDatesAndFormulas",
-      "macro2": "ExtendDatesAndFormulas_MNZ"
-    }
-  }
+  "month_from": "9",
+  "year_from": "2026",
+  "month_to": "9",
+  "year_to": "2026",
+  "category": "Масло"
 }
