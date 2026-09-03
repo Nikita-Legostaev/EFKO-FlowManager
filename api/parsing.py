@@ -146,6 +146,27 @@ class ApiParsingMixin:
             return None
         return out
 
+    def continue_dobrocen_captcha(self):
+        """
+        Сигнал парсеру Доброцен, что капча в браузере решена вручную —
+        по нажатию кнопки «▶ Продолжить (капча решена)».
+
+        Скрипт не может использовать input()/консоль (собранное приложение
+        оконное, console=False, sys.stdin недоступен) — вместо этого он
+        ждёт файл-флаг в папке результатов текущего парсинга.
+        """
+        out = self._parsing_output()
+        if not out or not os.path.isdir(out):
+            self._emit("toast", {"type": "warning",
+                                 "message": "Папка результатов не выбрана"})
+            return {"ok": False}
+        try:
+            open(os.path.join(out, "dobrocen_continue.flag"), "w").close()
+        except Exception as e:
+            self._emit("toast", {"type": "error", "message": f"Не удалось: {e}"})
+            return {"ok": False}
+        return {"ok": True}
+
     def run_parser_one(self, data: dict):
         key = (data or {}).get("key", "")
         out = self._check_ready()

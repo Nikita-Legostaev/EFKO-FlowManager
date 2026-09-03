@@ -192,11 +192,13 @@
       <div class="action-spacer"></div>
       <span id="pz-status" style="font-size:12px;color:var(--text3)"></span>
       <button class="btn btn-primary" id="pz-run-sel">▶ Запустить выбранные</button>
+      <button class="btn btn-ghost" id="pz-continue-captcha" title="Для сетей с ручной капчей (Доброцен) — нажмите после того, как решите капчу в открывшемся браузере">▶ Продолжить (капча решена)</button>
       <button class="btn btn-danger" id="pz-stop">■ Стоп</button>`;
     bar.appendChild(g);
 
     $('pz-open-folder').addEventListener('click', () => api() && api().open_parsing_folder());
     $('pz-run-sel').addEventListener('click', runSelected);
+    $('pz-continue-captcha').addEventListener('click', () => api() && api().continue_dobrocen_captcha());
     $('pz-stop').addEventListener('click', () => {
       if (typeof stopAction === 'function') stopAction();
     });

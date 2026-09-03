@@ -19,6 +19,7 @@ import sys
 import asyncio
 from collections import Counter, defaultdict
 from itertools import groupby
+from pathlib import Path
 
 from bs4 import BeautifulSoup
 import pandas as pd
@@ -26,10 +27,11 @@ import openpyxl
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from playwright.async_api import async_playwright
 
-BASE_URL    = "https://www.magazinnoff.ru"
-CITIES_HTML = "cities.html"
-DICT_FILE   = "city_and_regions_Russia.xlsx"
-OUTPUT      = "dobrocen_shops.xlsx"
+BASE_URL       = "https://www.magazinnoff.ru"
+CITIES_HTML    = "cities.html"
+DICT_FILE      = "city_and_regions_Russia.xlsx"
+OUTPUT         = "dobrocen_shops.xlsx"
+CONTINUE_FLAG  = Path("dobrocen_continue.flag")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -141,10 +143,25 @@ async def scrape_cities(cities, city_dict):
             "https://www.magazinnoff.ru/magazin/dobrocen/c/abdylino",
             wait_until="domcontentloaded", timeout=30000
         )
+        # input() тут не работает: в собранном приложении нет консоли
+        # (console=False) — sys.stdin недоступен, а не просто пуст, поэтому
+        # input() падает с «lost sys.stdin» вместо ожидания. Ждём вместо
+        # этого файл-флаг, который создаёт кнопка «▶ Продолжить (капча
+        # решена)» в приложении (api.parsing.continue_dobrocen_captcha).
         print("\n" + "="*55)
-        print("  РЕШИТЕ КАПЧУ В БРАУЗЕРЕ, затем нажмите Enter здесь")
+        print("  РЕШИТЕ КАПЧУ В БРАУЗЕРЕ, ЗАТЕМ НАЖМИТЕ")
+        print("  «▶ Продолжить (капча решена)» В ПРИЛОЖЕНИИ")
         print("="*55)
-        await asyncio.get_event_loop().run_in_executor(None, input)
+        try:
+            CONTINUE_FLAG.unlink()
+        except FileNotFoundError:
+            pass
+        while not CONTINUE_FLAG.exists():
+            await asyncio.sleep(0.5)
+        try:
+            CONTINUE_FLAG.unlink()
+        except FileNotFoundError:
+            pass
         print("  Продолжаем...\n")
 
         for i, city in enumerate(cities, 1):
