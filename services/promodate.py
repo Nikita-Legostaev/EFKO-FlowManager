@@ -470,11 +470,15 @@ def refresh_file(file_path, log, stop_event):
         _excel_optimize(excel)
         wb = excel.Workbooks.Open(file_path)
         saved = _set_sync_refresh(wb, log)
-        if stop_event.is_set(): return False
+        if stop_event.is_set():
+            log(f"{filename} — ⛔ остановлено до обновления")
+            return False
         log(f"{filename} — RefreshAll() запущен (синхронно)...")
         wb.RefreshAll()
         log(f"{filename} — обновление завершено ✅")
-        if stop_event.is_set(): return False
+        if stop_event.is_set():
+            log(f"{filename} — ⛔ остановлено до сохранения")
+            return False
         _restore_bg_refresh(saved)
         _excel_restore(excel)
         wb.Save()
@@ -528,11 +532,15 @@ def _refresh_xlsm_query(file_path, log, stop_event):
         try:
             wb = excel.Workbooks.Open(file_path, UpdateLinks=0, ReadOnly=False)
             saved = _set_sync_refresh(wb, log)
-            if stop_event.is_set(): return False
+            if stop_event.is_set():
+                log(f"{filename} — ⛔ остановлено до обновления")
+                return False
             try: wb.RefreshAll()
             except Exception as e: log(f"{filename} — RefreshAll ошибка (продолжаем): {e}")
             log(f"{filename} — Power Query обновлён ✅")
-            if stop_event.is_set(): return False
+            if stop_event.is_set():
+                log(f"{filename} — ⛔ остановлено до сохранения")
+                return False
             _restore_bg_refresh(saved)
             time.sleep(3)
             try:
@@ -566,14 +574,18 @@ def _run_xlsm_macros(file_path, macro_names, log, stop_event):
             wb = excel.Workbooks.Open(file_path, UpdateLinks=0, ReadOnly=False)
             log(f"{filename} — запускаем макросы ({len(macros)} шт.)...")
             for macro_name in macros:
-                if stop_event.is_set(): return False
+                if stop_event.is_set():
+                    log(f"{filename} — ⛔ остановлено, макросы прерваны")
+                    return False
                 log(f"  ▷ Макрос: {macro_name}")
                 try:
                     excel.Application.Run(macro_name)
                     log(f"  ✅ {macro_name} — выполнен")
                 except Exception as e:
                     log(f"  ❌ Ошибка макроса «{macro_name}»: {e}")
-            if stop_event.is_set(): return False
+            if stop_event.is_set():
+                log(f"{filename} — ⛔ остановлено до сохранения")
+                return False
             _excel_restore(excel)
             wb.Save()
             log(f"{filename} — сохранён после макросов ✅")

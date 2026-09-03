@@ -697,6 +697,22 @@ def process_nielsen(
         messagebox.showwarning("Ошибка", "Выберите хотя бы один исходник Nielsen")
         return
 
+    # Указанный, но отсутствующий файл раньше просто пропускался ниже по коду
+    # (`if input_file and os.path.isfile(input_file)`) — без строки в логе и без
+    # предупреждения. Достаточно отключиться сетевому диску V: или переехать
+    # файлу, и обработка «успешно» заканчивалась пустым результатом, а человек
+    # не понимал, почему ничего не появилось.
+    missing = [p for p in (input_file, input_file2) if p and not os.path.isfile(p)]
+    if missing:
+        for p in missing:
+            log(f"❌ Файл не найден: {p}")
+        messagebox.showwarning(
+            "Файл не найден",
+            "Не найдены исходники:\n" + "\n".join(missing)
+            + "\n\nПроверьте путь и доступность сетевого диска.",
+        )
+        return
+
     # Определяем папки сохранения для каждого исходника
     dir1 = Path(output_dir_str) if output_dir_str else None
     dir2 = Path(output_dir2) if output_dir2 else dir1   # fallback на папку 1
